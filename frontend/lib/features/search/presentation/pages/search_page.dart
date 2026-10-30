@@ -225,20 +225,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           },
                         ),
             ),
-            // iOS Bottom Home Indicator Bar matching Figma screenshot
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 8),
-              child: Center(
-                child: Container(
-                  width: 134,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A201C),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
