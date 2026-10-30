@@ -1,18 +1,19 @@
 <div align="center">
 
-# 🧊 Fridge Management & Expiry Alert App (FM-EAA)
-**แอปพลิเคชันจัดการของในตู้เย็นและแจ้งเตือนวันหมดอายุอัจฉริยะ**
+# 🧊 Smart Fridge Inventory & Expiry Alert App (FM-EAA)
+**แอปพลิเคชันจัดการสต็อกวัตถุดิบในตู้เย็นและแจ้งเตือนวันหมดอายุอัจฉริยะ**
+*พัฒนาขึ้นสำหรับโครงงานรายวิชา MDSD-2026*
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
-[![Node.js](https://img.shields.io/badge/Backend-Node.js_REST_API-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
-[![Database](https://img.shields.io/badge/Database-Oracle_Cloud_DB-F80000?logo=oracle&logoColor=white)](https://www.oracle.com/database/)
-[![Local DB](https://img.shields.io/badge/Local_DB-Drift-29B6F6)](https://drift.simonbinder.eu/)
-[![AI Engine](https://img.shields.io/badge/AI_Engine-Gemini_Vision_API-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
-[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
-[![Coverage](https://img.shields.io/badge/Coverage-≥70%25-brightgreen?logo=codecov&logoColor=white)](#-การทดสอบและ-cicd-testing--automation)
+[![Flutter](https://img.shields.io/badge/Frontend-Flutter_3.x-02569B?logo=flutter&logoColor=white&style=for-the-badge)](https://flutter.dev)
+[![Riverpod](https://img.shields.io/badge/State-Riverpod-2E8555?style=for-the-badge)](https://riverpod.dev)
+[![Drift](https://img.shields.io/badge/Local_DB-Drift_(SQLite)-003B57?logo=sqlite&logoColor=white&style=for-the-badge)](https://drift.simonbinder.eu/)
+[![Node.js](https://img.shields.io/badge/Backend-Node.js_REST_API-339933?logo=nodedotjs&logoColor=white&style=for-the-badge)](https://nodejs.org)
+[![Oracle Cloud](https://img.shields.io/badge/Cloud_DB-Oracle_Cloud_(OCI)-F80000?logo=oracle&logoColor=white&style=for-the-badge)](https://cloud.oracle.com)
+[![Gemini AI](https://img.shields.io/badge/AI_Vision-Gemini_Vision_API-4285F4?logo=google&logoColor=white&style=for-the-badge)](https://ai.google.dev)
 
 <p align="center">
-  มุ่งเน้นลดปัญหาขยะอาหาร (Food Waste) และลดค่าใช้จ่ายในครัวเรือนด้วยระบบจัดการสต็อกวัตถุดิบส่วนกลาง พร้อมกลไก Offline-First และพลังวิเคราะห์จาก Multimodal AI
+  แอปพลิเคชันช่วยลดปัญหาขยะอาหาร (Food Waste) และลดค่าใช้จ่ายในบ้านด้วยระบบจัดการสต็อกแบบ Offline-First<br/>
+  ใช้งานได้แม้ไม่มีเน็ต พร้อมระบบ Auto-Sync ขึ้น Oracle Cloud และระบบอ่านฉลากหาวันหมดอายุอัตโนมัติด้วย Gemini Vision API
 </p>
 
 ---
@@ -20,296 +21,362 @@
 </div>
 
 ## 📌 สารบัญ (Table of Contents)
-- [💡 ปัญหาและแนวทางการแก้ไข (Problem & Solution)](#-ปัญหาและแนวทางการแก้ไข-problem--solution)
-- [✨ ฟีเจอร์หลัก (Key Features)](#-ฟีเจอร์หลัก-key-features)
-- [📐 โครงสร้างสถาปัตยกรรม (System Architecture)](#-โครงสร้างสถาปัตยกรรม-system-architecture)
-  - [1. 3-Tier Architecture Overview](#1-3-tier-architecture-overview)
-  - [2. Offline-First & Data Sync Engine](#2-offline-first--data-sync-engine)
-  - [3. Shared Fridge Domain Model](#3-shared-fridge-domain-model)
+
+- [💡 ที่มาและความสำคัญ (Problem & Solution)](#-ที่มาและความสำคัญ-problem--solution)
+- [✨ ฟีเจอร์เด่นของระบบ (Key Features)](#-ฟีเจอร์เด่นของระบบ-key-features)
+- [📐 สถาปัตยกรรมระบบ (System Architecture)](#-สถาปัตยกรรมระบบ-system-architecture)
+  - [1. สถาปัตยกรรมแบบ 3-Tier (3-Tier Architecture)](#1-สถาปัตยกรรมแบบ-3-tier-3-tier-architecture)
+  - [2. โครงสร้างตู้เย็นครอบครัว (Shared Fridge Domain Model)](#2-โครงสร้างตู้เย็นครอบครัว-shared-fridge-domain-model)
+- [🔄 ลอจิกการทำงานหลัก (Core Technical Flows)](#-ลอจิกการทำงานหลัก-core-technical-flows)
+  - [1. ระบบจัดเก็บข้อมูลแบบ Offline-First (Local SQLite Storage)](#1-ระบบจัดเก็บข้อมูลแบบ-offline-first-local-sqlite-storage)
+  - [2. กลไกการซิงค์ข้อมูลอัตโนมัติ (Auto-Synchronization Engine)](#2-กลไกการซิงค์ข้อมูลอัตโนมัติ-auto-synchronization-engine)
+  - [3. การวิเคราะห์ภาพถ่ายด้วย AI (Gemini Vision Processing)](#3-การวิเคราะห์ภาพถ่ายด้วย-ai-gemini-vision-processing)
+  - [4. ความปลอดภัยและการยืนยันตัวตน (Authentication & Security)](#4-ความปลอดภัยและการยืนยันตัวตน-authentication--security)
 - [🛠 เทคโนโลยีที่ใช้ (Tech Stack)](#-เทคโนโลยีที่ใช้-tech-stack)
-- [🧪 การทดสอบและ CI/CD (Testing & Automation)](#-การทดสอบและ-cicd-testing--automation)
-- [🎨 การออกแบบ UI/UX (Design Principles)](#-การออกแบบ-uiux-design-principles)
-- [🚀 วิธีการติดตั้งและรันโปรเจกต์ (Getting Started)](#-วิธีการติดตั้งและรันโปรเจกต์-getting-started)
+- [🧪 การทดสอบและระบบ CI/CD (Testing & Automation)](#-การทดสอบและระบบ-cicd-testing--automation)
+- [🚀 ขั้นตอนการติดตั้งและรันโปรเจกต์ (Getting Started)](#-ขั้นตอนการติดตั้งและรันโปรเจกต์-getting-started)
 - [👥 สมาชิกผู้จัดทำ (Contributors)](#-สมาชิกผู้จัดทำ-contributors)
 
 ---
 
-## 💡 ปัญหาและแนวทางการแก้ไข (Problem & Solution)
+## 💡 ที่มาและความสำคัญ (Problem & Solution)
 
 ### ปัญหาที่พบ (The Problem)
-* **วิกฤตขยะอาหาร (Food Waste)** ผู้บริโภคมักหลงลืมของสดและวัตถุดิบที่แช่ไว้ลึกในตู้เย็นจนเกินวันหมดอายุ ส่งผลให้เกิดปริมาณขยะอาหารสะสมและกระทบต่อสิ่งแวดล้อม
-* **ค่าใช้จ่ายครัวเรือนสิ้นเปลือง** การขาดมุมมองภาพรวมสต็อกของสดในบ้าน มักนำไปสู่พฤติกรรมการซื้อวัตถุดิบซ้ำซ้อนโดยไม่จำเป็น
-* **ข้อจำกัดในการแชร์ข้อมูลร่วมกัน** สำหรับกลุ่มครอบครัวหรือรูมเมทในหอพักและคอนโด สมาชิกมักสื่อสารสถานะของสดไม่ทั่วถึง ทำให้ไม่ทราบว่าของชิ้นใดกำลังจะเสียหรือถูกนำไปประกอบอาหารแล้ว
+* **ปัญหาขยะอาหาร (Food Waste)** คนส่วนใหญ่มักลืมของสดที่แช่ไว้ลึกในตู้เย็นจนหมดอายุหรือเน่าเสีย ทำให้ต้องทิ้งอาหารไปโดยเปล่าประโยชน์
+* **ซื้อของซ้ำซ้อน** การไม่รู้ว่ามีอะไรอยู่ในตู้เย็นบ้าง ทำให้เผลอซื้อของเดิมมาซ้ำ เสียเงินโดยใช่เหตุ
+* **คนในบ้านไม่รู้สต็อกร่วมกัน** สมาชิกในบ้านหรือรูมเมทไม่รู้ว่ามีวัตถุดิบอะไรเหลืออยู่ ชิ้นไหนกินไปแล้ว หรือชิ้นไหนต้องรีบกินก่อนหมดอายุ
 
 ### แนวทางการแก้ไข (The Solution)
-**FM-EAA** ออกแบบมาเพื่อยกระดับการจัดการตู้เย็นอย่างเป็นรูปธรรม ผ่าน 3 เสาหลักสำคัญ
-1. **Shared Ecosystem** ปรับรูปแบบการถือครองข้อมูลให้ผูกกับ "ตู้เย็นส่วนกลาง" แทนตัวบุคคล ทำให้สมาชิกทุกคนในบ้านเห็นและอัปเดตสต็อกตรงกันแบบเรียลไทม์
-2. **Zero-Friction Logging** ลดภาระการบันทึกด้วย Gemini Vision API ที่ช่วยวิเคราะห์ภาพฉลากและสกัดวันหมดอายุเพื่อเติมลงฟอร์มอัตโนมัติในไม่กี่วินาที
-3. **Proactive Alerting & Waste Reduction** ควบคุมการแจ้งเตือนวันหมดอายุล่วงหน้าตรงถึงมือถือแบบออฟไลน์ พร้อมระบบ AI ช่วยสร้างสรรค์เมนูจากของที่ต้องรีบใช้เพื่อเคลียร์ตู้เย็นอย่างคุ้มค่า
+แอปพลิเคชัน **FM-EAA** ออกแบบมาเพื่อแก้ปัญหาเหล่านี้
+1. **สต็อกตู้เย็นส่วนกลาง (Shared Fridge)** รวมข้อมูลสต็อกไว้ที่ตู้เย็นของบ้าน ให้ทุกคนเห็นข้อมูลตรงกันแบบเรียลไทม์
+2. **สแกนฉลากด้วย AI** ถ่ายรูปฉลากอาหาร แล้วใช้ Gemini Vision API อ่านชื่อและวันหมดอายุลงฟอร์มให้ทันที ไม่ต้องพิมพ์เอง
+3. **ใช้งานแบบ Offline-First** ใช้งานและบันทึกข้อมูลได้ตลอดเวลาแม้ไม่มีเน็ต แล้วค่อยซิงค์ข้อมูลขึ้น Oracle Cloud เมื่อเชื่อมต่อได้
+4. **บันทึกประวัติการใช้งาน** แยกชัดเจนว่าของชิ้นไหนกินหมด หรือชิ้นไหนต้องทิ้ง ช่วยให้เห็นพฤติกรรมและวางแผนซื้อของได้ดีขึ้น
 
 ---
 
-## ✨ ฟีเจอร์หลัก (Key Features)
+## ✨ ฟีเจอร์เด่นของระบบ (Key Features)
 
-| หมวดหมู่งาน | รายละเอียดความสามารถของระบบ |
-| :--- | :--- |
-| 👨‍👩‍👧‍👦 **Family Group (Shared Fridge)** | สถาปัตยกรรมตู้เย็นรวม โดยข้อมูลวัตถุดิบจะผูกกับตู้เย็นส่วนกลางโดยตรง สมาชิกทุกคนในกลุ่มจึงสามารถตรวจสอบ เพิ่ม ลบ หรืออัปเดตข้อมูลของสดร่วมกันได้อย่างแม่นยำ |
-| 🔄 **Offline-First & Auto Data Sync** | มุ่งเน้นความต่อเนื่องในการใช้งานผ่านการเก็บข้อมูลลงฐานข้อมูลในเครื่อง (Local DB) ทำให้เปิดดูและเพิ่มรายการได้ทันทีแม้ไม่มีสัญญาณอินเทอร์เน็ต พร้อมระบบ Auto-Sync ขึ้นคลาวด์อัตโนมัติเมื่อออนไลน์ด้วยกลยุทธ์ Last Write Wins (LWW) |
-| 🔔 **Offline Local Notification & Auto-Schedule** | แจ้งเตือนวันหมดอายุล่วงหน้าบนอุปกรณ์ได้โดยไม่ต้องพึ่งพาสัญญาณอินเทอร์เน็ต ระบบจะคำนวณวันหมดอายุและตั้งเวลาแจ้งเตือนให้สมาชิกทุกคนในกลุ่มครอบครัวอัตโนมัติเมื่อมีการซิงค์ข้อมูลใหม่ |
-| 👁️ **AI Vision OCR (Gemini API)** | สแกนภาพถ่ายฉลากอาหารเพื่อแยกแยะชื่อวัตถุดิบ หมวดหมู่ และวันหมดอายุ Auto-fill ลงในฟอร์ม พร้อมวางกระบวนการแบบ Human-in-the-loop เพื่อเปิดโอกาสให้ผู้ใช้งานได้ตรวจทานและแก้ไขก่อนกดยืนยันบันทึกเสมอ |
-| 🍳 **AI Recipe Generator (Gemini API)** | ตรวจสอบรายการวัตถุดิบที่อยู่ในเกณฑ์ใกล้หมดอายุ แล้วนำมาประมวลผลแนะนำสูตรอาหารพร้อมวิธีปรุงอย่างละเอียด ช่วยลดปัญหาขยะอาหารอย่างมีประสิทธิภาพ |
-| 📦 **Smart Inventory & Zoning** | จัดการสต็อกวัตถุดิบ วันที่ซื้อ วันหมดอายุ พร้อมแยกโซนจัดเก็บอย่างชัดเจนระหว่างช่องแช่เย็นธรรมดา (Chiller) และช่องแช่แข็ง (Freezer) เพื่อให้ได้การประเมินอายุการเก็บรักษาที่ตรงตามจริง |
-| 🚦 **Visual Cue (Freshness Indicator)** | สื่อสารสถานะความสดใหม่ผ่านโค้ดสีตามหลัก UI/UX<br>🟢 **สีเขียว** ปลอดภัย อยู่ในเกณฑ์สดใหม่<br>🟡 **สีเหลือง** ใกล้หมดอายุ ควรเร่งนำมาบริโภค<br>🔴 **สีแดง** หมดอายุแล้ว ไม่แนะนำให้นำมารับประทาน |
-| 🔐 **Multi-Identity Authentication** | รองรับการยืนยันตัวตนทั้งรูปแบบ Email/Password (JWT) และ OAuth 2.0 ร่วมกับ Google พร้อมความยืดหยุ่นในการเชื่อมต่อ (Link) หรือยกเลิกการเชื่อมต่อ (Unlink) บัญชีได้ตลอดเวลาในหน้าตั้งค่า |
+### 1. 🥗 การแบ่งหมวดหมู่อาหารและโซนจัดเก็บ (Smart Categorization & Zoning)
+* **แยกโซนจัดเก็บชัดเจน (Storage Zones)**
+  * ❄️ **ช่องแช่เย็น (Fridge / Chiller)** สำหรับของสด ผัก ผลไม้ และเครื่องดื่ม
+  * 🧊 **ช่องแช่แข็ง (Freezer)** สำหรับอาหารแช่แข็ง เนื้อสัตว์ และของที่เก็บได้นาน
+* **หมวดหมู่อาหาร (Categories)**
+  * 🥩 **Proteins** เนื้อสัตว์ อาหารทะเล ไข่ เต้าหู้
+  * 🥦 **Veggies** ผักสด ผลไม้ สมุนไพร
+  * 🧃 **Beverages** นม น้ำผลไม้ เครื่องดื่มบรรจุขวด
+  * 🍱 **Meals** อาหารปรุงสำเร็จ อาหารพร้อมทาน
+  * 🥫 **Sauces** เครื่องปรุงรส ซอส แยม
+  * 🌐 **All** แสดงรายการวัตถุดิบทั่วทั้งตู้เย็น
+* **แถบสีบอกสถานะความสดใหม่ (Freshness Visual Cues)**
+  * 🟢 **สีเขียว** วัตถุดิบยังสดใหม่ ปลอดภัย
+  * 🟡 **สีเหลือง** ใกล้หมดอายุ (Expiring Soon) ควรรีบนำมารับประทาน
+  * 🔴 **สีแดง** หมดอายุแล้ว (Expired) ไม่ควรนำมารับประทาน
+
+### 2. 🔍 ระบบค้นหาวัตถุดิบ (Global Search)
+* ค้นหาของในตู้เย็นได้ทันทีผ่านช่องค้นหาเดียว ไม่ว่าจะอยู่ในช่องแช่เย็นหรือช่องแช่แข็ง
+* กรองตามชื่อ หมวดหมู่ และโซนจัดเก็บได้รวดเร็วผ่าน Index ของฐานข้อมูลในเครื่อง
+
+### 3. 📜 ระบบบันทึกประวัติการใช้งาน (Action History)
+* บันทึกประวัติทุกครั้งที่มีการอัปเดตสถานะวัตถุดิบ
+  * 🍽️ **บริโภคสำเร็จ (Consumed)** ของที่นำไปทำอาหารหรือกินหมดแล้ว
+  * 🗑️ **ทิ้ง / เน่าเสีย (Discarded)** ของที่เน่าเสียหรือเลยวันหมดอายุ เพื่อใช้เก็บสถิติลดขยะอาหาร
+* ช่วยให้กลับมาดูย้อนหลังได้ว่าซื้ออะไรมาแล้วกินไม่ทันบ่อยที่สุด
+
+### 4. 👨‍👩‍👧‍👦 ตู้เย็นส่วนกลางและการแจ้งเตือน (Family Sharing & Smart Notifications)
+* **แชร์ตู้เย็นในบ้าน (Family Group)** เชื่อมข้อมูลของในตู้เย็นเข้ากับกลุ่มครอบครัว ให้ทุกคนในบ้านช่วยกันอัปเดตสต็อกได้
+* **แจ้งเตือนวันหมดอายุในเครื่อง (Offline Local Notifications)** ตั้งเวลาเตือนวันหมดอายุล่วงหน้าลงบนตัวเครื่องโดยตรง แม้ไม่ได้เชื่อมต่ออินเทอร์เน็ตก็ยังแจ้งเตือนได้ตรงเวลา
 
 ---
 
-## 📐 โครงสร้างสถาปัตยกรรม (System Architecture)
+## 📐 สถาปัตยกรรมระบบ (System Architecture)
 
-### 1. 3-Tier Architecture Overview
-โครงสร้างระบบถูกแบ่งออกเป็น 3 ระดับชั้น เพื่อความเป็นสัดส่วนในการจัดการความปลอดภัย และความง่ายต่อการขยายระบบในอนาคต
+### 1. สถาปัตยกรรมแบบ 3-Tier (3-Tier Architecture)
+
+โครงสร้างระบบแบ่งการทำงานออกเป็น 3 ส่วน (3-Tier Architecture) เพื่อให้จัดการโค้ดง่าย ปลอดภัย และดูแลระบบได้สะดวก
 
 ```mermaid
 flowchart TD
-    subgraph Client ["📱 Client Tier (Flutter App)"]
+    subgraph ClientTier ["📱 1. Client Tier (Mobile Application)"]
         UI["Flutter UI (Material Design 3)"]
-        State["Riverpod State Management"]
+        Riverpod["Riverpod State Management"]
         Repo["Repository Layer"]
-        Drift[("Drift Local DB (Offline Cache)")]
+        LocalDB[("Local SQLite Database<br/>(Drift)")]
 
-        UI --> State
-        State --> Repo
-        Repo --> Drift
+        UI <--> Riverpod
+        Riverpod <--> Repo
+        Repo <--> LocalDB
     end
 
-    subgraph Backend ["⚙️ Application Tier (Node.js REST API)"]
-        API["Node.js Express Server"]
-        Auth["Auth & Security (JWT / OAuth)"]
-        Sync["Sync Engine (Last Write Wins)"]
-        AIService["Gemini AI Service Adapter"]
+    subgraph BackendTier ["⚙️ 2. Application Tier (Node.js REST API)"]
+        API["Node.js / Express Server"]
+        AuthModule["Google OAuth & JWT Verification"]
+        SyncEngine["Sync Engine & Conflict Handler<br/>(Last-Write-Wins: LWW)"]
+        GeminiAdapter["Gemini Vision AI Adapter"]
 
-        API --> Auth
-        API --> Sync
-        API --> AIService
+        API --> AuthModule
+        API --> SyncEngine
+        API --> GeminiAdapter
     end
 
-    subgraph Cloud ["☁️ Data & AI Tier (Cloud Services)"]
-        OracleDB[("Oracle Cloud Database")]
-        GeminiAPI["Google Gemini Vision API"]
+    subgraph CloudTier ["☁️ 3. Data Tier (Cloud Services)"]
+        OracleDB[("Oracle Cloud Infrastructure<br/>(OCI Database)")]
+        GeminiCloud["Google Gemini Vision API"]
+
+        SyncEngine <-->|"Connection Pool / SQL"| OracleDB
+        GeminiAdapter <-->|"REST HTTPS Request"| GeminiCloud
     end
 
-    Repo ==>|"HTTPS REST API (JWT)"| API
-    Sync ==>|"Database Query"| OracleDB
-    AIService ==>|"REST Request"| GeminiAPI
+    Repo ==>|"HTTPS REST API (Bearer JWT)"| API
 
     classDef clientStyle fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1;
     classDef backendStyle fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#15803d;
     classDef cloudStyle fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#b45309;
 
-    class UI,State,Repo,Drift clientStyle;
-    class API,Auth,Sync,AIService backendStyle;
-    class OracleDB,GeminiAPI cloudStyle;
+    class UI,Riverpod,Repo,LocalDB clientStyle;
+    class API,AuthModule,SyncEngine,GeminiAdapter backendStyle;
+    class OracleDB,GeminiCloud cloudStyle;
 ```
 
 ---
 
-### 2. Offline-First & Data Sync Engine
-ระบบให้ความสำคัญสูงสุดกับความพร้อมใช้งาน (High Availability) และความเร็วในการตอบสนอง โดยจำลองลำดับขั้นตอนการทำงานไว้ดังนี้
+### 2. โครงสร้างตู้เย็นครอบครัว (Shared Fridge Domain Model)
+
+ระบบออกแบบให้รายการวัตถุดิบผูกเข้ากับ "ตู้เย็นส่วนกลาง" ของบ้าน ทำให้สมาชิกทุกคนในบ้านสามารถเข้าถึงและอัปเดตสต็อกร่วมกันได้
 
 ```mermaid
 flowchart TD
-    A["👤 ผู้ใช้บันทึก / แก้ไขข้อมูล"] --> B["💾 บันทึกลง Drift DB (ในเครื่องทันที)<br/>ตั้งค่า is_synced = false"]
-    B --> C["⚡ อัปเดตหน้าจอทันที (Optimistic UI)"]
-    
-    B --> D{"📡 ตรวจสอบสัญญาณอินเทอร์เน็ต"}
-    
-    D -- "📴 Offline" --> E["⏳ รอการเชื่อมต่อ (Reconnection Event)"]
-    E --> D
-    
-    D -- "📶 Online" --> F["🚀 Sync Manager ส่งข้อมูลขึ้น Backend<br/>พร้อม Client Timestamp"]
-    F --> G{"⚖️ ตรวจสอบ Conflict (Last Write Wins)"}
-    
-    G -- "ข้อมูลฝั่งเครื่องใหม่กว่า" --> H["☁️ รวมข้อมูลลง Oracle Cloud Database"]
-    G -- "ข้อมูลบนคลาวด์ใหม่กว่า" --> I["🔄 อัปเดตข้อมูลในเครื่องตามคลาวด์"]
-    
-    H --> J["✅ ยืนยันการซิงค์ (is_synced = true)"]
-    I --> J
-    J --> K["🔔 คำนวณวันหมดอายุและตั้งเวลาแจ้งเตือน<br/>(Local Notification Auto-Schedule)"]
-    K --> L(["🎉 ข้อมูลตรงกันทุกคนในกลุ่ม"])
-
-    classDef action fill:#f1f5f9,stroke:#64748b,stroke-width:2px,color:#0f172a;
-    classDef decision fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#3730a3;
-    classDef success fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#166534;
-
-    class A,B,C,E,F,H,I,K action;
-    class D,G decision;
-    class J,L success;
-```
-
----
-
-### 3. Shared Fridge Domain Model
-โครงสร้างการออกแบบเชิงข้อมูลที่รวมศูนย์สต็อกไว้ที่ระดับกลุ่มครอบครัว
-
-```mermaid
-flowchart TD
-    subgraph Members ["👥 สมาชิกในกลุ่มครอบครัว"]
+    subgraph FamilyGroup ["👥 สมาชิกกลุ่มครอบครัว (Family Members)"]
         U1["สมาชิกคนที่ 1"]
         U2["สมาชิกคนที่ 2"]
         U3["สมาชิกคนที่ 3"]
     end
 
-    Fridge["🧊 ตู้เย็นส่วนกลาง (Shared Fridge)"]
+    SharedFridge["🧊 ตู้เย็นส่วนกลาง (Shared Fridge Domain)"]
 
-    subgraph Inventory ["📦 รายการวัตถุดิบในตู้เย็น"]
-        Item1["วัตถุดิบ A<br/>ช่องแช่เย็น / วันหมดอายุ"]
-        Item2["วัตถุดิบ B<br/>ช่องแช่แข็ง / วันหมดอายุ"]
-        Item3["วัตถุดิบ C<br/>ช่องแช่เย็น / วันหมดอายุ"]
+    subgraph InventoryStock ["📦 สต็อกวัตถุดิบในตู้เย็น"]
+        I1["🥩 เนื้อหมูสันใน (Freezer / Expiry: 15 วัน)"]
+        I2["🥦 ผักกาดขาว (Fridge / Expiry: 4 วัน)"]
+        I3["🧃 นมสดพาสเจอร์ไรส์ (Fridge / Expiry: 2 วัน)"]
     end
 
-    U1 --> Fridge
-    U2 --> Fridge
-    U3 --> Fridge
+    U1 --> SharedFridge
+    U2 --> SharedFridge
+    U3 --> SharedFridge
 
-    Fridge --> Item1
-    Fridge --> Item2
-    Fridge --> Item3
+    SharedFridge --> I1
+    SharedFridge --> I2
+    SharedFridge --> I3
 
     classDef user fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1;
     classDef fridge fill:#fef3c7,stroke:#d97706,stroke-width:3px,color:#92400e;
     classDef item fill:#f1f5f9,stroke:#64748b,stroke-width:2px,color:#334155;
 
     class U1,U2,U3 user;
-    class Fridge fridge;
-    class Item1,Item2,Item3 item;
+    class SharedFridge fridge;
+    class I1,I2,I3 item;
 ```
+
+---
+
+## 🔄 ลอจิกการทำงานหลัก (Core Technical Flows)
+
+### 1. ระบบจัดเก็บข้อมูลแบบ Offline-First (Local SQLite Storage)
+* ข้อมูลทั้งหมดจะถูกเขียนและอ่านจาก SQLite ในเครื่อง (ผ่าน Drift) เป็นหลัก
+* **Optimistic UI** เมื่อผู้ใช้เพิ่ม ลบ หรือแก้ไขรายการอาหาร หน้าจอจะอัปเดตผลทันทีผ่าน Riverpod โดยไม่ต้องรอเซิร์ฟเวอร์ตอบกลับ
+* ระบบจะกำหนดสถานะ `is_synced = false` พร้อมบันทึก Timestamp ล่าสุดไว้ในเครื่อง เพื่อเตรียมส่งข้อมูลเมื่อเชื่อมต่อเน็ตได้
+
+---
+
+### 2. กลไกการซิงค์ข้อมูลอัตโนมัติ (Auto-Synchronization Engine)
+* มีตัวตรวจสอบสถานะอินเทอร์เน็ตทำงานอยู่เบื้องหลัง
+* เมื่ออุปกรณ์กลับมาเชื่อมต่อเน็ตได้ (Offline ➔ Online)
+  1. ดึงข้อมูลที่ยังไม่ได้ซิงค์ (`is_synced = false`) ทั้งหมดจาก Drift ในเครื่อง
+  2. รวมข้อมูลแล้วส่งคำขอแบบชุด (Batched Sync) ไปยัง Node.js API
+  3. เซิร์ฟเวอร์ตรวจสอบและบันทึกลง Oracle Cloud Database (OCI) โดยใช้หลัก Last-Write-Wins (LWW) เพื่อจัดการกรณีข้อมูลชนกัน
+  4. เมื่อเซิร์ฟเวอร์บันทึกสำเร็จ แอปจะปรับสถานะเป็น `is_synced = true` และตั้งเวลาแจ้งเตือนวันหมดอายุรอบใหม่
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as ผู้ใช้งาน
+    participant App as แอป Flutter (Riverpod)
+    participant LocalDB as Local SQLite (Drift)
+    participant NetWatcher as Network Connectivity Watcher
+    participant API as Node.js REST API
+    participant Oracle as Oracle Cloud Database (OCI)
+
+    User->>App: เพิ่ม / อัปเดตรายการวัตถุดิบ
+    App->>LocalDB: บันทึกข้อมูล (is_synced = false, updated_at)
+    LocalDB-->>App: ยืนยันการเขียนลงฐานข้อมูลในเครื่อง
+    App-->>User: แสดงผลบนหน้าจอทันที (Optimistic UI)
+
+    Note over NetWatcher: อุปกรณ์ตรวจพบการเชื่อมต่ออินเทอร์เน็ต (Reconnection)
+    NetWatcher->>App: แจ้งเตือนสถานะออนไลน์ (Online Event)
+    App->>LocalDB: สืบหาแถวข้อมูลที่ is_synced = false
+    LocalDB-->>App: คืนรายการที่รอการซิงค์
+    App->>API: POST /api/inventory/sync (พร้อมแนบ Bearer JWT)
+    API->>Oracle: อัปเดต/บันทึกข้อมูล (Last-Write-Wins Resolution)
+    Oracle-->>API: ยืนยัน Transaction สำเร็จ
+    API-->>App: ส่งผลตอบกลับ 200 OK (Sync Success)
+    App->>LocalDB: อัปเดตสถานะเป็น is_synced = true
+```
+
+---
+
+### 3. การวิเคราะห์ภาพถ่ายด้วย AI (Gemini Vision Processing)
+* ผู้ใช้ถ่ายภาพฉลากอาหารหรือเลือกรูปจากเครื่อง
+* แอปส่งรูปภาพผ่าน API ไปยัง **Google Gemini Vision API**
+* ระบบ AI ช่วยอ่านข้อความสำคัญบนฉลาก
+  * **ชื่ออาหาร (Item Name)** สกัดชื่อสินค้าหรือชนิดวัตถุดิบ
+  * **วันหมดอายุ (Expiry Date)** อ่านวันที่จากข้อความบนฉลาก เช่น EXP, BBD หรือ ควรบริโภคก่อน
+* **Auto-fill & Review** นำข้อมูลที่อ่านได้มากรอกลงแบบฟอร์มให้อัตโนมัติ เพื่อให้ผู้ใช้ตรวจทานและแก้ไขก่อนกดยืนยันบันทึก
+
+---
+
+### 4. ความปลอดภัยและการยืนยันตัวตน (Authentication & Security)
+* **Google OAuth 2.0** เข้าสู่ระบบด้วยบัญชี Google ผ่าน Google Sign-In SDK บนมือถือ
+* **การตรวจสอบฝั่งเซิร์ฟเวอร์** แอปส่ง Google ID Token ไปยัง Node.js API เพื่อตรวจสอบความถูกต้องและจับคู่บัญชีใน Oracle Cloud Database
+* **การปกป้อง API ด้วย JWT** เซิร์ฟเวอร์ออก JSON Web Token (JWT) ให้แอปเก็บไว้ใน Secure Storage ของเครื่อง และแนบไปกับ Header `Authorization: Bearer <Token>` ทุกครั้งในการเรียกใช้งาน API
 
 ---
 
 ## 🛠 เทคโนโลยีที่ใช้ (Tech Stack)
 
-### ฝั่งหน้าบ้าน (Mobile Application)
-* **Framework** [Flutter](https://flutter.dev) สำหรับพัฒนาแอปพลิเคชันแบบ Cross-platform
-* **State Management** [Riverpod](https://riverpod.dev) จัดการสถานะแอปพลิเคชันแบบ Reactive และแยก Business Logic ออกจาก UI อย่างชัดเจน
-* **Local Persistence** [Drift](https://drift.simonbinder.eu/) ฐานข้อมูล SQLite แบบ Type-safe สำหรับรองรับสถาปัตยกรรม Offline-First
-* **Local Notifications** `flutter_local_notifications` บริหารคิวการแจ้งเตือนแบบ Scheduled Alert ภายในอุปกรณ์
-
-### ฝั่งหลังบ้าน (Application Server)
-* **Runtime** [Node.js](https://nodejs.org) รันบนสภาพแวดล้อม JavaScript ฝั่งเซิร์ฟเวอร์
-* **Architecture** RESTful API Architecture
-* **Security & Auth** มาตรฐาน JSON Web Tokens (JWT), Handshake ร่วมกับ OAuth 2.0, เข้ารหัสรหัสผ่านด้วย bcrypt พร้อมเปิดใช้งาน Helmet และกำหนดสิทธิ์ CORS อย่างรัดกุม
-
-### ฐานข้อมูลและบริการเสริม (Database & Cloud Services)
-* **Remote Database** [Oracle Cloud Database](https://www.oracle.com/database/) จัดเก็บข้อมูลความสัมพันธ์ แอกเคานต์ผู้ใช้ และข้อมูลกลุ่มครอบครัว
-* **AI Engine** [Google Gemini Vision API](https://ai.google.dev/) ขับเคลื่อนระบบ Multimodal OCR และสร้างสรรค์เมนูอาหาร
+| ส่วนของระบบ | เทคโนโลยีที่เลือกใช้ | บทบาทและหน้าที่การทำงาน |
+| :--- | :--- | :--- |
+| **Mobile Client** | [Flutter 3.x](https://flutter.dev) | พัฒนาแอปพลิเคชันสำหรับ iOS และ Android |
+| **State Management** | [Riverpod](https://riverpod.dev) | จัดการสถานะแอปพลิเคชันแบบ Reactive และแยก Business Logic ออกจาก UI |
+| **Local Database** | [Drift](https://drift.simonbinder.eu/) | ฐานข้อมูล SQLite ในเครื่อง รองรับการใช้งานแบบ Offline-First ทำงานร่วมกับ Riverpod แบบ Stream |
+| **Backend Framework** | [Node.js](https://nodejs.org) (Express) | REST API สำหรับประมวลผลคำขอ จัดการข้อมูล และเชื่อมต่อฐานข้อมูล |
+| **Cloud Database** | [Oracle Cloud Database (OCI)](https://cloud.oracle.com) | ฐานข้อมูล Cloud สำหรับเก็บข้อมูลผู้ใช้ สต็อกตู้เย็นส่วนกลาง และข้อมูลการซิงค์ |
+| **AI Vision Engine** | [Google Gemini Vision API](https://ai.google.dev) | โมเดล AI อ่านภาพถ่ายฉลาก สกัดชื่ออาหารและวันหมดอายุ |
+| **Authentication** | Google OAuth 2.0 & JWT | ระบบยืนยันตัวตนและรักษาความปลอดภัยในการเรียกใช้ API |
 
 ---
 
-## 🧪 การทดสอบและ CI/CD (Testing & Automation)
+## 🧪 การทดสอบและระบบ CI/CD (Testing & Automation)
 
-เพื่อให้ผลงานเป็นไปตามมาตรฐานวิศวกรรมซอฟต์แวร์ ทีมงานได้จัดทำระบบทดสอบอัตโนมัติและไปป์ไลน์การส่งมอบซอฟต์แวร์ที่มีความเข้มงวด
+ทีมงานใช้ **GitHub Actions** ตรวจสอบคุณภาพโค้ดอัตโนมัติก่อนรวมเข้าสู่ Main Branch
 
 ```mermaid
 flowchart TD
     Push["🚀 Git Push / Pull Request"] --> Runner["🤖 GitHub Actions Runner"]
 
-    subgraph Stages ["กระบวนการทดสอบอัตโนมัติ"]
-        S1["1. Static Analysis & Linter"]
-        S2["2. Automated Test Matrix<br/>(Unit / Widget / Integration / Security)"]
-        S3{"3. ประเมิน Code Coverage"}
+    subgraph Pipeline ["กระบวนการตรวจสอบคุณภาพซอฟต์แวร์"]
+        Step1["1. Static Code Analysis & Linter"]
+        Step2["2. Automated Test Matrix<br/>(Unit / Widget / Integration Tests)"]
+        Step3{"3. ประเมิน Code Coverage"}
 
-        S1 --> S2 --> S3
+        Step1 --> Step2 --> Step3
     end
 
-    Runner --> S1
+    Runner --> Step1
 
-    S3 -- "Coverage ≥ 70%" --> Pass["✅ Build Passed (พร้อมรวมโค้ด)"]
-    S3 -- "Coverage < 70%" --> Fail["❌ Build Blocked (ปฏิเสธการ Merge)"]
+    Step3 -- "Coverage ≥ 70%" --> Passed["✅ ผ่านการทดสอบ (Ready to Merge)"]
+    Step3 -- "Coverage < 70%" --> Blocked["❌ ระงับการรวมโค้ด (Blocked)"]
 
     classDef pass fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#166534;
     classDef fail fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#991b1b;
-    classDef defaultStyle fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#1e293b;
+    classDef normal fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#1e293b;
 
-    class Pass pass;
-    class Fail fail;
-    class Push,Runner,S1,S2 defaultStyle;
+    class Passed pass;
+    class Blocked fail;
+    class Push,Runner,Step1,Step2 normal;
 ```
 
-### รายละเอียดการทดสอบแต่ละระดับ (Testing Breakdown)
-1. **Unit Testing** ครอบคลุม Business Logic ทั้งหมด การคำนวณวันหมดอายุ และอัลกอริทึมการจัดการ Sync Conflict
-2. **Widget Testing** ทดสอบการแสดงผลของ UI Component แต่ละชิ้น รวมถึงความถูกต้องของการแสดงผลโค้ดสีสดใหม่ (เขียว เหลือง แดง)
-3. **Integration Testing** ทดสอบการเชื่อมต่อวงจรข้อมูลตั้งแต่ Drift บนเครื่องมือถือ ส่งผ่านไปยัง Node.js API และบันทึกลง Oracle Database
-4. **Security Testing** ทดสอบความปลอดภัยของเส้นทาง API การหมดอายุของ Token และความถูกต้องของกระบวนการ Link หรือ Unlink บัญชีภายนอก
-5. **Quality Gate** กำหนดเงื่อนไขใน CI Pipeline ให้โค้ดส่วนฟังก์ชันหลักต้องมี **Code Coverage ไม่ต่ำกว่า 70%** จึงจะอนุญาตให้ผ่านการทดสอบ
+* **Unit Testing** ตรวจสอบ Business Logic การคำนวณวันหมดอายุ และระบบซิงค์ข้อมูล
+* **Widget Testing** ทดสอบการแสดงผลของหน้าจอและ UI Component ต่างๆ
+* **Integration Testing** ทดสอบการส่งต่อข้อมูลระหว่าง Drift ในมือถือ ผ่าน API ไปยัง Oracle Cloud
+* **Quality Gate** กำหนดเกณฑ์ Code Coverage ไม่ต่ำกว่า **70%** จึงจะผ่านการทดสอบและ Merge โค้ดได้
 
 ---
 
-## 🎨 การออกแบบ UI/UX (Design Principles)
-แอปพลิเคชันได้รับการออกแบบโดยอ้างอิงตามหลักการ **Material Design 3 (M3)** และผ่านการทดสอบความง่ายในการใช้งาน (Usability Testing)
-* **การรับรู้สถานะที่รวดเร็ว (Glanceable Design)** ผู้ใช้สามารถกวาดสายตามองหน้าหลักและเข้าใจได้ทันทีว่าอาหารชนิดใดต้องนำมาทานก่อน
-* **การมีส่วนร่วมของมนุษย์เพื่อความปลอดภัยของ AI (Human-in-the-Loop)** ผลลัพธ์จากการสแกนฉลากด้วย Gemini Vision จะถูกนำมาแสดงบนหน้าจอให้ผู้ใช้ตรวจทานและแก้ไขก่อนเสมอ เพื่อป้องกันความผิดพลาดจากระบบอัตโนมัติ
-* **มาตรฐานการเข้าถึง (Accessibility)** ใช้ความเปรียบต่างของสีและขนาดตัวอักษรที่ผ่านเกณฑ์ Contrast Ratio ช่วยให้อ่านข้อมูลได้ชัดเจนในทุกสภาพแสง
+## 🚀 ขั้นตอนการติดตั้งและรันโปรเจกต์ (Getting Started)
 
----
-
-## 🚀 วิธีการติดตั้งและรันโปรเจกต์ (Getting Started)
-
-### สิ่งที่จำเป็นต้องมีก่อนติดตั้ง (Prerequisites)
+### สิ่งที่ต้องเตรียมพร้อม (Prerequisites)
 * [Flutter SDK](https://flutter.dev/docs/get-started/install) เวอร์ชัน 3.x ขึ้นไป
-* [Node.js](https://nodejs.org/) เวอร์ชัน 18.x ขึ้นไป และ npm
-* สิทธิ์การใช้งานอินสแตนซ์ [Oracle Database](https://cloud.oracle.com/)
-* [Google Gemini API Key](https://aistudio.google.com/)
+* [Node.js](https://nodejs.org/) เวอร์ชัน 18.x หรือ 20.x LTS และ npm
+* บัญชีและอินสแตนซ์ [Oracle Cloud Database](https://cloud.oracle.com/) (พร้อม Wallet หรือ Connection String)
+* โครงการใน [Google Cloud Console](https://console.cloud.google.com/) สำหรับ Google OAuth Client ID
+* คีย์ใช้งาน [Google Gemini API Key](https://aistudio.google.com/)
 
 ---
 
-### 1. การติดตั้งฝั่ง Backend (Node.js API)
+### 1. การติดตั้งฝั่ง Backend API (Node.js)
 
-```bash
-# เข้าสู่โฟลเดอร์ Backend
-cd backend
+1. เข้าไปที่โฟลเดอร์ Backend
+   ```bash
+   cd backend
+   ```
 
-# ติดตั้ง Dependencies
-npm install
+2. ติดตั้ง Dependencies
+   ```bash
+   npm install
+   ```
 
-# กำหนดค่าตัวแปรสภาพแวดล้อม
-cp .env.example .env
-# ระบุค่า ORACLE_DB_URL, JWT_SECRET, GEMINI_API_KEY ลงในไฟล์ .env ให้ครบถ้วน
+3. สร้างไฟล์ตัวแปรสภาพแวดล้อม (.env)
+   ```bash
+   cp .env.example .env
+   ```
+   ตั้งค่าตัวแปรในไฟล์ `.env`
+   ```env
+   PORT=5000
+   ORACLE_DB_USER=your_oci_user
+   ORACLE_DB_PASSWORD=your_oci_password
+   ORACLE_DB_CONNECT_STRING=your_oci_connect_string
+   JWT_SECRET=your_jwt_secret_key
+   JWT_EXPIRES_IN=7d
+   GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+   GEMINI_API_KEY=your_gemini_vision_api_key
+   ```
 
-# ดำเนินการ Database Migrations
-npm run db:migrate
+4. รัน Database Migration
+   ```bash
+   npm run db:migrate
+   ```
 
-# เริ่มต้นการทำงานของเซิร์ฟเวอร์
-npm run dev
-```
+5. รันเซิร์ฟเวอร์สำหรับ Development
+   ```bash
+   npm run dev
+   ```
 
 ---
 
 ### 2. การติดตั้งฝั่ง Mobile Application (Flutter)
 
-```bash
-# เข้าสู่โฟลเดอร์ Frontend
-cd frontend
+1. เข้าไปที่โฟลเดอร์ Frontend
+   ```bash
+   cd frontend
+   ```
 
-# ดาวน์โหลดแพ็กเกจที่จำเป็น
-flutter pub get
+2. ติดตั้ง Dependencies ของ Flutter
+   ```bash
+   flutter pub get
+   ```
 
-# สร้างไฟล์โค้ดอัตโนมัติสำหรับ Drift และ Data Models
-dart run build_runner build --delete-conflicting-outputs
+3. เจนโค้ดสำหรับ Drift และ Riverpod
+   ```bash
+   dart run build_runner build --delete-conflicting-outputs
+   ```
 
-# สั่งรันชุดการทดสอบพร้อมตรวจสอบ Coverage
-flutter test --coverage
+4. รันชุดทดสอบและวัดค่า Coverage
+   ```bash
+   flutter test --coverage
+   ```
 
-# เปิดใช้งานแอปพลิเคชัน
-flutter run
-```
+5. รันแอปพลิเคชันบน Emulator หรือเครื่องจริง
+   ```bash
+   flutter run
+   ```
 
 ---
 
 ## 👥 สมาชิกผู้จัดทำ (Contributors)
 
-โครงงานนี้พัฒนาขึ้นเพื่อการศึกษา โดยทีมนักศึกษา
+โครงงานนี้พัฒนาขึ้นเพื่อการศึกษา รายวิชา **MDSD-2026** โดยทีมนักศึกษา
 
-* **นางสาวอาทิตยา ผิวขำ 67030260**
-* **นายชนินทร์ คำวงศ์ษา 67030281**
-* **นายธนบดี บุญภมร 67030298**
-* **นายธีธัช รัตนโสภา 67030302**
+* **นางสาวอาทิตยา ผิวขำ** (รหัสนักศึกษา 67030260)
+* **นายชนินทร์ คำวงศ์ษา** (รหัสนักศึกษา 67030281)
+* **นายธนบดี บุญภมร** (รหัสนักศึกษา 67030298)
+* **นายธีธัช รัตนโสภา** (รหัสนักศึกษา 67030302)
