@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
@@ -26,13 +27,31 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   Future<void> _handleSignIn() async {
+    // Check if user has enabled notifications previously.
+    // If user previously tapped "Skip", remind them again by routing to /onboarding!
+    final prefs = await SharedPreferences.getInstance();
+    final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
+
     if (!mounted) return;
-    context.go('/onboarding');
+
+    if (!hasEnabled) {
+      context.go('/onboarding');
+    } else {
+      context.go('/fridges');
+    }
   }
 
   Future<void> _handleGoogleSignIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
+
     if (!mounted) return;
-    context.go('/onboarding');
+
+    if (!hasEnabled) {
+      context.go('/onboarding');
+    } else {
+      context.go('/fridges');
+    }
   }
 
   @override
