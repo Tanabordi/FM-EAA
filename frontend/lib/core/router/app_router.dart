@@ -21,23 +21,15 @@ import '../../features/settings/presentation/pages/edit_profile_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/onboarding',
-    // TODO(router redirect): Check authentication token and onboarding completed flag
-    // redirect: (context, state) {
-    //   final isAuthenticated = ...;
-    //   final hasCompletedOnboarding = ...;
-    //   if (!hasCompletedOnboarding) return '/onboarding';
-    //   if (!isAuthenticated) return '/sign-in';
-    //   return null;
-    // },
+    initialLocation: '/sign-in',
     routes: [
-      GoRoute(
-        path: '/onboarding',
-        builder: (context, state) => const OnboardingPage(),
-      ),
       GoRoute(
         path: '/sign-in',
         builder: (context, state) => const SignInPage(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingPage(),
       ),
       GoRoute(
         path: '/create-account',
@@ -58,61 +50,61 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: ':id',
             builder: (context, state) {
-              final fridgeId = state.pathParameters['id'] ?? 'default';
-              return FridgeDetailPage(fridgeId: fridgeId);
+              final id = state.pathParameters['id'] ?? '';
+              return FridgeDetailPage(fridgeId: id);
             },
             routes: [
               GoRoute(
                 path: 'search',
                 builder: (context, state) {
-                  final fridgeId = state.pathParameters['id'] ?? 'default';
-                  return SearchPage(fridgeId: fridgeId);
+                  final id = state.pathParameters['id'] ?? '';
+                  return SearchPage(fridgeId: id);
                 },
-              ),
-              GoRoute(
-                path: 'items/add',
-                builder: (context, state) {
-                  final fridgeId = state.pathParameters['id'] ?? 'default';
-                  return AddItemPage(fridgeId: fridgeId);
-                },
-              ),
-              GoRoute(
-                path: 'items/:itemId',
-                builder: (context, state) {
-                  final fridgeId = state.pathParameters['id'] ?? 'default';
-                  final itemId = state.pathParameters['itemId'] ?? '';
-                  return ItemDetailsPage(fridgeId: fridgeId, itemId: itemId);
-                },
-                routes: [
-                  GoRoute(
-                    path: 'edit',
-                    builder: (context, state) {
-                      final fridgeId = state.pathParameters['id'] ?? 'default';
-                      final itemId = state.pathParameters['itemId'] ?? '';
-                      return EditItemPage(fridgeId: fridgeId, itemId: itemId);
-                    },
-                  ),
-                ],
               ),
               GoRoute(
                 path: 'history',
                 builder: (context, state) {
-                  final fridgeId = state.pathParameters['id'] ?? 'default';
-                  return HistoryPage(fridgeId: fridgeId);
+                  final id = state.pathParameters['id'] ?? '';
+                  return HistoryPage(fridgeId: id);
                 },
               ),
               GoRoute(
                 path: 'family',
                 builder: (context, state) {
-                  final fridgeId = state.pathParameters['id'] ?? 'default';
-                  return FamilySharePage(fridgeId: fridgeId);
+                  final id = state.pathParameters['id'] ?? '';
+                  return FamilySharePage(fridgeId: id);
                 },
                 routes: [
                   GoRoute(
                     path: 'invite',
                     builder: (context, state) {
-                      final fridgeId = state.pathParameters['id'] ?? 'default';
-                      return InviteMemberPage(fridgeId: fridgeId);
+                      final id = state.pathParameters['id'] ?? '';
+                      return InviteMemberPage(fridgeId: id);
+                    },
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'items/add',
+                builder: (context, state) {
+                  final id = state.pathParameters['id'] ?? '';
+                  return AddItemPage(fridgeId: id);
+                },
+              ),
+              GoRoute(
+                path: 'items/:itemId',
+                builder: (context, state) {
+                  final id = state.pathParameters['id'] ?? '';
+                  final itemId = state.pathParameters['itemId'] ?? '';
+                  return ItemDetailsPage(fridgeId: id, itemId: itemId);
+                },
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id'] ?? '';
+                      final itemId = state.pathParameters['itemId'] ?? '';
+                      return EditItemPage(fridgeId: id, itemId: itemId);
                     },
                   ),
                 ],
@@ -138,4 +130,3 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
