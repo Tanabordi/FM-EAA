@@ -14,7 +14,8 @@ class ResetPasswordPage extends StatefulWidget {
 
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final _emailController = TextEditingController();
-  final bool _isLoading = false;
+  bool _isLoading = false;
+  String? _emailError;
 
   @override
   void dispose() {
@@ -22,14 +23,37 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     super.dispose();
   }
 
-  void _handleSendLink() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password reset link has been sent to your email.')),
-    );
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go('/sign-in');
+  Future<void> _handleSendLink() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      setState(() => _emailError = 'Email is required');
+      return;
+    } else if (!email.contains('@') || !email.contains('.')) {
+      setState(() => _emailError = 'Please enter a valid email address');
+      return;
+    }
+
+    setState(() {
+      _emailError = null;
+      _isLoading = true;
+    });
+
+    try {
+      // Simulate network call
+      await Future.delayed(const Duration(milliseconds: 600));
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset link has been sent to your email.')),
+      );
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/sign-in');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -76,6 +100,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 controller: _emailController,
                 labelText: 'Email',
                 hintText: '',
+                errorText: _emailError,
+                onChanged: (_) {
+                  if (_emailError != null) setState(() => _emailError = null);
+                },
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 32),

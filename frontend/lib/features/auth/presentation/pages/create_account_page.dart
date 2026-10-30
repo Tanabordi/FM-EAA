@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../providers/auth_provider.dart';
 
 /// Screen #3: Create an Account matching Figma nodes 52:113 & 362:18
-class CreateAccountPage extends StatefulWidget {
+class CreateAccountPage extends ConsumerStatefulWidget {
   /// When prefilledEmail is supplied (e.g. from Google or invite flow),
   /// the email field is locked with a lock icon matching frame 2 in Figma
   final String? prefilledEmail;
@@ -13,10 +15,10 @@ class CreateAccountPage extends StatefulWidget {
   const CreateAccountPage({super.key, this.prefilledEmail});
 
   @override
-  State<CreateAccountPage> createState() => _CreateAccountPageState();
+  ConsumerState<CreateAccountPage> createState() => _CreateAccountPageState();
 }
 
-class _CreateAccountPageState extends State<CreateAccountPage> {
+class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   final _usernameController = TextEditingController();
   late final TextEditingController _emailController;
   final _passwordController = TextEditingController();
@@ -24,8 +26,10 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  final bool _isLoading = false;
+  bool _isLoading = false;
 
+  String? _usernameError;
+  String? _emailError;
   String? _passwordError;
   String? _confirmPasswordError;
 
@@ -33,6 +37,14 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.prefilledEmail ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant CreateAccountPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.prefilledEmail != oldWidget.prefilledEmail && widget.prefilledEmail != null) {
+      _emailController.text = widget.prefilledEmail!;
+    }
   }
 
   @override
@@ -44,20 +56,83 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
     super.dispose();
   }
 
-  void _handleSignUp() {
-    // Bypass validation for now while backend/DB is in development
-    // Directly navigate to Onboarding & Permission
-    context.go('/onboarding');
+  Future<void> _handleSignUp() async {
+    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    String? uError;
+    String? eError;
+    String? pError;
+    String? cError;
+
+    if (username.isEmpty) {
+      uError = 'Username is required';
+    }
+
+    if (email.isEmpty) {
+      eError = 'Email is required';
+    } else if (!email.contains('@') || !email.contains('.')) {
+      eError = 'Please enter a valid email address';
+    }
+
+    if (password.isEmpty) {
+      pError = 'Password is required';
+    } else if (password.length < 8) {
+      pError = 'Password must be at least 8 characters';
+    }
+
+    if (confirmPassword.isEmpty) {
+      cError = 'Please confirm your password';
+    } else if (password != confirmPassword) {
+      cError = 'Passwords do not match';
+    }
+
+    setState(() {
+      _usernameError = uError;
+      _emailError = eError;
+      _passwordError = pError;
+      _confirmPasswordError = cError;
+    });
+
+    if (uError != null || eError != null || pError != null || cError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please check your input fields')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Connect to auth repository/provider
+      await ref.read(authProvider.notifier).signIn(username, password);
+
+      if (!mounted) return;
+      context.go('/onboarding');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sign up failed: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _handleGoogleSignUp() async {
-    // When clicking "Sign up with Google":
-    // If not already in locked state, simulate Google login with prefilled locked email
-    // Otherwise directly proceed to onboarding
-    if (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty) {
-      context.go('/onboarding');
-    } else {
-      context.go('/create-account?email=user@gmail.com');
+    setState(() => _isLoading = true);
+    try {
+      if (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty) {
+        if (!mounted) return;
+        context.go('/onboarding');
+      } else {
+        if (!mounted) return;
+        context.go('/create-account?email=user@gmail.com');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -105,6 +180,10 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                 controller: _usernameController,
                 labelText: 'Username',
                 hintText: '',
+                errorText: _usernameError,
+                onChanged: (_) {
+                  if (_usernameError != null) setState(() => _usernameError = null);
+                },
               ),
               const SizedBox(height: 18),
               // Email (supports locked state with lock icon as in Figma 362:18)
@@ -112,6 +191,10 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                 controller: _emailController,
                 labelText: 'Email',
                 hintText: '',
+                errorText: _emailError,
+                onChanged: (_) {
+                  if (_emailError != null) setState(() => _emailError = null);
+                },
                 readOnly: isEmailLocked,
                 keyboardType: TextInputType.emailAddress,
                 suffixIcon: isEmailLocked
@@ -130,6 +213,9 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                 hintText: '',
                 helperText: _passwordError == null ? 'Use at least 8 characters.' : null,
                 errorText: _passwordError,
+                onChanged: (_) {
+                  if (_passwordError != null) setState(() => _passwordError = null);
+                },
                 obscureText: _obscurePassword,
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -147,6 +233,9 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                 labelText: 'Confirm Password',
                 hintText: '',
                 errorText: _confirmPasswordError,
+                onChanged: (_) {
+                  if (_confirmPasswordError != null) setState(() => _confirmPasswordError = null);
+                },
                 obscureText: _obscureConfirmPassword,
                 suffixIcon: IconButton(
                   icon: Icon(
