@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/user_avatar.dart';
@@ -30,13 +30,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: const AppBackButton(),
-        title: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
+      backgroundColor: const Color(0xFFF6FBF3),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const AppTopBar(title: 'Edit Profile'),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -100,7 +102,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 },
               ),
             ],
-          ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

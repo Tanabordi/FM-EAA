@@ -1,4 +1,4 @@
-import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -54,7 +54,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             _buildAppBar(context),
             // Floating Pill Search Bar with Shadow
             _buildSearchBar(context),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             // Circular Category Chips (All, Proteins, Veggies, Beverages, Meals, Sauces)
             CategoryChips(
               selectedCategory: filter.category,
@@ -62,7 +62,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                 ref.read(fridgeDetailFilterProvider.notifier).setCategory(cat);
               },
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             // Fridge | Freezer Tabs
             _buildTabs(),
             // Food Items Section Header ("Your food" & "N items")
@@ -120,85 +120,42 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
         ),
       ),
       floatingActionButton: Container(
-        width: 58,
-        height: 58,
-        margin: const EdgeInsets.only(bottom: 16, right: 4),
+        width: 56,
+        height: 56,
+        margin: const EdgeInsets.only(bottom: 16, right: 16),
         child: FloatingActionButton(
           elevation: 4,
           backgroundColor: const Color(0xFF2E6A44), // Figma exact dark green
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           onPressed: () => context.push('/fridges/${widget.fridgeId}/items/add'),
-          child: const Icon(Icons.add, size: 30),
+          child: const Icon(Icons.add, size: 28),
         ),
       ),
     );
   }
 
   Widget _buildAppBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Row(
-        children: [
-          // Back button matching Image 2
-          const AppBackButton(),
-          const SizedBox(width: 12),
-          // Fridge Name Title
-          const Expanded(
-            child: Text(
-              'Kitchen',
-              style: TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1A201C),
-                letterSpacing: -0.5,
-              ),
-            ),
-          ),
-          // Top Action Buttons (Family, History, Notifications, Settings)
-          _buildActionIcon(
-            icon: Icons.people_outline_rounded,
-            onTap: () => context.push('/fridges/${widget.fridgeId}/family'),
-          ),
-          const SizedBox(width: 8),
-          _buildActionIcon(
-            icon: Icons.history_rounded,
-            onTap: () => context.push('/fridges/${widget.fridgeId}/history'),
-          ),
-          const SizedBox(width: 8),
-          _buildActionIcon(
-            icon: Icons.notifications_none_rounded,
-            onTap: () => context.push('/notifications'),
-          ),
-          const SizedBox(width: 8),
-          _buildActionIcon(
-            icon: Icons.settings_outlined,
-            onTap: () => context.push('/settings'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionIcon({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: const BoxDecoration(
-            color: Color(0xFFEAEFE8),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 19, color: const Color(0xFF2C3A2F)),
+    return AppTopBar(
+      title: 'Kitchen',
+      actions: [
+        AppTopBarAction(
+          icon: Icons.people_outline_rounded,
+          onTap: () => context.push('/fridges/${widget.fridgeId}/family'),
         ),
-      ),
+        AppTopBarAction(
+          icon: Icons.history_rounded,
+          onTap: () => context.push('/fridges/${widget.fridgeId}/history'),
+        ),
+        AppTopBarAction(
+          icon: Icons.notifications_none_rounded,
+          onTap: () => context.push('/notifications'),
+        ),
+        AppTopBarAction(
+          icon: Icons.settings_outlined,
+          onTap: () => context.push('/settings'),
+        ),
+      ],
     );
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 
@@ -38,13 +38,15 @@ class _AddItemPageState extends State<AddItemPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Items', style: TextStyle(fontWeight: FontWeight.bold)),
-        leading: const AppBackButton(),
-      ),
+      backgroundColor: const Color(0xFFF6FBF3),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            const AppTopBar(title: 'Add Items'),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -197,7 +199,10 @@ class _AddItemPageState extends State<AddItemPage> {
                 },
               ),
             ],
-          ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

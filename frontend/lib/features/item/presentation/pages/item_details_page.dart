@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/freshness_colors.dart';
-import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../widgets/delete_item_dialog.dart';
@@ -19,18 +19,23 @@ class ItemDetailsPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: const AppBackButton(),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () => context.push('/fridges/$fridgeId/items/$itemId/edit'),
-          ),
-        ],
-      ),
+      backgroundColor: const Color(0xFFF6FBF3),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            AppTopBar(
+              title: 'Item Details',
+              actions: [
+                AppTopBarAction(
+                  icon: Icons.edit_outlined,
+                  onTap: () => context.push('/fridges/$fridgeId/items/$itemId/edit'),
+                ),
+              ],
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -119,7 +124,10 @@ class ItemDetailsPage extends StatelessWidget {
                 child: const Text('Delete Item', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
-          ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

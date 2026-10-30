@@ -24,18 +24,18 @@ class ItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5.5),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4.5),
       decoration: BoxDecoration(
         color: const Color(0xFFEAEFE8), // Figma exact card background
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(22),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(13.0),
+            padding: const EdgeInsets.all(12.0),
             child: Row(
               children: [
                 // Food Image Thumbnail

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../providers/fridges_provider.dart';
 
-// TODO(screen #6 Add New Fridge): ช่อง Fridge Name, Description, ปุ่ม Create Fridge
 class AddFridgePage extends StatefulWidget {
   const AddFridgePage({super.key});
 
@@ -28,46 +27,51 @@ class _AddFridgePageState extends State<AddFridgePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add New Fridge', style: TextStyle(fontWeight: FontWeight.bold)),
-        leading: const AppBackButton(),
-      ),
+      backgroundColor: const Color(0xFFF6FBF3),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AppTextField(
-                controller: _nameController,
-                labelText: 'Fridge Name',
-                hintText: 'e.g. Kitchen fridge, Studio fridge',
+        child: Column(
+          children: [
+            const AppTopBar(title: 'Add New Fridge'),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AppTextField(
+                      controller: _nameController,
+                      labelText: 'Fridge Name',
+                      hintText: 'e.g. Kitchen fridge, Studio fridge',
+                    ),
+                    const SizedBox(height: 16),
+                    AppTextField(
+                      controller: _descController,
+                      labelText: 'Description (optional)',
+                      hintText: 'e.g. 1st floor, shared household',
+                    ),
+                    const SizedBox(height: 32),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        return PrimaryButton(
+                          label: 'Create Fridge',
+                          onPressed: () {
+                            if (_nameController.text.trim().isNotEmpty) {
+                              ref.read(fridgesProvider.notifier).addFridge(
+                                    _nameController.text.trim(),
+                                    _descController.text.trim(),
+                                  );
+                              context.pop();
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              AppTextField(
-                controller: _descController,
-                labelText: 'Description (optional)',
-                hintText: 'e.g. 1st floor, shared household',
-              ),
-              const Spacer(),
-              Consumer(
-                builder: (context, ref, _) {
-                  return PrimaryButton(
-                    label: 'Create Fridge',
-                    onPressed: () {
-                      if (_nameController.text.trim().isNotEmpty) {
-                        ref.read(fridgesProvider.notifier).addFridge(
-                              _nameController.text.trim(),
-                              _descController.text.trim(),
-                            );
-                        context.pop();
-                      }
-                    },
-                  );
-                },
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

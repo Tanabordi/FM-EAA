@@ -1,3 +1,4 @@
+import '../../../../shared/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,33 +19,20 @@ class MyFridgesPage extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar matching Image proportions
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'My Fridges',
-                      style: TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1A201C),
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                  _buildActionIcon(
-                    icon: Icons.notifications_none_rounded,
-                    onTap: () => context.push('/notifications'),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildActionIcon(
-                    icon: Icons.settings_outlined,
-                    onTap: () => context.push('/settings'),
-                  ),
-                ],
-              ),
+            // Top App Bar: AppTopBar
+            AppTopBar(
+              title: 'My Fridges',
+              showBackButton: false,
+              actions: [
+                AppTopBarAction(
+                  icon: Icons.notifications_none_rounded,
+                  onTap: () => context.push('/notifications'),
+                ),
+                AppTopBarAction(
+                  icon: Icons.settings_outlined,
+                  onTap: () => context.push('/settings'),
+                ),
+              ],
             ),
             // Body Content
             Expanded(
@@ -149,40 +137,19 @@ class MyFridgesPage extends ConsumerWidget {
         ),
       ),
       floatingActionButton: Container(
-        width: 58,
-        height: 58,
-        margin: const EdgeInsets.only(bottom: 8, right: 4),
+        width: 56,
+        height: 56,
+        margin: const EdgeInsets.only(bottom: 16, right: 16),
         child: FloatingActionButton(
           elevation: 4,
           backgroundColor: const Color(0xFF2E6A44),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           onPressed: () => context.push('/fridges/add'),
-          child: const Icon(Icons.add, size: 30),
+          child: const Icon(Icons.add, size: 28),
         ),
       ),
     );
   }
 
-  Widget _buildActionIcon({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: const BoxDecoration(
-            color: Color(0xFFEAEFE8),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 19, color: const Color(0xFF2C3A2F)),
-        ),
-      ),
-    );
-  }
 }

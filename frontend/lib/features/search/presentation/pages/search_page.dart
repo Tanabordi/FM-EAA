@@ -1,4 +1,4 @@
-import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -48,32 +48,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top App Bar: Back Button + "Search" Title
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: Row(
-                children: [
-                  AppBackButton(
-                    onPressed: () {
-                      if (Navigator.of(context).canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/fridges/${widget.fridgeId}');
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 14),
-                  const Text(
-                    'Search',
-                    style: TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1A201C),
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ],
-              ),
+            // Top App Bar: AppTopBar
+            AppTopBar(
+              title: 'Search',
+              onBackPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/fridges/${widget.fridgeId}');
+                }
+              },
             ),
             // Floating Pill Search Bar with Shadow matching uploaded image
             Padding(
