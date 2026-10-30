@@ -10,7 +10,7 @@ const List<String> kFoodCategories = [
   'Sauces',
 ];
 
-/// Circular category chip selector matching Figma node 11:178 & 275:17
+/// Circular category chip selector matching exact Figma node 11:178 & uploaded mockup
 class CategoryChips extends StatelessWidget {
   final String selectedCategory;
   final ValueChanged<String> onSelected;
@@ -37,20 +37,20 @@ class CategoryChips extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Circular button
+                  // Circular button with exact styling matching uploaded mockup
                   Container(
                     width: 46,
                     height: 46,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isSelected
-                          ? const Color(0xFF2E6A44)
-                          : Colors.transparent,
+                          ? const Color(0xFF2E6A44) // Active forest green #2E6A44
+                          : const Color(0xFFEAEFE8), // Inactive surface container #EAEFE8
                       border: isSelected
                           ? null
                           : Border.all(
-                              color: const Color(0xFFBCCBC0),
-                              width: 1.3,
+                              color: const Color(0xFF717971), // Inactive border outline #717971
+                              width: 1.2,
                             ),
                     ),
                     alignment: Alignment.center,
@@ -59,8 +59,8 @@ class CategoryChips extends StatelessWidget {
                       painter: _CategoryIconPainter(
                         category: category,
                         color: isSelected
-                            ? Colors.white
-                            : const Color(0xFF2C3A2F),
+                            ? const Color(0xFFF6FBF3) // Active white-tinted icon
+                            : const Color(0xFF414942), // Inactive dark charcoal green #414942
                       ),
                     ),
                   ),
@@ -69,11 +69,11 @@ class CategoryChips extends StatelessWidget {
                   Text(
                     category,
                     style: TextStyle(
-                      fontSize: 11.5,
+                      fontSize: 12,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       color: isSelected
                           ? const Color(0xFF1A201C)
-                          : const Color(0xFF47574B),
+                          : const Color(0xFF414942), // Inactive label #414942
                     ),
                   ),
                 ],
@@ -106,6 +106,7 @@ class CategoryChips extends StatelessWidget {
   }
 }
 
+/// Custom painter rendering exact vector icons matching uploaded image
 class _CategoryIconPainter extends CustomPainter {
   final String category;
   final Color color;
@@ -116,7 +117,7 @@ class _CategoryIconPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 1.6
+      ..strokeWidth = 1.8
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
@@ -130,99 +131,145 @@ class _CategoryIconPainter extends CustomPainter {
 
     switch (category.toLowerCase()) {
       case 'all':
-        // Menu / bullet list icon (3 lines with dots)
-        for (var i = 0; i < 3; i++) {
-          final y = h * 0.25 + i * h * 0.25;
-          canvas.drawCircle(Offset(w * 0.2, y), 1.5, fillPaint);
-          canvas.drawLine(Offset(w * 0.38, y), Offset(w * 0.82, y), paint);
+        // Menu / bullet list: 3 filled dots on left, 3 rounded lines on right
+        final dotRadius = w * 0.065;
+        final lineStartX = w * 0.36;
+        final lineEndX = w * 0.84;
+        final ys = [h * 0.28, h * 0.50, h * 0.72];
+        for (final y in ys) {
+          canvas.drawCircle(Offset(w * 0.16, y), dotRadius, fillPaint);
+          canvas.drawLine(Offset(lineStartX, y), Offset(lineEndX, y), paint);
         }
         break;
 
       case 'proteins':
-        // Drumstick / chicken bone outline
-        final path = Path()
-          ..moveTo(w * 0.35, h * 0.65)
-          ..lineTo(w * 0.2, h * 0.8)
-          ..moveTo(w * 0.3, h * 0.7)
-          ..lineTo(w * 0.15, h * 0.85);
-        canvas.drawPath(path, paint);
-        // Meat bulb
-        canvas.drawCircle(Offset(w * 0.58, h * 0.42), w * 0.26, paint);
+        // Chicken drumstick:
+        // Round meat bulb at top-right
+        final meatCenter = Offset(w * 0.58, h * 0.42);
+        final meatRadius = w * 0.23;
+        canvas.drawCircle(meatCenter, meatRadius, paint);
+
+        // Bone shaft extending down-left
+        final boneStart = Offset(w * 0.44, h * 0.56);
+        final boneEnd = Offset(w * 0.28, h * 0.72);
+        canvas.drawLine(boneStart, boneEnd, paint);
+
+        // Bone joint head with 2 rounded condyles
+        final knob1 = Offset(w * 0.22, h * 0.70);
+        final knob2 = Offset(w * 0.29, h * 0.77);
+        canvas.drawCircle(knob1, w * 0.065, paint);
+        canvas.drawCircle(knob2, w * 0.065, paint);
         break;
 
       case 'veggies':
-        // Carrot icon: triangular body + top leaves
+        // Carrot:
+        // Body cone tapering down-left
         final carrotPath = Path()
-          ..moveTo(w * 0.35, h * 0.35)
-          ..quadraticBezierTo(w * 0.7, h * 0.3, w * 0.65, h * 0.5)
-          ..lineTo(w * 0.25, h * 0.85)
+          ..moveTo(w * 0.40, h * 0.40)
+          ..quadraticBezierTo(w * 0.54, h * 0.38, w * 0.66, h * 0.42)
+          ..quadraticBezierTo(w * 0.56, h * 0.60, w * 0.22, h * 0.78)
+          ..quadraticBezierTo(w * 0.28, h * 0.56, w * 0.40, h * 0.40)
           ..close();
         canvas.drawPath(carrotPath, paint);
-        // Leaf greens
-        canvas.drawLine(Offset(w * 0.55, h * 0.33), Offset(w * 0.68, h * 0.18), paint);
-        canvas.drawLine(Offset(w * 0.62, h * 0.36), Offset(w * 0.8, h * 0.26), paint);
-        // Ridges on carrot
-        canvas.drawLine(Offset(w * 0.44, h * 0.48), Offset(w * 0.56, h * 0.45), paint);
-        canvas.drawLine(Offset(w * 0.36, h * 0.6), Offset(w * 0.46, h * 0.58), paint);
+
+        // 3 leafy sprigs radiating from top base
+        canvas.drawLine(Offset(w * 0.53, h * 0.39), Offset(w * 0.53, h * 0.22), paint);
+        canvas.drawLine(Offset(w * 0.47, h * 0.40), Offset(w * 0.34, h * 0.28), paint);
+        canvas.drawLine(Offset(w * 0.59, h * 0.40), Offset(w * 0.72, h * 0.30), paint);
+
+        // 2 ridges on carrot body
+        final thinPaint = Paint()
+          ..color = color
+          ..strokeWidth = 1.3
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+        canvas.drawLine(Offset(w * 0.40, h * 0.54), Offset(w * 0.50, h * 0.52), thinPaint);
+        canvas.drawLine(Offset(w * 0.32, h * 0.64), Offset(w * 0.40, h * 0.62), thinPaint);
         break;
 
       case 'beverages':
-        // Cup with straw
-        final cupPath = Path()
-          ..moveTo(w * 0.3, h * 0.4)
-          ..lineTo(w * 0.35, h * 0.82)
-          ..lineTo(w * 0.65, h * 0.82)
-          ..lineTo(w * 0.7, h * 0.4)
-          ..close();
-        canvas.drawPath(cupPath, paint);
-        // Lid line
-        canvas.drawLine(Offset(w * 0.26, h * 0.4), Offset(w * 0.74, h * 0.4), paint);
-        // Straw
+        // Drink cup with bent straw:
+        // Straw coming out of lid
         final strawPath = Path()
-          ..moveTo(w * 0.5, h * 0.4)
-          ..lineTo(w * 0.58, h * 0.18)
-          ..lineTo(w * 0.68, h * 0.18);
+          ..moveTo(w * 0.46, h * 0.38)
+          ..lineTo(w * 0.50, h * 0.24)
+          ..lineTo(w * 0.66, h * 0.24);
         canvas.drawPath(strawPath, paint);
+
+        // Lid horizontal rim
+        canvas.drawLine(Offset(w * 0.20, h * 0.38), Offset(w * 0.80, h * 0.38), paint);
+
+        // Cup body tapering downwards
+        final cupPath = Path()
+          ..moveTo(w * 0.24, h * 0.38)
+          ..lineTo(w * 0.32, h * 0.76)
+          ..quadraticBezierTo(w * 0.32, h * 0.78, w * 0.36, h * 0.78)
+          ..lineTo(w * 0.64, h * 0.78)
+          ..quadraticBezierTo(w * 0.68, h * 0.78, w * 0.68, h * 0.76)
+          ..lineTo(w * 0.76, h * 0.38);
+        canvas.drawPath(cupPath, paint);
+
+        // Horizontal sleeve across middle of cup
+        canvas.drawLine(Offset(w * 0.27, h * 0.50), Offset(w * 0.73, h * 0.50), paint);
+        canvas.drawLine(Offset(w * 0.29, h * 0.56), Offset(w * 0.71, h * 0.56), paint);
         break;
 
       case 'meals':
-        // Jar / pot with lid
-        final jarPath = Path()
-          ..moveTo(w * 0.3, h * 0.42)
-          ..lineTo(w * 0.3, h * 0.8)
-          ..quadraticBezierTo(w * 0.5, h * 0.86, w * 0.7, h * 0.8)
-          ..lineTo(w * 0.7, h * 0.42)
-          ..close();
-        canvas.drawPath(jarPath, paint);
-        // Jar lid
-        final lidRect = RRect.fromRectAndRadius(
-          Rect.fromLTWH(w * 0.28, h * 0.28, w * 0.44, h * 0.12),
-          const Radius.circular(2),
+        // Preserve jar with lid:
+        // Lid (rounded rectangle)
+        final lidRRect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * 0.32, h * 0.26, w * 0.36, h * 0.12),
+          const Radius.circular(2.5),
         );
-        canvas.drawRRect(lidRect, paint);
-        // Label stripe
-        canvas.drawLine(Offset(w * 0.34, h * 0.58), Offset(w * 0.66, h * 0.58), paint);
+        canvas.drawRRect(lidRRect, paint);
+
+        // Jar body
+        final jarPath = Path()
+          ..moveTo(w * 0.36, h * 0.38)
+          ..lineTo(w * 0.36, h * 0.44)
+          ..quadraticBezierTo(w * 0.26, h * 0.47, w * 0.26, h * 0.52)
+          ..lineTo(w * 0.26, h * 0.74)
+          ..quadraticBezierTo(w * 0.26, h * 0.78, w * 0.32, h * 0.78)
+          ..lineTo(w * 0.68, h * 0.78)
+          ..quadraticBezierTo(w * 0.74, h * 0.78, w * 0.74, h * 0.74)
+          ..lineTo(w * 0.74, h * 0.52)
+          ..quadraticBezierTo(w * 0.74, h * 0.47, w * 0.64, h * 0.44)
+          ..lineTo(w * 0.64, h * 0.38);
+        canvas.drawPath(jarPath, paint);
+
+        // Center label on jar
+        canvas.drawLine(Offset(w * 0.38, h * 0.62), Offset(w * 0.62, h * 0.62), paint);
         break;
 
       case 'sauces':
-        // Bottle shape
+        // Sauce bottle:
+        // Cap
+        final capRect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * 0.44, h * 0.26, w * 0.12, h * 0.09),
+          const Radius.circular(1.5),
+        );
+        canvas.drawRRect(capRect, paint);
+
+        // Bottle body
         final bottlePath = Path()
           // Neck
-          ..moveTo(w * 0.44, h * 0.22)
-          ..lineTo(w * 0.56, h * 0.22)
-          ..lineTo(w * 0.56, h * 0.38)
+          ..moveTo(w * 0.42, h * 0.35)
+          ..lineTo(w * 0.42, h * 0.48)
           // Shoulder
-          ..quadraticBezierTo(w * 0.7, h * 0.45, w * 0.7, h * 0.58)
+          ..quadraticBezierTo(w * 0.30, h * 0.51, w * 0.30, h * 0.56)
           // Body
-          ..lineTo(w * 0.7, h * 0.82)
-          ..lineTo(w * 0.3, h * 0.82)
-          ..lineTo(w * 0.3, h * 0.58)
-          // Shoulder
-          ..quadraticBezierTo(w * 0.3, h * 0.45, w * 0.44, h * 0.38)
-          ..close();
+          ..lineTo(w * 0.30, h * 0.76)
+          ..quadraticBezierTo(w * 0.30, h * 0.78, w * 0.34, h * 0.78)
+          ..lineTo(w * 0.66, h * 0.78)
+          ..quadraticBezierTo(w * 0.70, h * 0.78, w * 0.70, h * 0.76)
+          ..lineTo(w * 0.70, h * 0.56)
+          ..quadraticBezierTo(w * 0.70, h * 0.51, w * 0.58, h * 0.48)
+          ..lineTo(w * 0.58, h * 0.35);
         canvas.drawPath(bottlePath, paint);
-        // Cap
-        canvas.drawRect(Rect.fromLTWH(w * 0.42, h * 0.14, w * 0.16, h * 0.08), fillPaint);
+
+        // Two horizontal label stripes
+        canvas.drawLine(Offset(w * 0.30, h * 0.60), Offset(w * 0.70, h * 0.60), paint);
+        canvas.drawLine(Offset(w * 0.30, h * 0.66), Offset(w * 0.70, h * 0.66), paint);
         break;
     }
   }
