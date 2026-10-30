@@ -1,44 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
-
-class UserSearchResult {
-  final String username;
-  final String status; // 'already', 'available', 'pending'
-  final String avatarUrl;
-
-  UserSearchResult({
-    required this.username,
-    required this.status,
-    required this.avatarUrl,
-  });
-}
+import '../../domain/models/family_member.dart';
+import '../../providers/family_provider.dart';
 
 /// Screen #19: Invite to Family matching Figma nodes 170:5, 174:6 & 172:81
-class InviteMemberPage extends StatefulWidget {
+class InviteMemberPage extends ConsumerStatefulWidget {
   final String fridgeId;
 
   const InviteMemberPage({super.key, required this.fridgeId});
 
   @override
-  State<InviteMemberPage> createState() => _InviteMemberPageState();
+  ConsumerState<InviteMemberPage> createState() => _InviteMemberPageState();
 }
 
-class _InviteMemberPageState extends State<InviteMemberPage> {
+class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
   final _searchController = TextEditingController();
 
   // Mock users matching Figma node 174:6 (Mint, Minty, Mintra)
   final List<UserSearchResult> _allMockUsers = [
-    UserSearchResult(
+    const UserSearchResult(
       username: 'Mint',
       status: 'already',
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
     ),
-    UserSearchResult(
+    const UserSearchResult(
       username: 'Minty',
       status: 'available',
       avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
     ),
-    UserSearchResult(
+    const UserSearchResult(
       username: 'Mintra',
       status: 'pending',
       avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
@@ -46,6 +37,7 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
   ];
 
   late Map<String, String> _userStatuses;
+  bool _isInviting = false;
 
   @override
   void initState() {
@@ -59,12 +51,47 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
     super.dispose();
   }
 
-  void _handleInvite(String username) {
-    setState(() {
-      _userStatuses[username] = 'pending';
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Invitation sent to $username')),
+  Future<void> _handleInvite(String username) async {
+    setState(() => _isInviting = true);
+    try {
+      // Connect to familyRepositoryProvider
+      await ref.read(familyRepositoryProvider).inviteMember(widget.fridgeId, username);
+
+      if (!mounted) return;
+      setState(() {
+        _userStatuses[username] = 'pending';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invitation sent to $username')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to send invitation: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isInviting = false);
+    }
+  }
+
+  Widget _buildAvatar(UserSearchResult user) {
+    final initials = user.username.isNotEmpty ? user.username[0].toUpperCase() : '?';
+
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: const Color(0xFFD3DDD1),
+      backgroundImage: user.avatarUrl.isNotEmpty ? NetworkImage(user.avatarUrl) : null,
+      onBackgroundImageError: (_, __) {},
+      child: user.avatarUrl.isEmpty
+          ? Text(
+              initials,
+              style: const TextStyle(
+                color: Color(0xFF181D18),
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            )
+          : null,
     );
   }
 
@@ -72,8 +99,8 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final query = _searchController.text.trim().toLowerCase();
 
+    final query = _searchController.text.trim().toLowerCase();
     final matchingUsers = query.isEmpty
         ? <UserSearchResult>[]
         : _allMockUsers.where((u) => u.username.toLowerCase().contains(query)).toList();
@@ -86,7 +113,7 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Top Bar with back button
+              // Top Bar with rounded back button
               Row(
                 children: [
                   const FigmaBackButton(),
@@ -102,18 +129,11 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
                 ],
               ),
               const SizedBox(height: 24),
-              // Search Input styled like floating pill with shadow as in Figma
+              // Search Input Box (Figma Node 170:5)
               Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFFEAEFE8),
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(28),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -139,12 +159,14 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
                       ),
                     ),
                     if (_searchController.text.isNotEmpty)
-                      InkWell(
-                        onTap: () {
+                      IconButton(
+                        onPressed: () {
                           _searchController.clear();
                           setState(() {});
                         },
-                        child: Container(
+                        iconSize: 18,
+                        tooltip: 'Clear search',
+                        icon: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: const BoxDecoration(
                             color: Color(0xFFD3DDD1),
@@ -195,12 +217,8 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         child: Row(
                           children: [
-                            CircleAvatar(
-                              radius: 24,
-                              backgroundColor: Colors.grey.shade300,
-                              backgroundImage: NetworkImage(user.avatarUrl),
-                              onBackgroundImageError: (_, __) {},
-                            ),
+                            // Avatar with fallback
+                            _buildAvatar(user),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Text(
@@ -246,7 +264,7 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
                                   padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
                                   elevation: 0,
                                 ),
-                                onPressed: () => _handleInvite(user.username),
+                                onPressed: _isInviting ? null : () => _handleInvite(user.username),
                                 child: const Text(
                                   'Invite',
                                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
