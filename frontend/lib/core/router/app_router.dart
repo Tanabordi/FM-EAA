@@ -52,36 +52,41 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: ':id',
+            redirect: (context, state) {
+              final id = state.pathParameters['id'];
+              if (id == null || id.isEmpty) return '/fridges';
+              return null;
+            },
             builder: (context, state) {
-              final id = state.pathParameters['id'] ?? '';
+              final id = state.pathParameters['id']!;
               return FridgeDetailPage(fridgeId: id);
             },
             routes: [
               GoRoute(
                 path: 'search',
                 builder: (context, state) {
-                  final id = state.pathParameters['id'] ?? '';
+                  final id = state.pathParameters['id']!;
                   return SearchPage(fridgeId: id);
                 },
               ),
               GoRoute(
                 path: 'history',
                 builder: (context, state) {
-                  final id = state.pathParameters['id'] ?? '';
+                  final id = state.pathParameters['id']!;
                   return HistoryPage(fridgeId: id);
                 },
               ),
               GoRoute(
                 path: 'family',
                 builder: (context, state) {
-                  final id = state.pathParameters['id'] ?? '';
+                  final id = state.pathParameters['id']!;
                   return FamilySharePage(fridgeId: id);
                 },
                 routes: [
                   GoRoute(
                     path: 'invite',
                     builder: (context, state) {
-                      final id = state.pathParameters['id'] ?? '';
+                      final id = state.pathParameters['id']!;
                       return InviteMemberPage(fridgeId: id);
                     },
                   ),
@@ -90,23 +95,23 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'items/add',
                 builder: (context, state) {
-                  final id = state.pathParameters['id'] ?? '';
+                  final id = state.pathParameters['id']!;
                   return AddItemPage(fridgeId: id);
                 },
               ),
               GoRoute(
                 path: 'items/:itemId',
                 builder: (context, state) {
-                  final id = state.pathParameters['id'] ?? '';
-                  final itemId = state.pathParameters['itemId'] ?? '';
+                  final id = state.pathParameters['id']!;
+                  final itemId = state.pathParameters['itemId'] ?? 'default_item';
                   return ItemDetailsPage(fridgeId: id, itemId: itemId);
                 },
                 routes: [
                   GoRoute(
                     path: 'edit',
                     builder: (context, state) {
-                      final id = state.pathParameters['id'] ?? '';
-                      final itemId = state.pathParameters['itemId'] ?? '';
+                      final id = state.pathParameters['id']!;
+                      final itemId = state.pathParameters['itemId'] ?? 'default_item';
                       return EditItemPage(fridgeId: id, itemId: itemId);
                     },
                   ),
