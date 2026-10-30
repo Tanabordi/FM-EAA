@@ -231,57 +231,76 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: const Color(0xFFEAEFE8), // Figma exact search bar background #EAEFE8
+          color: const Color(0xFFEAEFE8), // Figma exact background #EAEFE8
           borderRadius: BorderRadius.circular(28),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x38000000), // Drop shadow matching Figma
+              color: Color(0x45000000), // Prominent deep drop shadow matching Image 2
               blurRadius: 18,
               offset: Offset(0, 6),
             ),
+            BoxShadow(
+              color: Color(0x12000000),
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
           ],
         ),
-        child: TextField(
-          controller: _searchController,
-          onTap: () {
-            // Can tap to navigate to full search page if text is empty
-            if (_searchController.text.isEmpty) {
+        clipBehavior: Clip.antiAlias,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: () {
               context.push('/fridges/${widget.fridgeId}/search');
-            }
-          },
-          onChanged: (val) {
-            ref.read(fridgeDetailFilterProvider.notifier).setSearchQuery(val);
-          },
-          style: const TextStyle(fontSize: 15, color: Color(0xFF1A201C), fontWeight: FontWeight.w500),
-          decoration: InputDecoration(
-            hintText: 'Search for items',
-            hintStyle: const TextStyle(
-              color: Color(0xFF4A5A4E),
-              fontSize: 15,
-              fontWeight: FontWeight.w400,
-            ),
-            prefixIcon: const Padding(
-              padding: EdgeInsets.only(left: 14, right: 10),
-              child: Icon(Icons.search, color: Color(0xFF3A4A3E), size: 22),
-            ),
-            prefixIconConstraints: const BoxConstraints(minWidth: 46),
-            suffixIcon: _searchController.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear, size: 18, color: Color(0xFF4A5A4E)),
+            },
+            child: Row(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(left: 18, right: 12),
+                  child: Icon(Icons.search, color: Color(0xFF3A4A3E), size: 22),
+                ),
+                Expanded(
+                  child: Text(
+                    _searchController.text.isNotEmpty
+                        ? _searchController.text
+                        : 'Search for items',
+                    style: TextStyle(
+                      color: _searchController.text.isNotEmpty
+                          ? const Color(0xFF1A201C)
+                          : const Color(0xFF4A5A4E),
+                      fontSize: 15,
+                      fontWeight: _searchController.text.isNotEmpty
+                          ? FontWeight.w500
+                          : FontWeight.w400,
+                    ),
+                  ),
+                ),
+                if (_searchController.text.isNotEmpty)
+                  IconButton(
+                    icon: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFD0DDD0),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 14, color: Color(0xFF334155)),
+                    ),
                     onPressed: () {
                       _searchController.clear();
                       ref.read(fridgeDetailFilterProvider.notifier).setSearchQuery('');
                     },
                   )
-                : null,
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                else
+                  const SizedBox(width: 18),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-
   Widget _buildTabs() {
     return Stack(
       alignment: Alignment.bottomCenter,

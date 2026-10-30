@@ -23,60 +23,65 @@ class CategoryChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: kFoodCategories.map((category) {
           final isSelected =
               category.toLowerCase() == selectedCategory.toLowerCase();
 
-          return InkWell(
-            onTap: () => onSelected(category),
-            borderRadius: BorderRadius.circular(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Circular button
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected
-                        ? const Color(0xFF2E6A44)
-                        : Colors.transparent,
-                    border: isSelected
-                        ? null
-                        : Border.all(
-                            color: const Color(0xFFBCCBC0),
-                            width: 1.3,
-                          ),
-                  ),
-                  alignment: Alignment.center,
-                  child: CustomPaint(
-                    size: const Size(24, 24),
-                    painter: _CategoryIconPainter(
-                      category: category,
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5.0),
+            child: InkWell(
+              onTap: () => onSelected(category),
+              borderRadius: BorderRadius.circular(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Circular button
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
                       color: isSelected
-                          ? Colors.white
-                          : const Color(0xFF2C3A2F),
+                          ? const Color(0xFF2E6A44)
+                          : Colors.transparent,
+                      border: isSelected
+                          ? null
+                          : Border.all(
+                              color: const Color(0xFFBCCBC0),
+                              width: 1.3,
+                            ),
+                    ),
+                    alignment: Alignment.center,
+                    child: CustomPaint(
+                      size: const Size(24, 24),
+                      painter: _CategoryIconPainter(
+                        category: category,
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF2C3A2F),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                // Category label underneath
-                Text(
-                  category,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected
-                        ? const Color(0xFF1A201C)
-                        : const Color(0xFF47574B),
+                  const SizedBox(height: 5),
+                  // Category label underneath
+                  Text(
+                    category,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? const Color(0xFF1A201C)
+                          : const Color(0xFF47574B),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         }).toList(),

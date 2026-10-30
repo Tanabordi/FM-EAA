@@ -89,12 +89,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x38000000), // Drop shadow matching Figma
+                      color: Color(0x45000000), // Prominent deep drop shadow matching Image 2
                       blurRadius: 18,
                       offset: Offset(0, 6),
                     ),
+                    BoxShadow(
+                      color: Color(0x12000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
                   ],
                 ),
+                clipBehavior: Clip.antiAlias,
                 child: TextField(
                   controller: _searchController,
                   autofocus: true,
@@ -111,10 +117,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       fontWeight: FontWeight.w400,
                     ),
                     prefixIcon: const Padding(
-                      padding: EdgeInsets.only(left: 14, right: 10),
+                      padding: EdgeInsets.only(left: 18, right: 12),
                       child: Icon(Icons.search, color: Color(0xFF3A4A3E), size: 22),
                     ),
-                    prefixIconConstraints: const BoxConstraints(minWidth: 46),
+                    prefixIconConstraints: const BoxConstraints(minWidth: 52),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? Padding(
                             padding: const EdgeInsets.only(right: 8.0),

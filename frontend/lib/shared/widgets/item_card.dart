@@ -81,12 +81,16 @@ class ItemCard extends StatelessWidget {
                         children: [
                           StatusBadge(status: status),
                           const SizedBox(width: 8),
-                          Text(
-                            statusText,
-                            style: const TextStyle(
-                              color: Color(0xFF5C665F),
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w500,
+                          Flexible(
+                            child: Text(
+                              statusText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF5C665F),
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ],
