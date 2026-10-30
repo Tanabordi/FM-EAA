@@ -1,15 +1,20 @@
-const express = require('express');
+const router = require('express').Router();
 const multer = require('multer');
-const router = express.Router();
+const { scanLabel } = require('../services/aiService');
 
 const upload = multer({
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
 });
 
-// TODO(route ai): POST /api/ai/scan-label - Analyze food label photo using Google Gemini Vision API
-router.post('/scan-label', upload.single('image'), (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: 'POST /api/ai/scan-label' });
+router.post('/scan-label', upload.single('image'), async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'image is required' });
+    const result = await scanLabel(req.file.buffer, req.file.mimetype);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;
-
