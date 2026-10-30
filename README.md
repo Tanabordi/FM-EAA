@@ -28,6 +28,7 @@
 
 - [💡 ที่มาและความสำคัญ (Problem & Solution)](#-ที่มาและความสำคัญ-problem--solution)
 - [✨ ฟีเจอร์เด่นของระบบ (Key Features)](#-ฟีเจอร์เด่นของระบบ-key-features)
+- [📱 หน้าจอและดีไซน์ (Screens & Design)](#-หน้าจอและดีไซน์-screens--design)
 - [📐 สถาปัตยกรรมระบบ (System Architecture)](#-สถาปัตยกรรมระบบ-system-architecture)
   - [1. สถาปัตยกรรมแบบ 3-Tier (3-Tier Architecture)](#1-สถาปัตยกรรมแบบ-3-tier-3-tier-architecture)
   - [2. โครงสร้างตู้เย็นและ Family Share (Fridge & Family Domain Model)](#2-โครงสร้างตู้เย็นและ-family-share-fridge--family-domain-model)
@@ -110,6 +111,25 @@
 - เลือกธีม **Light / Dark**
 
 ---
+
+## 📱 หน้าจอและดีไซน์ (Screens & Design)
+
+การออกแบบส่วนต่อประสานผู้ใช้ (UI) และประสบการณ์ผู้ใช้ (UX) ของแอปพลิเคชัน FM-EAA ได้รับการออกแบบบน Figma ตามแนวทาง **Material Design 3 (M3)** โดยเน้นความเรียบง่าย สบายตา ใช้งานมือเดียวได้สะดวก และรองรับการแสดงผลแบบ Responsive ในทุกขนาดหน้าจอ
+
+- 🎨 **Figma Prototype & Design:** [FM-EAA on Figma](https://www.figma.com/design/MB6XUkZz1GZqJpDqvfkHYc/FM-EAA?node-id=0-1&t=dJwjYD0ae67KEzdu-1)
+- 📋 **Design Specification:** รายละเอียดหน้าจอ โทเคนสี และ Flow ฉบับเต็ม ดูได้ที่ [docs/DESIGN_SPEC.md](docs/DESIGN_SPEC.md)
+
+### ตารางสรุปกลุ่มหน้าจอหลักของระบบ
+
+| กลุ่มหน้าจอ (Category) | หน้าจอหลักในระบบ | รายละเอียดและฟังก์ชันสำคัญ |
+| :--- | :--- | :--- |
+| **1. Auth & Onboarding** | Onboarding & Permission, Sign In, Create an Account, Reset Password | หน้าแนะนำลดขยะอาหารและขอสิทธิ์แจ้งเตือน, เข้าสู่ระบบด้วย Email/Username หรือ Google, สมัครสมาชิกพร้อมตรวจสอบรหัสผ่าน 8 ตัวขึ้นไป และขอรีเซ็ตรหัสผ่านทางอีเมล |
+| **2. ตู้เย็น (Fridges)** | My Fridges, Add New Fridge, Edit Fridge (Bottom Sheet), Delete Fridge Dialog | แสดงรายการตู้เย็นแบบ Grid Card (Personal หรือจำนวนสมาชิก), สรุปจำนวนของที่ต้องรีบกินวันนี้, สร้างตู้ใหม่, แก้ไขชื่อ/คำอธิบาย และลบตู้เย็น |
+| **3. ภายในตู้ (Fridge Detail)** | Fridge Detail (Fridge / Freezer tabs), Search | สลับดูโซนช่องธรรมดา (Fridge) และช่องแช่แข็ง (Freezer), แถบชิปกรองหมวดหมู่อาหาร (All, Proteins, Veggies, Beverages, Meals, Sauces), ค้นหาวัตถุดิบคีย์เวิร์ดพร้อมล้างคำค้นหา |
+| **4. วัตถุดิบ (Item Management)** | Add Items, Item Details, Edit Item Details, Mark as Consumed, Finish All, Delete Item Dialog | สแกนฉลากอาหารด้วย Gemini Vision API และเติมฟอร์มอัตโนมัติ (Food Name, Category, Quantity, Unit, Storage Location, Expiry Date), แสดงรายละเอียดวัตถุดิบและป้ายเตือนความสด, บันทึกการกินระบุจำนวนหรือกินหมด (พร้อมปุ่ม Undo) |
+| **5. ประวัติ (History)** | History (Consumed & Expired tabs) | ประวัติแยก 2 แท็บ (ของที่กินแล้ว / ของที่หมดอายุ), ระบุผู้ทำรายการและเวลา, มีระบบลบอัตโนมัติเมื่อครบ 30 วัน, ลบทีละรายการ หรือกดปุ่ม Clear All |
+| **6. ครอบครัว (Family Share)** | Family Share, Invite to Family, Remove Member Dialog | จัดการสมาชิกในตู้เย็น (Owner / Member), ค้นหาสมาชิกด้วย Username เพื่อส่งคำเชิญ, และลบสมาชิกออกจากตู้ |
+| **7. ตั้งค่าและการแจ้งเตือน (Settings & Notifications)** | Notifications, Settings, Edit Profile, Log Out Dialog | ศูนย์รวมการแจ้งเตือน (เตือนวันหมดอายุ และรับ/ปฏิเสธคำเชิญเข้าตู้), แก้ไขโปรไฟล์และเปลี่ยนรหัสผ่าน, สลับภาษา TH/EN, สลับธีม Light/Dark และออกจากระบบ |
 
 ## 📐 สถาปัตยกรรมระบบ (System Architecture)
 
@@ -230,17 +250,17 @@ sequenceDiagram
     participant API as Node.js REST API
     participant Oracle as Oracle Cloud Database (OCI)
 
-    User->>App: เพิ่ม / อัปเดตรายการวัตถุดิบ
-    App->>LocalDB: บันทึกข้อมูล (is_synced = false, updated_at)
+    User->>App: เพิ่ม / อัปเดตรายการวัตถุดิบในตู้เย็น (ผูกตาม fridge_id)
+    App->>LocalDB: บันทึกข้อมูล (fridge_id, is_synced = false, updated_at)
     LocalDB-->>App: ยืนยันการเขียนลงฐานข้อมูลในเครื่อง
     App-->>User: แสดงผลบนหน้าจอทันที (Optimistic UI)
 
     Note over NetWatcher: อุปกรณ์ตรวจพบการเชื่อมต่ออินเทอร์เน็ต (Reconnection)
     NetWatcher->>App: แจ้งเตือนสถานะออนไลน์ (Online Event)
-    App->>LocalDB: สืบหาแถวข้อมูลที่ is_synced = false
-    LocalDB-->>App: คืนรายการที่รอการซิงค์
-    App->>API: POST /api/inventory/sync (พร้อมแนบ Bearer JWT)
-    API->>Oracle: อัปเดต/บันทึกข้อมูล (Last-Write-Wins Resolution)
+    App->>LocalDB: ดึงแถวข้อมูลที่ is_synced = false แยกตาม fridge_id
+    LocalDB-->>App: คืนรายการที่รอการซิงค์ (Scoping by Fridge)
+    App->>API: POST /api/sync (แนบ Payload แยกตามตู้เย็น พร้อม Bearer JWT)
+    API->>Oracle: อัปเดต/บันทึกข้อมูลลงตู้เย็นนั้นๆ (Last-Write-Wins Resolution)
     Oracle-->>API: ยืนยัน Transaction สำเร็จ
     API-->>App: ส่งผลตอบกลับ 200 OK (Sync Success)
     App->>LocalDB: อัปเดตสถานะเป็น is_synced = true
