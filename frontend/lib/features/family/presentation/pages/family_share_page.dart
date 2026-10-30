@@ -1,45 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
+import '../../domain/models/family_member.dart';
+import '../../providers/family_provider.dart';
 import '../widgets/remove_member_dialog.dart';
 
-class FamilyMemberItem {
-  final String id;
-  final String name;
-  final String role;
-  final bool isOwner;
-  final String avatarUrl;
-
-  FamilyMemberItem({
-    required this.id,
-    required this.name,
-    required this.role,
-    required this.isOwner,
-    required this.avatarUrl,
-  });
-}
-
 /// Screen #18: Family Share matching Figma node 11:49 exactly
-class FamilySharePage extends StatefulWidget {
+class FamilySharePage extends ConsumerStatefulWidget {
   final String fridgeId;
+  final String fridgeName;
 
-  const FamilySharePage({super.key, required this.fridgeId});
+  const FamilySharePage({
+    super.key,
+    required this.fridgeId,
+    this.fridgeName = 'Kitchen',
+  });
 
   @override
-  State<FamilySharePage> createState() => _FamilySharePageState();
+  ConsumerState<FamilySharePage> createState() => _FamilySharePageState();
 }
 
-class _FamilySharePageState extends State<FamilySharePage> {
+class _FamilySharePageState extends ConsumerState<FamilySharePage> {
   // Initial list matching Figma: Mimi (ME) as Owner, Mint as Member
   final List<FamilyMemberItem> _members = [
-    FamilyMemberItem(
+    const FamilyMemberItem(
       id: '1',
       name: 'Mimi (ME)',
       role: 'Owner',
       isOwner: true,
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     ),
-    FamilyMemberItem(
+    const FamilyMemberItem(
       id: '2',
       name: 'Mint',
       role: 'Member',
@@ -48,20 +40,61 @@ class _FamilySharePageState extends State<FamilySharePage> {
     ),
   ];
 
+  bool _isRemoving = false;
+
   void _showRemoveDialog(FamilyMemberItem member) {
     showDialog(
       context: context,
       builder: (context) => RemoveMemberDialog(
         memberName: member.name,
-        onConfirm: () {
-          setState(() {
-            _members.removeWhere((m) => m.id == member.id);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${member.name} has been removed')),
-          );
-        },
+        onConfirm: () => _handleRemoveMember(member),
       ),
+    );
+  }
+
+  Future<void> _handleRemoveMember(FamilyMemberItem member) async {
+    setState(() => _isRemoving = true);
+    try {
+      // Connect to familyRepositoryProvider
+      await ref.read(familyRepositoryProvider).removeMember(widget.fridgeId, member.id);
+
+      if (!mounted) return;
+      setState(() {
+        _members.removeWhere((m) => m.id == member.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${member.name} has been removed')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to remove member: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isRemoving = false);
+    }
+  }
+
+  Widget _buildAvatar(FamilyMemberItem member) {
+    final initials = member.name.isNotEmpty
+        ? member.name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase()
+        : '?';
+
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: const Color(0xFFD3DDD1),
+      backgroundImage: member.avatarUrl.isNotEmpty ? NetworkImage(member.avatarUrl) : null,
+      onBackgroundImageError: (_, __) {},
+      child: member.avatarUrl.isEmpty
+          ? Text(
+              initials,
+              style: const TextStyle(
+                color: Color(0xFF181D18),
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            )
+          : null,
     );
   }
 
@@ -94,7 +127,7 @@ class _FamilySharePageState extends State<FamilySharePage> {
                 ],
               ),
               const SizedBox(height: 24),
-              // Kitchen Fridge Card
+              // Dynamic Fridge Card (Figma node 11:49)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -110,12 +143,16 @@ class _FamilySharePageState extends State<FamilySharePage> {
                       color: Color(0xFF181D18),
                     ),
                     const SizedBox(width: 20),
-                    Text(
-                      'Kitchen',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: const Color(0xFF181D18),
+                    Expanded(
+                      child: Text(
+                        widget.fridgeName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: const Color(0xFF181D18),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -154,19 +191,11 @@ class _FamilySharePageState extends State<FamilySharePage> {
                 child: Column(
                   children: _members.map((member) {
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Row(
                         children: [
-                          // Member avatar
-                          CircleAvatar(
-                            radius: 24,
-                            backgroundColor: Colors.grey.shade300,
-                            backgroundImage: NetworkImage(member.avatarUrl),
-                            onBackgroundImageError: (_, __) {},
-                            child: member.avatarUrl.isEmpty
-                                ? const Icon(Icons.person, color: Colors.white)
-                                : null,
-                          ),
+                          // Member avatar with offline initial fallback
+                          _buildAvatar(member),
                           const SizedBox(width: 14),
                           // Name
                           Expanded(
@@ -190,20 +219,17 @@ class _FamilySharePageState extends State<FamilySharePage> {
                           const SizedBox(width: 4),
                           // Delete icon in red color for non-owner
                           if (!member.isOwner)
-                            InkWell(
-                              onTap: () => _showRemoveDialog(member),
-                              borderRadius: BorderRadius.circular(20),
-                              child: const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Icon(
-                                  Icons.delete_outline,
-                                  color: Color(0xFFB91C1C), // Destructive Red
-                                  size: 24,
-                                ),
+                            IconButton(
+                              onPressed: _isRemoving ? null : () => _showRemoveDialog(member),
+                              tooltip: 'Remove ${member.name}',
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Color(0xFFB91C1C), // Destructive Red
+                                size: 24,
                               ),
                             )
                           else
-                            const SizedBox(width: 40),
+                            const SizedBox(width: 48),
                         ],
                       ),
                     );
@@ -258,7 +284,6 @@ class _FamilySharePageState extends State<FamilySharePage> {
                   },
                 ),
               ),
-              const SizedBox(height: 12),
             ],
           ),
         ),

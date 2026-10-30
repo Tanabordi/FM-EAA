@@ -80,7 +80,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'family',
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
-                  return FamilySharePage(fridgeId: id);
+                  final name = state.uri.queryParameters['name'] ?? 'Kitchen';
+                  return FamilySharePage(fridgeId: id, fridgeName: name);
                 },
                 routes: [
                   GoRoute(
