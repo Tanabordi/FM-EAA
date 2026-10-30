@@ -190,7 +190,7 @@ void main() {
   });
 
   group('SearchPage (Screen #10) Widget Tests', () {
-    testWidgets('Searches items across the fridge and displays results', (tester) async {
+    testWidgets('Renders Screen #10 matching Figma mockup with Avocados query and results', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -200,8 +200,22 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Check AppBackButton is present
+      // Check AppBackButton and Search Title
       expect(find.byType(AppBackButton), findsOneWidget);
+      expect(find.text('Search'), findsOneWidget);
+
+      // Check default mockup query 'Avocados' and results matching Figma Screen #10
+      expect(find.text('Results for "Avocados"'), findsOneWidget);
+      expect(find.text('Avocados (Veggies)'), findsOneWidget);
+      expect(find.text('2 pieces'), findsOneWidget);
+      expect(find.text('Fresh'), findsOneWidget);
+      expect(find.text('5 days left'), findsOneWidget);
+
+      // Clear search with close button
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Results for "Avocados"'), findsNothing);
 
       // Enter search query 'spinach'
       await tester.enterText(find.byType(TextField), 'spinach');
@@ -209,12 +223,6 @@ void main() {
 
       expect(find.text('Results for "spinach"'), findsOneWidget);
       expect(find.text('Baby spinach (Veggies)'), findsOneWidget);
-
-      // Clear search with close button
-      await tester.tap(find.byIcon(Icons.close_rounded));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Results for "spinach"'), findsNothing);
     });
 
     testWidgets('Shows no items found when search query matches nothing', (tester) async {

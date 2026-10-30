@@ -1,4 +1,5 @@
 import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/mobile_status_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,7 +22,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   void initState() {
     super.initState();
-    // Initialize controller with current search query if present
+    // Initialize controller with current search query ('Avocados' by default matching Figma mockup)
     _searchController.text = ref.read(searchQueryProvider);
     _searchController.addListener(_onSearchChanged);
   }
@@ -48,9 +49,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Top Status Bar: 9:41, Signal, Wifi, Battery (matching Figma mockup)
+            const MobileStatusBar(),
             // Top App Bar: Back Button + "Search" Title
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: Row(
                 children: [
                   AppBackButton(
@@ -99,7 +102,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 clipBehavior: Clip.antiAlias,
                 child: TextField(
                   controller: _searchController,
-                  autofocus: true,
+                  autofocus: false,
                   style: const TextStyle(
                     fontSize: 15,
                     color: Color(0xFF1A201C),
@@ -154,15 +157,15 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 ),
               ),
             ),
-            // "Results for ..." Section Header
+            // "Results for ..." Section Header matching exact typography and spacing
             if (query.trim().isNotEmpty) ...[
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                 child: Text(
                   'Results for "$query"',
                   style: const TextStyle(
                     fontSize: 16.5,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: Color(0xFF1A201C),
                     letterSpacing: -0.2,
                   ),
@@ -198,7 +201,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     )
                   : ListView.builder(
                       physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.only(bottom: 24, top: 2),
+                      padding: const EdgeInsets.only(bottom: 24, top: 0),
                       itemCount: results.length,
                       itemBuilder: (context, index) {
                         final item = results[index];
@@ -217,7 +220,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       },
                     ),
             ),
-            // iOS Bottom Home Indicator Bar
+            // iOS Bottom Home Indicator Bar matching Figma screenshot
             Padding(
               padding: const EdgeInsets.only(top: 4, bottom: 8),
               child: Center(
