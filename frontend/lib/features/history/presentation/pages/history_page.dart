@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/freshness_colors.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 import '../../providers/history_provider.dart';
 
 // TODO(screen #17 History): แท็บ Consumed | Expired; ข้อความ "Consumed is auto-deleted after 30 days", ปุ่ม "Clear All" (แดง + ถังขยะ); จัดกลุ่มตามวัน ("Today · 29 Oct", "Yesterday · 28 Oct"); แถว: รูป, ชื่อ, "-1 bottle (1 left) • by @alex.lee • 29 Oct • 08:30 AM", ป้าย Consumed, ปุ่มลบรายการ. แท็บ Expired มีโครงเดียวกัน (ไม่ได้ตรวจเนื้อหาละเอียด)
@@ -35,7 +36,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
+        leading: const AppBackButton(),
         title: const Text('History', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           TextButton.icon(

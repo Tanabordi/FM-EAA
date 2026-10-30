@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/features/fridge_detail/presentation/pages/fridge_detail_page.dart';
 import 'package:fm_eaa/features/search/presentation/pages/search_page.dart';
+import 'package:fm_eaa/shared/widgets/app_back_button.dart';
 
 void main() {
   group('FridgeDetailPage (Screen #9) Widget Tests', () {
-    testWidgets('Renders top bar, floating search, circular category chips, and tabs', (tester) async {
+    testWidgets('Renders top bar with AppBackButton, floating search, circular category chips, and tabs', (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -22,6 +23,7 @@ void main() {
 
       // Top title and search
       expect(find.text('Kitchen'), findsOneWidget);
+      expect(find.byType(AppBackButton), findsOneWidget);
       expect(find.text('Search for items'), findsOneWidget);
 
       // Circular category chips
@@ -55,7 +57,7 @@ void main() {
       expect(find.text('7 days left'), findsOneWidget);
     });
 
-    testWidgets('Clicking each category chip displays its exact 4 items matching Figma mockups', (tester) async {
+    testWidgets('Clicking each category chip in Fridge displays its exact 4 items matching Figma mockups', (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -116,7 +118,7 @@ void main() {
       expect(find.text('Strawberries'), findsOneWidget);
     });
 
-    testWidgets('Switches between Fridge and Freezer tabs', (tester) async {
+    testWidgets('Switches between Fridge and Freezer tabs and category filtering works for Freezer', (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -138,10 +140,52 @@ void main() {
       await tester.tap(find.text('Freezer'));
       await tester.pumpAndSettle();
 
-      // Now on Freezer tab
+      // Now on Freezer tab (All overview: 4 items)
       expect(find.text('Pork Tenderloin'), findsOneWidget);
       expect(find.text('Salmon Fillet'), findsOneWidget);
+      expect(find.text('Frozen Pizza'), findsOneWidget);
+      expect(find.text('Green Peas'), findsOneWidget);
       expect(find.text('Baby spinach'), findsNothing);
+
+      // Freezer category filtering: Proteins
+      await tester.tap(find.text('Proteins'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pork Tenderloin'), findsOneWidget);
+      expect(find.text('Salmon Fillet'), findsOneWidget);
+      expect(find.text('Beef Ribeye Steak'), findsOneWidget);
+      expect(find.text('Chicken Thighs'), findsOneWidget);
+
+      // Freezer category filtering: Veggies
+      await tester.tap(find.text('Veggies'));
+      await tester.pumpAndSettle();
+      expect(find.text('Green Peas'), findsOneWidget);
+      expect(find.text('Sweet Corn'), findsOneWidget);
+      expect(find.text('Frozen Mixed Berries'), findsOneWidget);
+      expect(find.text('Chopped Spinach'), findsOneWidget);
+
+      // Freezer category filtering: Beverages
+      await tester.tap(find.text('Beverages'));
+      await tester.pumpAndSettle();
+      expect(find.text('Coffee Ice Cubes'), findsOneWidget);
+      expect(find.text('Berry Smoothie Mix'), findsOneWidget);
+      expect(find.text('Lemon Juice Concentrate'), findsOneWidget);
+      expect(find.text('Popsicles'), findsOneWidget);
+
+      // Freezer category filtering: Meals
+      await tester.tap(find.text('Meals'));
+      await tester.pumpAndSettle();
+      expect(find.text('Frozen Pizza'), findsOneWidget);
+      expect(find.text('Pork Dumplings'), findsOneWidget);
+      expect(find.text('Microwave Lasagna'), findsOneWidget);
+      expect(find.text('Vanilla Ice Cream'), findsOneWidget);
+
+      // Freezer category filtering: Sauces
+      await tester.tap(find.text('Sauces'));
+      await tester.pumpAndSettle();
+      expect(find.text('Frozen Pesto Cubes'), findsOneWidget);
+      expect(find.text('Beef Bone Broth Cubes'), findsOneWidget);
+      expect(find.text('Herb Garlic Butter'), findsOneWidget);
+      expect(find.text('Chili Paste'), findsOneWidget);
     });
   });
 
@@ -156,6 +200,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // Check AppBackButton is present
+      expect(find.byType(AppBackButton), findsOneWidget);
+
       // Enter search query 'spinach'
       await tester.enterText(find.byType(TextField), 'spinach');
       await tester.pumpAndSettle();
@@ -163,8 +210,8 @@ void main() {
       expect(find.text('Results for "spinach"'), findsOneWidget);
       expect(find.text('Baby spinach (Veggies)'), findsOneWidget);
 
-      // Clear search
-      await tester.tap(find.byIcon(Icons.close));
+      // Clear search with close button
+      await tester.tap(find.byIcon(Icons.close_rounded));
       await tester.pumpAndSettle();
 
       expect(find.text('Results for "spinach"'), findsNothing);

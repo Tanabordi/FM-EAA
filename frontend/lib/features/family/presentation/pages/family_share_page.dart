@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/freshness_colors.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/user_avatar.dart';
 import '../widgets/remove_member_dialog.dart';
@@ -24,7 +25,7 @@ class FamilySharePage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
+        leading: const AppBackButton(),
         title: const Text('Family Share', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SafeArea(
@@ -105,4 +106,3 @@ class FamilySharePage extends StatelessWidget {
     );
   }
 }
-

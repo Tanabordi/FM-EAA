@@ -1,3 +1,4 @@
+import 'app_back_button.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,9 +10,8 @@ class FigmaBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onPressed ??
+    return AppBackButton(
+      onPressed: onPressed ??
           () {
             if (context.canPop()) {
               context.pop();
@@ -19,24 +19,6 @@ class FigmaBackButton extends StatelessWidget {
               context.go('/sign-in');
             }
           },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: colorScheme.outline.withValues(alpha: 0.3),
-            width: 1,
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          Icons.arrow_back,
-          size: 20,
-          color: colorScheme.onSurface,
-        ),
-      ),
     );
   }
 }

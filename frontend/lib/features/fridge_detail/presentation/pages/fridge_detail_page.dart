@@ -1,3 +1,4 @@
+import '../../../../shared/widgets/app_back_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,10 +25,9 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        ref.read(fridgeDetailFilterProvider.notifier).setZone(
-              _tabController.index == 0 ? 'fridge' : 'freezer',
-            );
+      final newZone = _tabController.index == 0 ? 'fridge' : 'freezer';
+      if (ref.read(fridgeDetailFilterProvider).zone != newZone) {
+        ref.read(fridgeDetailFilterProvider.notifier).setZone(newZone);
       }
     });
   }
@@ -53,7 +53,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             _buildAppBar(context),
             // Floating Pill Search Bar with Shadow
             _buildSearchBar(context),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             // Circular Category Chips (All, Proteins, Veggies, Beverages, Meals, Sauces)
             CategoryChips(
               selectedCategory: filter.category,
@@ -61,12 +61,12 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                 ref.read(fridgeDetailFilterProvider.notifier).setCategory(cat);
               },
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             // Fridge | Freezer Tabs
             _buildTabs(),
             // Food Items Section Header ("Your food" & "N items")
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -96,7 +96,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                   ? _buildEmptyState()
                   : ListView.builder(
                       physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.only(bottom: 84, top: 2),
+                      padding: const EdgeInsets.only(bottom: 74, top: 2),
                       itemCount: items.length,
                       itemBuilder: (context, index) {
                         final item = items[index];
@@ -115,13 +115,27 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                       },
                     ),
             ),
+            // iOS Bottom Home Indicator Bar matching screenshot
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Center(
+                child: Container(
+                  width: 134,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A201C),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
       floatingActionButton: Container(
         width: 58,
         height: 58,
-        margin: const EdgeInsets.only(bottom: 8, right: 4),
+        margin: const EdgeInsets.only(bottom: 16, right: 4),
         child: FloatingActionButton(
           elevation: 4,
           backgroundColor: const Color(0xFF2E6A44), // Figma exact dark green
@@ -139,27 +153,8 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         children: [
-          // Back button in rounded square outline
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: const Color(0xFFD9E2D7), width: 1.2),
-            ),
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              icon: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1B241E)),
-              onPressed: () {
-                if (Navigator.of(context).canPop()) {
-                  context.pop();
-                } else {
-                  context.go('/fridges');
-                }
-              },
-            ),
-          ),
+          // Back button matching Image 2
+          const AppBackButton(),
           const SizedBox(width: 12),
           // Fridge Name Title
           const Expanded(
@@ -176,25 +171,21 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
           // Top Action Buttons (Family, History, Notifications, Settings)
           _buildActionIcon(
             icon: Icons.people_outline_rounded,
-            tooltip: 'Family',
             onTap: () => context.push('/fridges/${widget.fridgeId}/family'),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           _buildActionIcon(
             icon: Icons.history_rounded,
-            tooltip: 'History',
             onTap: () => context.push('/fridges/${widget.fridgeId}/history'),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           _buildActionIcon(
             icon: Icons.notifications_none_rounded,
-            tooltip: 'Notifications',
             onTap: () => context.push('/notifications'),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           _buildActionIcon(
             icon: Icons.settings_outlined,
-            tooltip: 'Settings',
             onTap: () => context.push('/settings'),
           ),
         ],
@@ -204,11 +195,10 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
 
   Widget _buildActionIcon({
     required IconData icon,
-    required String tooltip,
     required VoidCallback onTap,
   }) {
-    return Tooltip(
-      message: tooltip,
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
@@ -227,7 +217,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
 
   Widget _buildSearchBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
       child: Container(
         height: 52,
         decoration: BoxDecoration(
@@ -277,20 +267,30 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                   ),
                 ),
                 if (_searchController.text.isNotEmpty)
-                  IconButton(
-                    icon: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFD0DDD0),
-                        shape: BoxShape.circle,
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        _searchController.clear();
+                        ref.read(fridgeDetailFilterProvider.notifier).setSearchQuery('');
+                      },
+                      child: Center(
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFDFE4DC),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            size: 15,
+                            color: Color(0xFF414942),
+                          ),
+                        ),
                       ),
-                      child: const Icon(Icons.close, size: 14, color: Color(0xFF334155)),
                     ),
-                    onPressed: () {
-                      _searchController.clear();
-                      ref.read(fridgeDetailFilterProvider.notifier).setSearchQuery('');
-                    },
                   )
                 else
                   const SizedBox(width: 18),
@@ -301,6 +301,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
       ),
     );
   }
+
   Widget _buildTabs() {
     return Stack(
       alignment: Alignment.bottomCenter,
@@ -312,6 +313,11 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
         ),
         TabBar(
           controller: _tabController,
+          onTap: (index) {
+            ref.read(fridgeDetailFilterProvider.notifier).setZone(
+                  index == 0 ? 'fridge' : 'freezer',
+                );
+          },
           indicatorColor: const Color(0xFF2E6A44), // Figma exact green indicator
           indicatorWeight: 3.5,
           indicatorSize: TabBarIndicatorSize.label,

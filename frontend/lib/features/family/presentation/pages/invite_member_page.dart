@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/user_avatar.dart';
 
@@ -26,7 +27,7 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
+        leading: const AppBackButton(),
         title: const Text('Invite to Family', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SafeArea(
@@ -72,4 +73,3 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
     );
   }
 }
-

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/freshness_colors.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../widgets/delete_item_dialog.dart';
@@ -19,7 +20,7 @@ class ItemDetailsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
+        leading: const AppBackButton(),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -124,4 +125,3 @@ class ItemDetailsPage extends StatelessWidget {
     );
   }
 }
-

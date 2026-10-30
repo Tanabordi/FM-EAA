@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/user_avatar.dart';
@@ -30,7 +31,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
+        leading: const AppBackButton(),
         title: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SafeArea(
@@ -105,4 +106,3 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 }
-

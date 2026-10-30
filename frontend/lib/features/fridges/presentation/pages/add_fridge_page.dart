@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../providers/fridges_provider.dart';
@@ -29,7 +30,7 @@ class _AddFridgePageState extends State<AddFridgePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add New Fridge', style: TextStyle(fontWeight: FontWeight.bold)),
-        leading: const BackButton(),
+        leading: const AppBackButton(),
       ),
       body: SafeArea(
         child: Padding(

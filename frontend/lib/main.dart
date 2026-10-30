@@ -45,6 +45,18 @@ class FmEaaApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: router,
+      builder: (context, child) {
+        return Container(
+          color: const Color(0xFFE5ECE3), // Subtle neutral canvas background outside mobile frame
+          alignment: Alignment.center,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: ClipRect(
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
+        );
+      },
     );
   }
 }

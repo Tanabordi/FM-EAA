@@ -1,3 +1,4 @@
+import '../../../../shared/widgets/app_back_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,10 +23,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     super.initState();
     // Initialize controller with current search query if present
     _searchController.text = ref.read(searchQueryProvider);
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    setState(() {});
   }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -46,25 +53,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Row(
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(13),
-                      border: Border.all(color: const Color(0xFFD9E2D7), width: 1.2),
-                    ),
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1B241E)),
-                      onPressed: () {
-                        if (Navigator.of(context).canPop()) {
-                          context.pop();
-                        } else {
-                          context.go('/fridges/${widget.fridgeId}');
-                        }
-                      },
-                    ),
+                  AppBackButton(
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/fridges/${widget.fridgeId}');
+                      }
+                    },
                   ),
                   const SizedBox(width: 14),
                   const Text(
@@ -79,9 +75,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 ],
               ),
             ),
-            // Floating Pill Search Bar with Shadow
+            // Floating Pill Search Bar with Shadow matching uploaded image
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
               child: Container(
                 height: 52,
                 decoration: BoxDecoration(
@@ -89,7 +85,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x45000000), // Prominent deep drop shadow matching Image 2
+                      color: Color(0x45000000), // Prominent deep drop shadow matching image
                       blurRadius: 18,
                       offset: Offset(0, 6),
                     ),
@@ -123,24 +119,32 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     prefixIconConstraints: const BoxConstraints(minWidth: 52),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: IconButton(
-                              icon: Container(
-                                width: 22,
-                                height: 22,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFD0DDD0),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.close, size: 14, color: Color(0xFF334155)),
-                              ),
-                              onPressed: () {
+                            padding: const EdgeInsets.only(right: 12.0),
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
                                 _searchController.clear();
                                 ref.read(searchQueryProvider.notifier).state = '';
                               },
+                              child: Center(
+                                child: Container(
+                                  width: 26,
+                                  height: 26,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFDFE4DC), // Circular grey badge matching image
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.close_rounded,
+                                    size: 15,
+                                    color: Color(0xFF414942),
+                                  ),
+                                ),
+                              ),
                             ),
                           )
                         : null,
+                    suffixIconConstraints: const BoxConstraints(minWidth: 48, minHeight: 52),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 15),
                   ),
@@ -153,7 +157,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             // "Results for ..." Section Header
             if (query.trim().isNotEmpty) ...[
               Padding(
-                padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
                 child: Text(
                   'Results for "$query"',
                   style: const TextStyle(
@@ -212,6 +216,20 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         );
                       },
                     ),
+            ),
+            // iOS Bottom Home Indicator Bar
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Center(
+                child: Container(
+                  width: 134,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A201C),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
             ),
           ],
         ),

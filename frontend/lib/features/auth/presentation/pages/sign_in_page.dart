@@ -190,9 +190,10 @@ class _SignInPageState extends State<SignInPage> {
                 onPressed: _handleGoogleSignIn,
               ),
               const SizedBox(height: 36),
-              // Don't have an account? Sign up
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              // Don’t have an account? Sign up
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
                     "Don’t have an account? ",

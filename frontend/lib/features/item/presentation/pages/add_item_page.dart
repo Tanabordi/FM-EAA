@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 
@@ -39,7 +40,7 @@ class _AddItemPageState extends State<AddItemPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Items', style: TextStyle(fontWeight: FontWeight.bold)),
-        leading: const BackButton(),
+        leading: const AppBackButton(),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/theme/freshness_colors.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/user_avatar.dart';
 import '../widgets/logout_dialog.dart';
@@ -19,7 +20,7 @@ class SettingsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
+        leading: const AppBackButton(),
         title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SafeArea(
@@ -114,4 +115,3 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 }
-
