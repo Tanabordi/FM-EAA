@@ -8,9 +8,9 @@ final searchResultsProvider = Provider.family<List<ItemModel>, String>((ref, fri
   final query = ref.watch(searchQueryProvider).trim().toLowerCase();
   if (query.isEmpty) return [];
 
-  final items = ref.watch(fridgeItemsProvider(fridgeId));
-  return items.where((item) {
-    return item.name.toLowerCase().contains(query) || item.category.toLowerCase().contains(query);
+  final allItems = ref.watch(allFridgeItemsProvider(fridgeId));
+  return allItems.where((item) {
+    return item.name.toLowerCase().contains(query) ||
+        item.category.toLowerCase().contains(query);
   }).toList();
 });
-
