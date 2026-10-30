@@ -5,16 +5,15 @@
 **แอปพลิเคชันจัดการสต็อกวัตถุดิบในตู้เย็นและแจ้งเตือนวันหมดอายุอัจฉริยะ**  
 *พัฒนาขึ้นสำหรับโครงงานรายวิชา MDSD-2026*
 
-<br/>
-
-[![Flutter](https://img.shields.io/badge/Frontend-Flutter_3.x-02569B?logo=flutter&logoColor=white&style=for-the-badge)](https://flutter.dev)
-[![Riverpod](https://img.shields.io/badge/State-Riverpod-2E8555?style=for-the-badge)](https://riverpod.dev)
-[![Drift](https://img.shields.io/badge/Local_DB-Drift_(SQLite)-003B57?logo=sqlite&logoColor=white&style=for-the-badge)](https://drift.simonbinder.eu/)  
-[![Node.js](https://img.shields.io/badge/Backend-Node.js_REST_API-339933?logo=nodedotjs&logoColor=white&style=for-the-badge)](https://nodejs.org)
-[![Oracle Cloud](https://img.shields.io/badge/Cloud_DB-Oracle_Cloud_(OCI)-F80000?logo=oracle&logoColor=white&style=for-the-badge)](https://cloud.oracle.com)
-[![Gemini AI](https://img.shields.io/badge/AI_Vision-Gemini_Vision_API-4285F4?logo=google&logoColor=white&style=for-the-badge)](https://ai.google.dev)
-
-<br/>
+<p align="center">
+  <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Frontend-Flutter_3.x-02569B?logo=flutter&logoColor=white&style=for-the-badge" alt="Flutter" /></a>
+  <a href="https://riverpod.dev"><img src="https://img.shields.io/badge/State-Riverpod-2E8555?style=for-the-badge" alt="Riverpod" /></a>
+  <a href="https://drift.simonbinder.eu/"><img src="https://img.shields.io/badge/Local_DB-Drift_%28SQLite%29-003B57?logo=sqlite&logoColor=white&style=for-the-badge" alt="Drift" /></a>
+  <br/>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Backend-Node.js_REST_API-339933?logo=nodedotjs&logoColor=white&style=for-the-badge" alt="Node.js" /></a>
+  <a href="https://cloud.oracle.com"><img src="https://img.shields.io/badge/Cloud_DB-Oracle_Cloud_%28OCI%29-F80000?logo=oracle&logoColor=white&style=for-the-badge" alt="Oracle Cloud" /></a>
+  <a href="https://ai.google.dev"><img src="https://img.shields.io/badge/AI_Vision-Gemini_Vision_API-4285F4?logo=google&logoColor=white&style=for-the-badge" alt="Gemini AI" /></a>
+</p>
 
 <p>
   แอปพลิเคชันช่วยลดปัญหาขยะอาหาร (Food Waste) และลดค่าใช้จ่ายในบ้านด้วยระบบจัดการสต็อกแบบ Offline-First<br/>
