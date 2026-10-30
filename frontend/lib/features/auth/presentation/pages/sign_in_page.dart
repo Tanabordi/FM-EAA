@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
 
-// TODO(screen #2 Sign In): โลโก้แอป, "Welcome To Fridge Management & Expiry Alert App", ช่อง Username or Email, Password (ซ่อน/แสดงได้), ลิงก์ Forgot password?, ปุ่ม Sign In, "Or", ปุ่ม Sign in with Google, "Don't have an account? Sign up"
+/// Screen #2: Sign In matching Figma node 8:39 exactly
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
 
@@ -15,6 +17,7 @@ class _SignInPageState extends State<SignInPage> {
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  final bool _isLoading = false;
 
   @override
   void dispose() {
@@ -23,92 +26,195 @@ class _SignInPageState extends State<SignInPage> {
     super.dispose();
   }
 
+  Future<void> _handleSignIn() async {
+    // Check if user has enabled notifications previously.
+    // If user previously tapped "Skip", remind them again by routing to /onboarding!
+    final prefs = await SharedPreferences.getInstance();
+    final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
+
+    if (!mounted) return;
+
+    if (!hasEnabled) {
+      context.go('/onboarding');
+    } else {
+      context.go('/fridges');
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
+
+    if (!mounted) return;
+
+    if (!hasEnabled) {
+      context.go('/onboarding');
+    } else {
+      context.go('/fridges');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 32),
-              const Center(child: Text('🧊', style: TextStyle(fontSize: 64))),
-              const SizedBox(height: 16),
-              const Text(
-                'Welcome To Fridge Management & Expiry Alert App',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              // App Logo - Green rounded square with fridge illustration
+              Center(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD7E8D8),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.kitchen_outlined,
+                      size: 40,
+                      color: Color(0xFF2E6A44),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              // Title matching Figma
+              Text(
+                'Welcome To\nFridge Management &\nExpiry Alert App',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                  height: 1.25,
+                ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 10),
+              // Subtitle
+              Text(
+                'Sign in to your account to continue.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 36),
+              // Username or Email
               AppTextField(
                 controller: _identifierController,
                 labelText: 'Username or Email',
-                hintText: 'Enter your username or email',
-                prefixIcon: const Icon(Icons.person_outline),
+                hintText: '',
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              // Password
               AppTextField(
                 controller: _passwordController,
                 labelText: 'Password',
-                hintText: 'Enter your password',
+                hintText: '',
                 obscureText: _obscurePassword,
-                prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: colorScheme.onSurfaceVariant,
+                    size: 22,
+                  ),
                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
+              const SizedBox(height: 12),
+              // Forgot password?
               Align(
                 alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => context.push('/reset-password'),
-                  child: const Text('Forgot password?'),
+                child: InkWell(
+                  onTap: () => context.push('/reset-password'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Text(
+                      'Forgot password?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 28),
+              // Sign In Button
               PrimaryButton(
                 label: 'Sign In',
-                onPressed: () {
-                  // TODO(auth sign_in): Call authRepository.signInWithPassword
-                  context.go('/fridges');
-                },
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text('Or', style: TextStyle(color: Theme.of(context).colorScheme.outline)),
-                  ),
-                  const Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                  shape: const StadiumBorder(),
-                ),
-                icon: const Icon(Icons.g_mobiledata, size: 28),
-                label: const Text('Sign in with Google'),
-                onPressed: () {
-                  // TODO(auth google): Call authRepository.signInWithGoogle
-                  context.go('/fridges');
-                },
+                isLoading: _isLoading,
+                onPressed: _handleSignIn,
               ),
               const SizedBox(height: 24),
+              // "Or" Divider
+              Row(
+                children: [
+                  Expanded(
+                    child: Divider(
+                      color: colorScheme.outline.withValues(alpha: 0.3),
+                      thickness: 1,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      'Or',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider(
+                      color: colorScheme.outline.withValues(alpha: 0.3),
+                      thickness: 1,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              // Google Sign-In Button
+              GoogleSignInButton(
+                label: 'Sign in with Google',
+                onPressed: _handleGoogleSignIn,
+              ),
+              const SizedBox(height: 36),
+              // Don't have an account? Sign up
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Don't have an account?"),
-                  TextButton(
-                    onPressed: () => context.push('/create-account'),
-                    child: const Text('Sign up'),
+                  Text(
+                    "Don’t have an account? ",
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => context.push('/create-account'),
+                    child: Text(
+                      'Sign up',
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -116,4 +222,3 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 }
-

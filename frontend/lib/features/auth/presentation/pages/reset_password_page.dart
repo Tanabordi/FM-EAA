@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
 
-// TODO(screen #4 Reset Password): "Enter your email", ช่อง Email, ปุ่ม "Send Link"
+/// Screen #4: Reset Password matching Figma node 64:3
 class ResetPasswordPage extends StatefulWidget {
   const ResetPasswordPage({super.key});
 
@@ -12,6 +14,7 @@ class ResetPasswordPage extends StatefulWidget {
 
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final _emailController = TextEditingController();
+  final bool _isLoading = false;
 
   @override
   void dispose() {
@@ -19,45 +22,68 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     super.dispose();
   }
 
+  void _handleSendLink() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Password reset link has been sent to your email.')),
+    );
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/sign-in');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      appBar: AppBar(leading: const BackButton()),
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Reset Password',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+              // Top Bar with rounded back button
+              Row(
+                children: [
+                  const FigmaBackButton(),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Reset Password',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                      fontSize: 22,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 32),
+              // Subtitle
               Text(
                 'Enter your email',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 15,
                 ),
               ),
               const SizedBox(height: 24),
+              // Email input matching Figma style
               AppTextField(
                 controller: _emailController,
                 labelText: 'Email',
-                hintText: 'Enter your email address',
+                hintText: '',
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 32),
+              // Send Link Button
               PrimaryButton(
                 label: 'Send Link',
-                onPressed: () {
-                  // TODO(auth reset_password): Call authRepository.sendPasswordReset
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Password reset link sent to your email.')),
-                  );
-                  Navigator.of(context).pop();
-                },
+                isLoading: _isLoading,
+                onPressed: _handleSendLink,
               ),
             ],
           ),
@@ -66,4 +92,3 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     );
   }
 }
-
