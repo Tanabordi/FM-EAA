@@ -33,7 +33,97 @@ flowchart TD
 
 ---
 
-## 👤 ส่วนที่  Backend, Cloud Database & API Core (ฝั่งเซิร์ฟเวอร์)
+---
+
+## 🚦 ลำดับขั้นตอนการพัฒนาและความสัมพันธ์ระหว่างโมดูล (Module Dependencies & Integration Roadmap)
+
+> 💡 **หลักการพัฒนาและการเชื่อมต่อระบบ (Integration Principles):**
+> 1. **พัฒนาจากโมดูลรากฐานขึ้นสู่โมดูลระดับบน (Foundation-First Architecture):** ระบบต้องมีฐานข้อมูล (Database) และโครงสร้างการยืนยันตัวตน (Authentication) ที่นิ่งก่อน จึงจะสามารถพัฒนาหน้าจอและฟังก์ชันธุรกิจ (Business Logic) ต่อยอดได้
+> 2. **การรวมโค้ดแบบทีละขั้น (Incremental Integration):** เมื่อแต่ละโมดูลย่อยพัฒนาและผ่านการทดสอบ (Automated Tests) เรียบร้อยแล้ว จึงทำการรวมเข้าสู่กิ่งหลัก (`develop`) เพื่อป้องกันข้อขัดแย้งของโค้ด (Merge Conflicts)
+> 3. **รักษามาตรฐานความเข้ากันได้ของข้อมูล (Data Contract Integrity):** โครงสร้างโมเดลและฟิลด์ข้อมูลใน Local DB (Drift) และ Cloud DB (Oracle) ต้องสอดคล้องกันทุกจุด
+
+```mermaid
+flowchart TD
+    subgraph P1 ["🔹 ระยะที่ 1: ระบบรากฐานและโครงสร้างข้อมูล (Foundation Layer)"]
+        M_LocalDB["<b>1. โมดูลฐานข้อมูลในเครื่อง</b><br/>(Drift SQLite - ตารางตู้เย็นและวัตถุดิบ)<br/><i>ผู้รับผิดชอบ: นางสาวอาทิตยา</i>"]
+        M_AuthFlow["<b>2. โมดูลระบบยืนยันตัวตนหน้าบ้าน</b><br/>(Sign-In, Register & Validation)<br/><i>ผู้รับผิดชอบ: นายธนบดี</i>"]
+        M_BackendCore["<b>3. ระบบเซิร์ฟเวอร์และฐานข้อมูลคลาวด์</b><br/>(Oracle Cloud DB & JWT Middleware)<br/><i>ผู้รับผิดชอบ: นายธีธัช</i>"]
+    end
+
+    subgraph P2 ["🔹 ระยะที่ 2: ระบบจัดการสต็อกและปัญญาประดิษฐ์ (Core Business Logic Layer)"]
+        M_FridgeUI["<b>4. โมดูลจัดการตู้เย็นและสต็อกอาหาร</b><br/>(หน้า My Fridges & รายละเอียดตู้เย็น)<br/><i>ผู้รับผิดชอบ: นางสาวอาทิตยา</i>"]
+        M_AIScan["<b>5. โมดูลปัญญาประดิษฐ์อ่านฉลากอาหาร</b><br/>(Gemini Vision OCR API & Camera Scan)<br/><i>ผู้รับผิดชอบ: นายชนินทร์</i>"]
+        M_BackendCRUD["<b>6. เซอร์วิสจัดการข้อมูลสินค้าและตู้เย็น</b><br/>(REST API CRUD Fridges & Items)<br/><i>ผู้รับผิดชอบ: นายธีธัช</i>"]
+    end
+
+    subgraph P3 ["🔹 ระยะที่ 3: ระบบทำงานร่วมกันและการเชื่อมโยงขั้นสูง (Collaboration & Sync Layer)"]
+        M_Family["<b>7. ระบบแชร์ตู้เย็นในครอบครัว</b><br/>(Family Share, สิทธิ์ Owner/Member)<br/><i>ผู้รับผิดชอบ: นายธนบดี</i>"]
+        M_Sync["<b>8. เอนจินเชื่อมโยงข้อมูลแบบออฟไลน์</b><br/>(Offline Sync Engine - Last-Write-Wins)<br/><i>ผู้รับผิดชอบ: นายชนินทร์</i>"]
+        M_Noti["<b>9. ระบบแจ้งเตือนวันหมดอายุและประวัติ</b><br/>(Local Notifications & History Tracking)<br/><i>ผู้รับผิดชอบ: นายธนบดี</i>"]
+    end
+
+    M_LocalDB --> M_FridgeUI
+    M_AuthFlow --> M_Family
+    M_BackendCore --> M_AIScan
+    M_BackendCore --> M_BackendCRUD
+    M_FridgeUI --> M_AIScan
+    M_FridgeUI --> M_Family
+    M_BackendCRUD --> M_Sync
+    M_LocalDB --> M_Sync
+```
+
+### 📊 ตารางลำดับการผสานระบบ (Module Integration Sequence)
+
+| ลำดับ | โมดูลงาน (Module Component) | ผู้รับผิดชอบหลัก | ความสัมพันธ์กับระบบอื่น (Prerequisites) | ความสำคัญ |
+| :---: | :--- | :---: | :--- | :---: |
+| **1** | **ระบบฐานข้อมูลภายในเครื่อง (Local SQLite Database)** | นางสาวอาทิตยา | เป็นรากฐานของแอปทั้งหมด จัดเตรียมตาราง `FridgesTable`, `ItemsTable` | 🔴 **ชั้นรากฐาน (Foundation)** |
+| **2** | **ระบบยืนยันตัวตนฝั่งผู้ใช้ (Client-Side Authentication)** | นายธนบดี | วางโครงสร้างฟอร์มเข้าสู่ระบบ, สมัครสมาชิก และการตรวจสอบความถูกต้องของข้อมูล | 🔴 **ชั้นรากฐาน (Foundation)** |
+| **3** | **ระบบเซิร์ฟเวอร์และฐานข้อมูลกลาง (Cloud Database & Auth Core)** | นายธีธัช | ติดตั้ง Oracle Cloud DB, ตารางหลัก 7 ตาราง และ `authenticateToken` middleware | 🔴 **ชั้นรากฐาน (Foundation)** |
+| **4** | **ระบบส่วนต่อประสานจัดการตู้เย็น (Fridge Management UI)** | นางสาวอาทิตยา | ต้องอาศัย Local DB (ลำดับ 1) เพื่อบันทึกและแสดงผลรายการตู้เย็นและของในตู้ | 🟡 **ฟังก์ชันหลัก (Core)** |
+| **5** | **ระบบวิเคราะห์ฉลากอาหารด้วยปัญญาประดิษฐ์ (AI Vision OCR)** | นายชนินทร์ | อาศัย `authenticateToken` จากลำดับ 3 และส่งข้อมูลกลับไปยังแบบฟอร์มในลำดับ 4 | 🟡 **ฟังก์ชันหลัก (Core)** |
+| **6** | **ระบบบริการข้อมูลวัตถุดิบบนคลาวด์ (Cloud Inventory Services)** | นายธีธัช | พัฒนา REST API รองรับการดึงและอัปเดตข้อมูลตู้เย็นและวัตถุดิบบน Oracle Cloud | 🟡 **ฟังก์ชันหลัก (Core)** |
+| **7** | **ระบบแบ่งปันตู้เย็นกับครอบครัว (Family Sharing Module)** | นายธนบดี | อาศัยข้อมูลผู้ใช้ (ลำดับ 2) และข้อมูลตู้เย็น (ลำดับ 4) ในการจัดการสิทธิ์การเข้าถึง | 🟢 **ระบบขั้นสูง (Advanced)** |
+| **8** | **ระบบประสานข้อมูลแบบออฟไลน์ (Offline-First Sync Engine)** | นายชนินทร์ | เชื่อมโยงข้อมูลระหว่าง Local DB (ลำดับ 1) กับ Cloud Services (ลำดับ 6) ด้วยหลัก LWW | 🟢 **ระบบขั้นสูง (Advanced)** |
+| **9** | **ระบบแจ้งเตือนเตือนวันหมดอายุและประวัติ (Alerts & History)** | นายธนบดี | ดึงข้อมูลวันหมดอายุจากสต็อกอาหาร เพื่อตั้งเวลาแจ้งเตือนล่วงหน้าบนอุปกรณ์ | 🟢 **ระบบขั้นสูง (Advanced)** |
+
+---
+
+### 📋 ลำดับขั้นตอนการพัฒนาเจาะจงตามขอบเขตงาน (Role-Based Implementation Steps)
+
+#### 👤 ส่วนที่ 1 นายธีธัช รัตนโสภา (Backend & Cloud DB)
+- ⏳ **ขั้นที่ 1** กำหนดค่าการเชื่อมต่อ Oracle Cloud DB ใน `backend/src/config/db.js` และประมวลผลสคริปต์ `backend/src/db/migrations/001_init.sql` เพื่อสร้างตารางข้อมูลทั้ง 7 ตารางบนระบบคลาวด์
+- ⏳ **ขั้นที่ 2** พัฒนาระบบยืนยันตัวตนใน `authService.js` และ `authRoutes.js` (Register, Login, Password Hashing ด้วย `bcrypt`, และการออก JWT Token)
+- ⏳ **ขั้นที่ 3** จัดทำ `authenticateToken` ใน `middleware/auth.js` สำหรับตรวจสอบสิทธิ์การเข้าถึง API ทุกเส้นทาง
+- ⏳ **ขั้นที่ 4** พัฒนา REST API และ Service จัดการตู้เย็นและสมาชิก (`fridgeRoutes.js`, `fridgeService.js`) รองรับ CRUD ตู้เย็นและการเช็คสิทธิ์ Owner/Member
+- ⏳ **ขั้นที่ 5** พัฒนา REST API และ Service จัดการสต็อกวัตถุดิบและประวัติ (`itemRoutes.js`, `historyRoutes.js`)
+- ⏳ **ขั้นที่ 6** พัฒนาชุดทดสอบอัตโนมัติ (Automated Tests) ด้วย Jest/Supertest ใน `backend/tests/` เพื่อทดสอบ Route, Auth, และ Error Handling
+
+#### 👤 ส่วนที่ 2 นางสาวอาทิตยา ผิวขำ (Frontend Inventory & Local DB)
+- ⏳ **ขั้นที่ 1** พัฒนาระบบฐานข้อมูล Drift SQLite ในเครื่อง (`app_database.dart`) ให้รองรับตาราง `FridgesTable` และ `ItemsTable` แบบออฟไลน์
+- ⏳ **ขั้นที่ 2** พัฒนาหน้าจอแสดงรายการตู้เย็นและฟอร์มสร้าง/แก้ไขตู้เย็น (Screens #5–8: `MyFridgesPage`, `AddFridgePage`, `EditFridgeSheet`)
+- ⏳ **ขั้นที่ 3** พัฒนาหน้ารายละเอียดวัตถุดิบภายในตู้เย็นและการกรอง (Screen #9: `FridgeDetailPage` แยกแท็บ Fridge/Freezer และชิปหมวดหมู่ พร้อมเชื่อมต่อ Local DB)
+- ⏳ **ขั้นที่ 4** พัฒนาระบบค้นหาวัตถุดิบ (Screen #10: `SearchPage` ค้นหาแบบ Real-time พร้อมปุ่มล้างคำค้น)
+- ⏳ **ขั้นที่ 5** พัฒนาแบบฟอร์มการบันทึกและแก้ไขวัตถุดิบ (Screens #11–13: `AddItemPage`, `EditItemPage`, `ItemDetailsPage`)
+- ⏳ **ขั้นที่ 6** พัฒนาระบบบันทึกการบริโภคอาหาร (Screens #14–16: Mark as Consumed Sheet, Finished all, และ Undo SnackBar)
+
+#### 👤 ส่วนที่ 3 นายชนินทร์ คำวงศ์ษา (AI Vision & Offline Sync Engine)
+- ⏳ **ขั้นที่ 1** พัฒนาบริการวิเคราะห์ฉลากอาหารฝั่งเซิร์ฟเวอร์ (`aiService.js`, `aiRoutes.js`) เชื่อมต่อ Google Gemini Vision API สกัดชื่ออาหารและวันหมดอายุ
+- ⏳ **ขั้นที่ 2** พัฒนาหน้าจอการสแกนฉลากด้วยกล้องบนมือถือ (`scan_label_page.dart`) และระบบนำผลลัพธ์มา Autofill ข้อมูลลงแบบฟอร์มวัตถุดิบ
+- ⏳ **ขั้นที่ 3** พัฒนาระบบตรวจสอบสถานะการเชื่อมต่อเครือข่ายเบื้องหลัง (`connectivity_watcher.dart`) ด้วย `connectivity_plus`
+- ⏳ **ขั้นที่ 4** พัฒนาระบบซิงค์ข้อมูลฝั่งเซิร์ฟเวอร์ (`syncRoutes.js`, `syncService.js`) รองรับ Last-Write-Wins (LWW) อิงตาม `updated_at`
+- ⏳ **ขั้นที่ 5** พัฒนาระบบประมวลผลการซิงค์ฝั่งมือถือ (`sync_engine.dart`) รวมส่งข้อมูลแบบ Batched และจัดการสถานะ `is_synced`
+
+#### 👤 ส่วนที่ 4 นายธนบดี บุญภมร (Auth, Family Sharing & Notifications)
+- ✅ **ขั้นที่ 1** พัฒนาหน้าจอการพิสูจน์ตัวตน (Screens #1–4: `OnboardingPage`, `SignInPage`, `CreateAccountPage`, `ResetPasswordPage`) พร้อมระบบตรวจสอบความถูกต้องของข้อมูลนำเข้า (Form Validation & Loading State)
+- ⏳ **ขั้นที่ 2** เชื่อมโยงระบบเข้าสู่ระบบฝั่งหน้าบ้านเข้ากับเซิร์ฟเวอร์หลักผ่าน `AuthRepository` และจัดเก็บ Session/Token ปลอดภัย (`flutter_secure_storage`)
+- ⏳ **ขั้นที่ 3** พัฒนาระบบจัดการสมาชิกตู้เย็นและแชร์ครอบครัว (Screens #18–20: `FamilySharePage`, `InviteMemberPage`, `RemoveMemberDialog`)
+- ⏳ **ขั้นที่ 4** พัฒนาระบบประวัติการใช้งานตู้เย็น (Screen #17: `HistoryPage` แยกแท็บ Consumed/Expired พร้อมปุ่มล้างประวัติเดี่ยวและ Clear All)
+- ⏳ **ขั้นที่ 5** พัฒนาระบบแจ้งเตือนบนอุปกรณ์ (Screen #21: `NotificationsPage` และ Local Notifications เตือนของใกล้หมดอายุล่วงหน้า)
+- ⏳ **ขั้นที่ 6** พัฒนาหน้าจอการตั้งค่าและโปรไฟล์ (Screens #22–24: `SettingsPage`, `EditProfilePage` รองรับการสลับธีม/ภาษา และการออกจากระบบ)
+
+---
+
+## 👤 ส่วนที่ 1 Backend, Cloud Database & API Core (ฝั่งเซิร์ฟเวอร์)
 **ผู้รับผิดชอบ** นายธีธัช รัตนโสภา (67030302)
 
 > **เป้าหมาย** สร้างและดูแลระบบเซิร์ฟเวอร์ Cloud Database, การพิสูจน์ตัวตน และ Business Logic ของ REST API ทั้งหมด
@@ -64,7 +154,7 @@ flowchart TD
 
 ---
 
-## 👤 ส่วนที่  Frontend Inventory & Local Database (สต็อกวัตถุดิบและตู้เย็น)
+## 👤 ส่วนที่ 2 Frontend Inventory & Local Database (สต็อกวัตถุดิบและตู้เย็น)
 **ผู้รับผิดชอบ** นางสาวอาทิตยา ผิวขำ (67030260)
 
 > **เป้าหมาย** สร้าง UI สำหรับจัดการตู้เย็น สต็อกอาหาร การค้นหา และฐานข้อมูล SQLite ในเครื่องมือถือ
@@ -96,7 +186,7 @@ flowchart TD
 
 ---
 
-## 👤 ส่วนที่  AI Vision & Offline-First Sync Engine (ระบบ AI และการซิงค์ข้อมูล)
+## 👤 ส่วนที่ 3 AI Vision & Offline-First Sync Engine (ระบบ AI และการซิงค์ข้อมูล)
 **ผู้รับผิดชอบ** นายชนินทร์ คำวงศ์ษา (67030281)
 
 > **เป้าหมาย** พัฒนาระบบสแกนฉลากด้วย Gemini Vision API และเครื่องมือเชื่อมโยงข้อมูลระหว่างมือถือกับ Cloud Database
@@ -125,7 +215,7 @@ flowchart TD
 
 ---
 
-## 👤 ส่วนที่  Auth, Family Sharing, History & Notifications (ระบบสมาชิกและการแจ้งเตือน)
+## 👤 ส่วนที่ 4 Auth, Family Sharing, History & Notifications (ระบบสมาชิกและการแจ้งเตือน)
 **ผู้รับผิดชอบ** นายธนบดี บุญภมร (67030298)
 
 > **เป้าหมาย** ดูแลระบบสิทธิ์ผู้ใช้ การแชร์ตู้เย็นกับครอบครัว ประวัติการบริโภค และระบบแจ้งเตือนเตือนวันหมดอายุ
