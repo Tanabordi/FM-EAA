@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/fridge_model.dart';
+import '../../../data/repositories/fridge_repository.dart';
 
 class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
-  FridgesNotifier()
+  final FridgeRepository? _repository;
+
+  FridgesNotifier([this._repository])
       : super([
           FridgeModel(
             id: 'fridge_kitchen',
@@ -22,6 +25,7 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
           ),
         ]);
 
+  /// Optimistic UI: Updates local state immediately, then asynchronously persists to Drift SQLite with is_synced = false
   void addFridge(String name, String description) {
     final newFridge = FridgeModel(
       id: 'fridge_${DateTime.now().millisecondsSinceEpoch}',
@@ -29,17 +33,23 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
       description: description,
       ownerId: 'user_1',
       memberCount: 1,
+      isSynced: false, // Optimistic UI: marked not synced
       updatedAt: DateTime.now(),
     );
     state = [...state, newFridge];
+
+    // Asynchronous local SQLite persistence
+    _repository?.createFridge(name, description);
   }
 
+  /// Optimistic UI: Removes from local state immediately, then removes from Drift SQLite
   void removeFridge(String id) {
     state = state.where((f) => f.id != id).toList();
+    _repository?.deleteFridge(id);
   }
 }
 
 final fridgesProvider = StateNotifierProvider<FridgesNotifier, List<FridgeModel>>((ref) {
-  return FridgesNotifier();
+  final repo = ref.watch(fridgeRepositoryProvider);
+  return FridgesNotifier(repo);
 });
-
