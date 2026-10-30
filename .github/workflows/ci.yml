@@ -2,13 +2,13 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 jobs:
-  backend-test:
-    name: Backend Lint & Test
+  backend:
+    name: Backend Test & Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -27,11 +27,11 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Tests
+      - name: Run Tests (Automated Testing)
         run: npm test
 
-  frontend-test:
-    name: Frontend Analyze & Test
+  frontend:
+    name: Frontend Test & Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -40,10 +40,15 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Set up Java for Android Build
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.x'
           channel: 'stable'
           cache: true
 
@@ -53,6 +58,8 @@ jobs:
       - name: Run Static Analysis
         run: flutter analyze
 
-      - name: Run Tests with Coverage
+      - name: Run Tests with Coverage (Automated Testing)
         run: flutter test --coverage
 
+      - name: Build Android APK (Automated Build)
+        run: flutter build apk --debug
