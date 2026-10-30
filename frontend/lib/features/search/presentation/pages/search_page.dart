@@ -1,5 +1,4 @@
 import '../../../../shared/widgets/app_back_button.dart';
-import '../../../../shared/widgets/mobile_status_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,8 +48,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Status Bar: 9:41, Signal, Wifi, Battery (matching Figma mockup)
-            const MobileStatusBar(),
             // Top App Bar: Back Button + "Search" Title
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),

@@ -1,5 +1,4 @@
 import '../../../../shared/widgets/app_back_button.dart';
-import '../../../../shared/widgets/mobile_status_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -51,8 +50,6 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
       body: SafeArea(
         child: Column(
           children: [
-            // Top Status Bar: 9:41, Signal, Wifi, Battery matching Figma mockup
-            const MobileStatusBar(),
             // Top App Bar
             _buildAppBar(context),
             // Floating Pill Search Bar with Shadow
