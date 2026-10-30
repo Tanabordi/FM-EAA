@@ -40,7 +40,7 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: lightColorScheme.primary,
           foregroundColor: lightColorScheme.onPrimary,
-          minimumSize: const Size.fromHeight(50),
+          minimumSize: const Size(64, 50),
           shape: const StadiumBorder(),
           elevation: 0,
         ),
@@ -73,7 +73,7 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: darkColorScheme.primary,
           foregroundColor: darkColorScheme.onPrimary,
-          minimumSize: const Size.fromHeight(50),
+          minimumSize: const Size(64, 50),
           shape: const StadiumBorder(),
           elevation: 0,
         ),

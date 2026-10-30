@@ -18,6 +18,9 @@ class AppTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final TextInputType keyboardType;
   final ValueChanged<String>? onChanged;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final FocusNode? focusNode;
 
   const AppTextField({
     super.key,
@@ -32,6 +35,9 @@ class AppTextField extends StatelessWidget {
     this.suffixIcon,
     this.keyboardType = TextInputType.text,
     this.onChanged,
+    this.textInputAction,
+    this.onSubmitted,
+    this.focusNode,
   });
 
   @override
@@ -59,9 +65,12 @@ class AppTextField extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: TextField(
             controller: controller,
+            focusNode: focusNode,
             obscureText: obscureText,
             readOnly: readOnly,
             keyboardType: keyboardType,
+            textInputAction: textInputAction,
+            onSubmitted: onSubmitted,
             onChanged: onChanged,
             style: TextStyle(
               fontSize: 15,
@@ -90,28 +99,27 @@ class AppTextField extends StatelessWidget {
             ),
           ),
         ),
-        if (helperText != null && errorText == null) ...[
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Text(
-              helperText!,
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
         if (errorText != null) ...[
           const SizedBox(height: 4),
           Padding(
-            padding: const EdgeInsets.only(left: 4),
+            padding: const EdgeInsets.only(left: 16),
             child: Text(
               errorText!,
               style: TextStyle(
                 fontSize: 12,
                 color: colorScheme.error,
+              ),
+            ),
+          ),
+        ] else if (helperText != null) ...[
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: Text(
+              helperText!,
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ),

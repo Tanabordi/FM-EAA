@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 /// Service managing offline local notifications for item expiry alerts.
@@ -9,22 +10,31 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-    const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
+    if (kIsWeb) return;
+    try {
+      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      );
+      const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
 
-    await _plugin.initialize(settings);
+      await _plugin.initialize(settings);
+    } catch (e) {
+      debugPrint('NotificationService init error: $e');
+    }
   }
 
   Future<bool?> requestPermissions() async {
-    // TODO(notifications permission): Request notification permission on onboarding screen
-    final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-    if (android != null) {
-      return await android.requestNotificationsPermission();
+    if (kIsWeb) return true;
+    try {
+      final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      if (android != null) {
+        return await android.requestNotificationsPermission();
+      }
+    } catch (e) {
+      debugPrint('NotificationService requestPermissions error: $e');
     }
     return true;
   }
@@ -39,11 +49,20 @@ class NotificationService {
   }
 
   Future<void> cancelAlert(int id) async {
-    await _plugin.cancel(id);
+    if (kIsWeb) return;
+    try {
+      await _plugin.cancel(id);
+    } catch (e) {
+      debugPrint('NotificationService cancelAlert error: $e');
+    }
   }
 
   Future<void> cancelAll() async {
-    await _plugin.cancelAll();
+    if (kIsWeb) return;
+    try {
+      await _plugin.cancelAll();
+    } catch (e) {
+      debugPrint('NotificationService cancelAll error: $e');
+    }
   }
 }
-
