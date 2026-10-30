@@ -271,32 +271,30 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                 ),
                 if (_searchController.text.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
+                    padding: const EdgeInsets.only(right: 14.0, left: 8.0),
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () {
                         _searchController.clear();
                         ref.read(fridgeDetailFilterProvider.notifier).setSearchQuery('');
                       },
-                      child: Center(
-                        child: Container(
-                          width: 26,
-                          height: 26,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFDFE4DC),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close_rounded,
-                            size: 15,
-                            color: Color(0xFF414942),
-                          ),
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFDFE4DC),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 15,
+                          color: Color(0xFF414942),
                         ),
                       ),
                     ),
                   )
                 else
-                  const SizedBox(width: 18),
+                  const SizedBox(width: 22),
               ],
             ),
           ),

@@ -240,5 +240,40 @@ void main() {
 
       expect(find.text('No items found'), findsOneWidget);
     });
+
+    testWidgets('Search bar pins close button to the far right and displays typed text cleanly', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: SearchPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Clear initial 'Avocados'
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
+
+      // Type single character 'r' as in user screenshot
+      await tester.enterText(find.byType(TextField), 'r');
+      await tester.pumpAndSettle();
+
+      // Verify close icon is rendered
+      final closeIconFinder = find.byIcon(Icons.close_rounded);
+      expect(closeIconFinder, findsOneWidget);
+
+      // Verify close button position is pinned to the far right (x > 300 on 400+ screen)
+      final closeIconTopLeft = tester.getTopLeft(closeIconFinder);
+      final searchPillFinder = find.byType(Row).first; // Row inside search pill
+      final searchPillRect = tester.getRect(searchPillFinder);
+      expect(closeIconTopLeft.dx, greaterThan(searchPillRect.right - 50));
+
+      // Verify EditableText has full horizontal width (> 200px) and displays the text
+      final editableTextFinder = find.byType(EditableText);
+      final editableTextSize = tester.getSize(editableTextFinder);
+      expect(editableTextSize.width, greaterThan(200));
+    });
   });
 }

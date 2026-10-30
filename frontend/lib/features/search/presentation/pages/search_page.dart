@@ -99,61 +99,67 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     ),
                   ],
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: TextField(
-                  controller: _searchController,
-                  autofocus: false,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Color(0xFF1A201C),
-                    fontWeight: FontWeight.w500,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Search for items',
-                    hintStyle: const TextStyle(
-                      color: Color(0xFF4A5A4E),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    prefixIcon: const Padding(
+                child: Row(
+                  children: [
+                    const Padding(
                       padding: EdgeInsets.only(left: 18, right: 12),
                       child: Icon(Icons.search, color: Color(0xFF3A4A3E), size: 22),
                     ),
-                    prefixIconConstraints: const BoxConstraints(minWidth: 52),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.only(right: 12.0),
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                _searchController.clear();
-                                ref.read(searchQueryProvider.notifier).state = '';
-                              },
-                              child: Center(
-                                child: Container(
-                                  width: 26,
-                                  height: 26,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFDFE4DC), // Circular grey badge matching image
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.close_rounded,
-                                    size: 15,
-                                    color: Color(0xFF414942),
-                                  ),
-                                ),
-                              ),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        autofocus: false,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF1A201C),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: 'Search for items',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF4A5A4E),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
+                        ),
+                        onChanged: (val) {
+                          ref.read(searchQueryProvider.notifier).state = val;
+                        },
+                      ),
+                    ),
+                    if (_searchController.text.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 14.0, left: 8.0),
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            _searchController.clear();
+                            ref.read(searchQueryProvider.notifier).state = '';
+                          },
+                          child: Container(
+                            width: 26,
+                            height: 26,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFDFE4DC), // Circular grey badge matching image
+                              shape: BoxShape.circle,
                             ),
-                          )
-                        : null,
-                    suffixIconConstraints: const BoxConstraints(minWidth: 48, minHeight: 52),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 15),
-                  ),
-                  onChanged: (val) {
-                    ref.read(searchQueryProvider.notifier).state = val;
-                  },
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 15,
+                              color: Color(0xFF414942),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 22),
+                  ],
                 ),
               ),
             ),

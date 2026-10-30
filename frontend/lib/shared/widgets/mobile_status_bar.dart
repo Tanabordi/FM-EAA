@@ -6,15 +6,25 @@ import 'package:flutter/material.dart';
 class MobileStatusBar extends StatelessWidget {
   final Color? color;
   final Color? backgroundColor;
+  final bool forceShow;
 
   const MobileStatusBar({
     super.key,
     this.color,
     this.backgroundColor,
+    this.forceShow = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // When running on physical devices or emulators that already have a system status bar,
+    // MediaQuery.viewPadding.top or MediaQuery.padding.top will be > 0.
+    // In that case, do not render a duplicate simulated 9:41 status bar unless forceShow is true.
+    final mediaQuery = MediaQuery.of(context);
+    if (!forceShow && (mediaQuery.viewPadding.top > 0 || mediaQuery.padding.top > 0)) {
+      return const SizedBox.shrink();
+    }
+
     final fgColor = color ?? const Color(0xFF1A201C);
 
     return Container(
@@ -68,3 +78,4 @@ class MobileStatusBar extends StatelessWidget {
     );
   }
 }
+
