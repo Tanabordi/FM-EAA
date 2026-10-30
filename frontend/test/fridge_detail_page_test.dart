@@ -190,7 +190,7 @@ void main() {
   });
 
   group('SearchPage (Screen #10) Widget Tests', () {
-    testWidgets('Renders Screen #10 matching Figma mockup with Avocados query and results', (tester) async {
+    testWidgets('Renders initial state before search (ตอนยังไม่ Search) with empty input and hint', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -204,18 +204,40 @@ void main() {
       expect(find.byType(AppBackButton), findsOneWidget);
       expect(find.text('Search'), findsOneWidget);
 
-      // Check default mockup query 'Avocados' and results matching Figma Screen #10
+      // Verify initial state: Search input has hint 'Search for items' and is empty
+      expect(find.text('Search for items'), findsOneWidget);
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
+      expect(find.textContaining('Results for'), findsNothing);
+    });
+
+    testWidgets('Searching for Avocados renders Screen #10 matching Figma mockup with results', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: SearchPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Enter search query 'Avocados'
+      await tester.enterText(find.byType(TextField), 'Avocados');
+      await tester.pumpAndSettle();
+
+      // Check query 'Avocados' and results matching Figma Screen #10
       expect(find.text('Results for "Avocados"'), findsOneWidget);
       expect(find.text('Avocados (Veggies)'), findsOneWidget);
       expect(find.text('2 pieces'), findsOneWidget);
       expect(find.text('Fresh'), findsOneWidget);
       expect(find.text('5 days left'), findsOneWidget);
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
 
-      // Clear search with close button
+      // Clear search with close button returns to initial empty state
       await tester.tap(find.byIcon(Icons.close_rounded));
       await tester.pumpAndSettle();
 
       expect(find.text('Results for "Avocados"'), findsNothing);
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
 
       // Enter search query 'spinach'
       await tester.enterText(find.byType(TextField), 'spinach');
@@ -251,9 +273,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Clear initial 'Avocados'
-      await tester.tap(find.byIcon(Icons.close_rounded));
-      await tester.pumpAndSettle();
+      // Initially no close icon
       expect(find.byIcon(Icons.close_rounded), findsNothing);
 
       // Type single character 'r' as in user screenshot

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/category_chips.dart';
 import '../../../../shared/widgets/item_card.dart';
 import '../../providers/fridge_detail_provider.dart';
+import '../../../search/providers/search_provider.dart';
 
 class FridgeDetailPage extends ConsumerStatefulWidget {
   final String fridgeId;
@@ -245,6 +246,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
           child: InkWell(
             borderRadius: BorderRadius.circular(28),
             onTap: () {
+              ref.read(searchQueryProvider.notifier).state = '';
               context.push('/fridges/${widget.fridgeId}/search');
             },
             child: Row(

@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/item_model.dart';
 import '../../fridge_detail/providers/fridge_detail_provider.dart';
 
-/// Search query provider defaulting to 'Avocados' matching Screen #10 Figma mockup
-final searchQueryProvider = StateProvider<String>((ref) => 'Avocados');
+/// Search query provider defaulting to empty string before user searches
+final searchQueryProvider = StateProvider<String>((ref) => '');
 
 final searchResultsProvider = Provider.family<List<ItemModel>, String>((ref, fridgeId) {
   final query = ref.watch(searchQueryProvider).trim().toLowerCase();

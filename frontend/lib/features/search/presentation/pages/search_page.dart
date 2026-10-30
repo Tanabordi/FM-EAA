@@ -180,51 +180,53 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             ],
             // Results list or Empty state
             Expanded(
-              child: results.isEmpty && query.trim().isNotEmpty
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.only(top: 60.0),
-                        child: Column(
-                          children: [
-                            Icon(Icons.search_off_rounded, size: 48, color: Color(0xFF94A3B8)),
-                            SizedBox(height: 12),
-                            Text(
-                              'No items found',
-                              style: TextStyle(
-                                color: Color(0xFF5C665F),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+              child: query.trim().isEmpty
+                  ? const SizedBox.shrink()
+                  : results.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.only(top: 60.0),
+                            child: Column(
+                              children: [
+                                Icon(Icons.search_off_rounded, size: 48, color: Color(0xFF94A3B8)),
+                                SizedBox(height: 12),
+                                Text(
+                                  'No items found',
+                                  style: TextStyle(
+                                    color: Color(0xFF5C665F),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Try searching with a different keyword',
+                                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                                ),
+                              ],
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Try searching with a different keyword',
-                              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.only(bottom: 24, top: 0),
-                      itemCount: results.length,
-                      itemBuilder: (context, index) {
-                        final item = results[index];
-                        final displayQuantity = item.unit.contains('·') || item.unit.contains('pieces')
-                            ? '${item.quantity > 0 ? (item.quantity == item.quantity.toInt() ? item.quantity.toInt() : item.quantity) : ''} ${item.unit}'.trim()
-                            : '${item.quantity == item.quantity.toInt() ? item.quantity.toInt() : item.quantity} ${item.unit}';
+                          ),
+                        )
+                      : ListView.builder(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.only(bottom: 24, top: 0),
+                          itemCount: results.length,
+                          itemBuilder: (context, index) {
+                            final item = results[index];
+                            final displayQuantity = item.unit.contains('·') || item.unit.contains('pieces')
+                                ? '${item.quantity > 0 ? (item.quantity == item.quantity.toInt() ? item.quantity.toInt() : item.quantity) : ''} ${item.unit}'.trim()
+                                : '${item.quantity == item.quantity.toInt() ? item.quantity.toInt() : item.quantity} ${item.unit}';
 
-                        return ItemCard(
-                          name: '${item.name} (${item.category.capitalize()})',
-                          quantityText: displayQuantity,
-                          status: item.status,
-                          statusText: item.statusText,
-                          imagePath: item.imagePath,
-                          onTap: () => context.push('/fridges/${widget.fridgeId}/items/${item.id}'),
-                        );
-                      },
-                    ),
+                            return ItemCard(
+                              name: '${item.name} (${item.category.capitalize()})',
+                              quantityText: displayQuantity,
+                              status: item.status,
+                              statusText: item.statusText,
+                              imagePath: item.imagePath,
+                              onTap: () => context.push('/fridges/${widget.fridgeId}/items/${item.id}'),
+                            );
+                          },
+                        ),
             ),
             // iOS Bottom Home Indicator Bar matching Figma screenshot
             Padding(
