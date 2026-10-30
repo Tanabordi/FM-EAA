@@ -5,7 +5,7 @@ import 'app_back_button.dart';
 /// Padding: fromLTRB(16, 6, 16, 8)
 /// Back button: Unified AppBackButton (42x42 square, border #818981)
 /// Title: fontSize: 25, fontWeight: FontWeight.w800, color: #1A201C, letterSpacing: -0.5
-/// Optional Action Buttons: circular 38x38 with #EAEFE8 background
+/// Action Buttons: prominent circular 42x42 with #EAEFE8 background and enlarged 22dp icons
 class AppTopBar extends StatelessWidget {
   final String title;
   final bool showBackButton;
@@ -30,7 +30,7 @@ class AppTopBar extends StatelessWidget {
         children: [
           if (showBackButton) ...[
             AppBackButton(onPressed: onBackPressed),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
           ],
           Expanded(
             child: Text(
@@ -53,34 +53,38 @@ class AppTopBar extends StatelessWidget {
   }
 }
 
-/// Circular action button (38x38) for top app bar (e.g. notifications, settings, family, history)
+/// Circular action button (42x42 with enlarged 22dp icon) for top app bar (e.g. notifications, settings, family, history)
 class AppTopBarAction extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
+  final double size;
+  final double iconSize;
 
   const AppTopBarAction({
     super.key,
     required this.icon,
     required this.onTap,
+    this.size = 42,
+    this.iconSize = 22,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 8.0),
+      padding: const EdgeInsets.only(left: 6.0),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(size / 2),
           child: Container(
-            width: 38,
-            height: 38,
+            width: size,
+            height: size,
             decoration: const BoxDecoration(
               color: Color(0xFFEAEFE8),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 19, color: const Color(0xFF2C3A2F)),
+            child: Icon(icon, size: iconSize, color: const Color(0xFF2C3A2F)),
           ),
         ),
       ),
