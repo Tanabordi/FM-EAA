@@ -39,7 +39,7 @@ void main() {
       // Section header
       expect(find.text('Your food'), findsOneWidget);
 
-      // Items in Fridge zone
+      // Items in Fridge zone (Default All)
       expect(find.text('Baby spinach'), findsOneWidget);
       expect(find.text('Strawberries'), findsOneWidget);
       expect(find.text('Avocados'), findsOneWidget);
@@ -55,7 +55,11 @@ void main() {
       expect(find.text('7 days left'), findsOneWidget);
     });
 
-    testWidgets('Filters items by category chip selection', (tester) async {
+    testWidgets('Clicking each category chip displays its exact 4 items matching Figma mockups', (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -65,16 +69,58 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap on 'Beverages' chip
+      // 1. Click Proteins -> Chicken Breasts, Eggs, Salmon Fillets, Firm Tofu
+      await tester.tap(find.text('Proteins'));
+      await tester.pumpAndSettle();
+      expect(find.text('Chicken Breasts'), findsOneWidget);
+      expect(find.text('Eggs'), findsOneWidget);
+      expect(find.text('Salmon Fillets'), findsOneWidget);
+      expect(find.text('Firm Tofu'), findsOneWidget);
+
+      // 2. Click Veggies -> Baby spinach, Strawberries, Avocados, Cherry Tomatoes
+      await tester.tap(find.text('Veggies'));
+      await tester.pumpAndSettle();
+      expect(find.text('Baby spinach'), findsOneWidget);
+      expect(find.text('Strawberries'), findsOneWidget);
+      expect(find.text('Avocados'), findsOneWidget);
+      expect(find.text('Cherry Tomatoes'), findsOneWidget);
+
+      // 3. Click Beverages -> Whole milk, Orange Juice, Cold Brew Coffee, Kombucha
       await tester.tap(find.text('Beverages'));
       await tester.pumpAndSettle();
-
-      // Should show Whole milk and hide Baby spinach
       expect(find.text('Whole milk'), findsOneWidget);
-      expect(find.text('Baby spinach'), findsNothing);
+      expect(find.text('Orange Juice'), findsOneWidget);
+      expect(find.text('Cold Brew Coffee'), findsOneWidget);
+      expect(find.text('Kombucha'), findsOneWidget);
+
+      // 4. Click Meals -> Microwave Lasagna, Frozen Pizza, Pork Dumplings, Chicken Nuggets
+      await tester.tap(find.text('Meals'));
+      await tester.pumpAndSettle();
+      expect(find.text('Microwave Lasagna'), findsOneWidget);
+      expect(find.text('Frozen Pizza'), findsOneWidget);
+      expect(find.text('Pork Dumplings'), findsOneWidget);
+      expect(find.text('Chicken Nuggets'), findsOneWidget);
+
+      // 5. Click Sauces -> Soy Sauce, Mayonnaise, Sriracha Sauce, Olive Oil
+      await tester.tap(find.text('Sauces'));
+      await tester.pumpAndSettle();
+      expect(find.text('Soy Sauce'), findsOneWidget);
+      expect(find.text('Mayonnaise'), findsOneWidget);
+      expect(find.text('Sriracha Sauce'), findsOneWidget);
+      expect(find.text('Olive Oil'), findsOneWidget);
+
+      // 6. Click All -> Returns to overview
+      await tester.tap(find.text('All'));
+      await tester.pumpAndSettle();
+      expect(find.text('Baby spinach'), findsOneWidget);
+      expect(find.text('Strawberries'), findsOneWidget);
     });
 
     testWidgets('Switches between Fridge and Freezer tabs', (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(

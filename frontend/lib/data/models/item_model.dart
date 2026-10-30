@@ -12,6 +12,8 @@ class ItemModel {
   final String? imagePath;
   final bool isSynced;
   final DateTime updatedAt;
+  final FreshnessStatus? customStatus;
+  final String? customStatusText;
 
   const ItemModel({
     required this.id,
@@ -25,10 +27,13 @@ class ItemModel {
     this.imagePath,
     this.isSynced = true,
     required this.updatedAt,
+    this.customStatus,
+    this.customStatusText,
   });
 
   /// Calculate FreshnessStatus and human readable label
   FreshnessStatus get status {
+    if (customStatus != null) return customStatus!;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(expiryDate.year, expiryDate.month, expiryDate.day);
@@ -45,6 +50,7 @@ class ItemModel {
   }
 
   String get statusText {
+    if (customStatusText != null) return customStatusText!;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(expiryDate.year, expiryDate.month, expiryDate.day);
