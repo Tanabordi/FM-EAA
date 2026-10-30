@@ -1,0 +1,141 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../features/auth/presentation/pages/onboarding_page.dart';
+import '../../features/auth/presentation/pages/sign_in_page.dart';
+import '../../features/auth/presentation/pages/create_account_page.dart';
+import '../../features/auth/presentation/pages/reset_password_page.dart';
+import '../../features/fridges/presentation/pages/my_fridges_page.dart';
+import '../../features/fridges/presentation/pages/add_fridge_page.dart';
+import '../../features/fridge_detail/presentation/pages/fridge_detail_page.dart';
+import '../../features/search/presentation/pages/search_page.dart';
+import '../../features/item/presentation/pages/add_item_page.dart';
+import '../../features/item/presentation/pages/item_details_page.dart';
+import '../../features/item/presentation/pages/edit_item_page.dart';
+import '../../features/history/presentation/pages/history_page.dart';
+import '../../features/family/presentation/pages/family_share_page.dart';
+import '../../features/family/presentation/pages/invite_member_page.dart';
+import '../../features/notifications/presentation/pages/notifications_page.dart';
+import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/settings/presentation/pages/edit_profile_page.dart';
+
+final routerProvider = Provider<GoRouter>((ref) {
+  return GoRouter(
+    initialLocation: '/onboarding',
+    // TODO(router redirect): Check authentication token and onboarding completed flag
+    // redirect: (context, state) {
+    //   final isAuthenticated = ...;
+    //   final hasCompletedOnboarding = ...;
+    //   if (!hasCompletedOnboarding) return '/onboarding';
+    //   if (!isAuthenticated) return '/sign-in';
+    //   return null;
+    // },
+    routes: [
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingPage(),
+      ),
+      GoRoute(
+        path: '/sign-in',
+        builder: (context, state) => const SignInPage(),
+      ),
+      GoRoute(
+        path: '/create-account',
+        builder: (context, state) => const CreateAccountPage(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) => const ResetPasswordPage(),
+      ),
+      GoRoute(
+        path: '/fridges',
+        builder: (context, state) => const MyFridgesPage(),
+        routes: [
+          GoRoute(
+            path: 'add',
+            builder: (context, state) => const AddFridgePage(),
+          ),
+          GoRoute(
+            path: ':id',
+            builder: (context, state) {
+              final fridgeId = state.pathParameters['id'] ?? 'default';
+              return FridgeDetailPage(fridgeId: fridgeId);
+            },
+            routes: [
+              GoRoute(
+                path: 'search',
+                builder: (context, state) {
+                  final fridgeId = state.pathParameters['id'] ?? 'default';
+                  return SearchPage(fridgeId: fridgeId);
+                },
+              ),
+              GoRoute(
+                path: 'items/add',
+                builder: (context, state) {
+                  final fridgeId = state.pathParameters['id'] ?? 'default';
+                  return AddItemPage(fridgeId: fridgeId);
+                },
+              ),
+              GoRoute(
+                path: 'items/:itemId',
+                builder: (context, state) {
+                  final fridgeId = state.pathParameters['id'] ?? 'default';
+                  final itemId = state.pathParameters['itemId'] ?? '';
+                  return ItemDetailsPage(fridgeId: fridgeId, itemId: itemId);
+                },
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (context, state) {
+                      final fridgeId = state.pathParameters['id'] ?? 'default';
+                      final itemId = state.pathParameters['itemId'] ?? '';
+                      return EditItemPage(fridgeId: fridgeId, itemId: itemId);
+                    },
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'history',
+                builder: (context, state) {
+                  final fridgeId = state.pathParameters['id'] ?? 'default';
+                  return HistoryPage(fridgeId: fridgeId);
+                },
+              ),
+              GoRoute(
+                path: 'family',
+                builder: (context, state) {
+                  final fridgeId = state.pathParameters['id'] ?? 'default';
+                  return FamilySharePage(fridgeId: fridgeId);
+                },
+                routes: [
+                  GoRoute(
+                    path: 'invite',
+                    builder: (context, state) {
+                      final fridgeId = state.pathParameters['id'] ?? 'default';
+                      return InviteMemberPage(fridgeId: fridgeId);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsPage(),
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsPage(),
+        routes: [
+          GoRoute(
+            path: 'profile',
+            builder: (context, state) => const EditProfilePage(),
+          ),
+        ],
+      ),
+    ],
+  );
+});
+

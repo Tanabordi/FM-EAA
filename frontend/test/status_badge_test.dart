@@ -1,0 +1,38 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:fm_eaa/core/theme/freshness_colors.dart';
+import 'package:fm_eaa/shared/widgets/status_badge.dart';
+
+void main() {
+  group('StatusBadge Widget Tests', () {
+    testWidgets('Renders Fresh status correctly', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: StatusBadge(status: FreshnessStatus.fresh),
+          ),
+        ),
+      );
+
+      expect(find.text('Fresh'), findsOneWidget);
+      expect(find.byIcon(Icons.star_rounded), findsOneWidget);
+    });
+
+    testWidgets('Renders Use soon with custom days text', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: StatusBadge(
+              status: FreshnessStatus.useSoon,
+              customLabel: '2 days left',
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('2 days left'), findsOneWidget);
+      expect(find.byIcon(Icons.access_time_rounded), findsOneWidget);
+    });
+  });
+}
+
