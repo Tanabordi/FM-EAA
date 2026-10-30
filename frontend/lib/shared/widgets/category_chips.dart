@@ -26,7 +26,7 @@ class CategoryChips extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: kFoodCategories.map((category) {
@@ -42,21 +42,21 @@ class CategoryChips extends StatelessWidget {
                 children: [
                   // Circular button
                   Container(
-                    width: 50,
-                    height: 50,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isSelected ? const Color(0xFF28543E) : Colors.white,
+                      color: isSelected ? const Color(0xFF2E6A44) : Colors.transparent,
                       border: isSelected
                           ? null
-                          : Border.all(color: const Color(0xFFCFD9D0), width: 1.2),
+                          : Border.all(color: const Color(0xFFC7D3C5), width: 1.2),
                     ),
                     alignment: Alignment.center,
                     child: CustomPaint(
                       size: const Size(26, 26),
                       painter: _CategoryIconPainter(
                         category: category,
-                        color: isSelected ? Colors.white : const Color(0xFF334155),
+                        color: isSelected ? Colors.white : const Color(0xFF2C3A2F),
                       ),
                     ),
                   ),
@@ -67,7 +67,7 @@ class CategoryChips extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF475569),
+                      color: isSelected ? const Color(0xFF1A201C) : const Color(0xFF47574B),
                     ),
                   ),
                 ],
@@ -144,11 +144,8 @@ class _CategoryIconPainter extends CustomPainter {
 
       case 'beverages':
         // Drink cup with straw
-        // Straw
         canvas.drawLine(const Offset(14, 10), const Offset(18, 4), strokePaint);
-        // Cup rim lid
         canvas.drawLine(const Offset(6, 10), const Offset(20, 10), strokePaint);
-        // Cup body
         final cup = Path()
           ..moveTo(7, 10)
           ..lineTo(9, 22)
@@ -159,12 +156,10 @@ class _CategoryIconPainter extends CustomPainter {
 
       case 'meals':
         // Food jar / bowl
-        // Lid
         canvas.drawRRect(
           RRect.fromRectAndRadius(const Rect.fromLTWH(8, 6, 10, 4), const Radius.circular(2)),
           strokePaint,
         );
-        // Jar body
         final jar = Path()
           ..moveTo(6, 10)
           ..lineTo(6, 21)
@@ -172,18 +167,15 @@ class _CategoryIconPainter extends CustomPainter {
           ..lineTo(20, 10)
           ..close();
         canvas.drawPath(jar, strokePaint);
-        // Label on jar
         canvas.drawLine(const Offset(9, 15), const Offset(17, 15), strokePaint);
         break;
 
       case 'sauces':
         // Sauce bottle
-        // Cap
         canvas.drawRRect(
           RRect.fromRectAndRadius(const Rect.fromLTWH(11, 4, 4, 3), const Radius.circular(1)),
           strokePaint,
         );
-        // Narrow neck and body
         final bottle = Path()
           ..moveTo(11, 7)
           ..lineTo(11, 11)
@@ -194,7 +186,6 @@ class _CategoryIconPainter extends CustomPainter {
           ..lineTo(15, 11)
           ..lineTo(15, 7);
         canvas.drawPath(bottle, strokePaint);
-        // Bottle label
         canvas.drawLine(const Offset(10, 17), const Offset(16, 17), strokePaint);
         break;
 

@@ -24,27 +24,27 @@ class ItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5.5),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F7F2), // Figma card soft background
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFFEAEFE8), // Figma exact card background
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(13.0),
             child: Row(
               children: [
                 // Food Image Thumbnail
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   child: Container(
-                    width: 66,
-                    height: 66,
-                    color: const Color(0xFFE2EBE2),
+                    width: 68,
+                    height: 68,
+                    color: const Color(0xFFDDE4DC),
                     child: _buildFoodImage(),
                   ),
                 ),
@@ -61,7 +61,8 @@ class ItemCard extends StatelessWidget {
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 16.5,
-                          color: Color(0xFF0F172A),
+                          color: Color(0xFF1A201C),
+                          letterSpacing: -0.2,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -70,7 +71,7 @@ class ItemCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Color(0xFF64748B),
+                          color: Color(0xFF5C665F),
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
                         ),
@@ -83,7 +84,7 @@ class ItemCard extends StatelessWidget {
                           Text(
                             statusText,
                             style: const TextStyle(
-                              color: Color(0xFF64748B),
+                              color: Color(0xFF5C665F),
                               fontSize: 12.5,
                               fontWeight: FontWeight.w500,
                             ),
@@ -115,12 +116,12 @@ class ItemCard extends StatelessWidget {
   Widget _buildPlaceholder() {
     final lower = name.toLowerCase();
     IconData iconData = Icons.restaurant_rounded;
-    Color iconColor = const Color(0xFF2E6847);
-    Color bgColor = const Color(0xFFE5EDE6);
+    Color iconColor = const Color(0xFF2E6A44);
+    Color bgColor = const Color(0xFFDDE4DC);
 
     if (lower.contains('spinach') || lower.contains('cabbage') || lower.contains('veggie')) {
       iconData = Icons.eco_rounded;
-      bgColor = const Color(0xFFDCEAD9);
+      bgColor = const Color(0xFFD5E4D4);
       iconColor = const Color(0xFF2E7D32);
     } else if (lower.contains('strawberr') || lower.contains('apple') || lower.contains('berry')) {
       iconData = Icons.favorite_rounded;

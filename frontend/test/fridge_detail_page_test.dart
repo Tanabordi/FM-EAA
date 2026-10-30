@@ -118,7 +118,7 @@ void main() {
       expect(find.text('Baby spinach (Veggies)'), findsOneWidget);
 
       // Clear search
-      await tester.tap(find.byIcon(Icons.clear));
+      await tester.tap(find.byIcon(Icons.close));
       await tester.pumpAndSettle();
 
       expect(find.text('Results for "spinach"'), findsNothing);

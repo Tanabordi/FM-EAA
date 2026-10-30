@@ -45,14 +45,15 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     final items = ref.watch(fridgeItemsProvider(widget.fridgeId));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFCF9), // Soft background matching Figma
+      backgroundColor: const Color(0xFFF6FBF3), // Figma exact background #F6FBF3
       body: SafeArea(
         child: Column(
           children: [
             // Top App Bar
             _buildAppBar(context),
-            // Floating Pill Search Bar
+            // Floating Pill Search Bar with Shadow
             _buildSearchBar(context),
+            const SizedBox(height: 4),
             // Circular Category Chips (All, Proteins, Veggies, Beverages, Meals, Sauces)
             CategoryChips(
               selectedCategory: filter.category,
@@ -65,7 +66,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             _buildTabs(),
             // Food Items Section Header ("Your food" & "N items")
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -74,13 +75,14 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
+                      color: Color(0xFF1A201C),
+                      letterSpacing: -0.3,
                     ),
                   ),
                   Text(
                     '${items.length} items',
                     style: const TextStyle(
-                      color: Color(0xFF64748B),
+                      color: Color(0xFF5C665F),
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -94,7 +96,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                   ? _buildEmptyState()
                   : ListView.builder(
                       physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.only(bottom: 80, top: 4),
+                      padding: const EdgeInsets.only(bottom: 84, top: 2),
                       itemCount: items.length,
                       itemBuilder: (context, index) {
                         final item = items[index];
@@ -116,34 +118,39 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        elevation: 3,
-        backgroundColor: const Color(0xFF28543E), // Deep forest green matching Figma
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        onPressed: () => context.push('/fridges/${widget.fridgeId}/items/add'),
-        child: const Icon(Icons.add, size: 28),
+      floatingActionButton: Container(
+        width: 58,
+        height: 58,
+        margin: const EdgeInsets.only(bottom: 8, right: 4),
+        child: FloatingActionButton(
+          elevation: 4,
+          backgroundColor: const Color(0xFF2E6A44), // Figma exact dark green
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          onPressed: () => context.push('/fridges/${widget.fridgeId}/items/add'),
+          child: const Icon(Icons.add, size: 30),
+        ),
       ),
     );
   }
 
   Widget _buildAppBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         children: [
           // Back button in rounded square outline
           Container(
-            width: 40,
-            height: 40,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: const Color(0xFFD9E2D7), width: 1.2),
             ),
             child: IconButton(
               padding: EdgeInsets.zero,
-              icon: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF0F172A)),
+              icon: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1B241E)),
               onPressed: () {
                 if (Navigator.of(context).canPop()) {
                   context.pop();
@@ -159,9 +166,9 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             child: Text(
               'Kitchen',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 25,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
+                color: Color(0xFF1A201C),
                 letterSpacing: -0.5,
               ),
             ),
@@ -172,19 +179,19 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             tooltip: 'Family',
             onTap: () => context.push('/fridges/${widget.fridgeId}/family'),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           _buildActionIcon(
             icon: Icons.history_rounded,
             tooltip: 'History',
             onTap: () => context.push('/fridges/${widget.fridgeId}/history'),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           _buildActionIcon(
             icon: Icons.notifications_none_rounded,
             tooltip: 'Notifications',
             onTap: () => context.push('/notifications'),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           _buildActionIcon(
             icon: Icons.settings_outlined,
             tooltip: 'Settings',
@@ -209,10 +216,10 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
           width: 38,
           height: 38,
           decoration: const BoxDecoration(
-            color: Color(0xFFEFF4EE),
+            color: Color(0xFFEAEFE8),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 20, color: const Color(0xFF334155)),
+          child: Icon(icon, size: 19, color: const Color(0xFF2C3A2F)),
         ),
       ),
     );
@@ -220,40 +227,47 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
 
   Widget _buildSearchBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Container(
-        height: 50,
+        height: 52,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFEAEFE8), // Figma exact search bar background #EAEFE8
           borderRadius: BorderRadius.circular(28),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
+              color: Color(0x38000000), // Drop shadow matching Figma
+              blurRadius: 18,
+              offset: Offset(0, 6),
             ),
           ],
         ),
         child: TextField(
           controller: _searchController,
+          onTap: () {
+            // Can tap to navigate to full search page if text is empty
+            if (_searchController.text.isEmpty) {
+              context.push('/fridges/${widget.fridgeId}/search');
+            }
+          },
           onChanged: (val) {
             ref.read(fridgeDetailFilterProvider.notifier).setSearchQuery(val);
           },
+          style: const TextStyle(fontSize: 15, color: Color(0xFF1A201C), fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             hintText: 'Search for items',
             hintStyle: const TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 14.5,
+              color: Color(0xFF4A5A4E),
+              fontSize: 15,
               fontWeight: FontWeight.w400,
             ),
             prefixIcon: const Padding(
               padding: EdgeInsets.only(left: 14, right: 10),
-              child: Icon(Icons.search, color: Color(0xFF475569), size: 22),
+              child: Icon(Icons.search, color: Color(0xFF3A4A3E), size: 22),
             ),
             prefixIconConstraints: const BoxConstraints(minWidth: 46),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(Icons.clear, size: 18, color: Color(0xFF64748B)),
+                    icon: const Icon(Icons.clear, size: 18, color: Color(0xFF4A5A4E)),
                     onPressed: () {
                       _searchController.clear();
                       ref.read(fridgeDetailFilterProvider.notifier).setSearchQuery('');
@@ -261,7 +275,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                   )
                 : null,
             border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(vertical: 15),
           ),
         ),
       ),
@@ -275,17 +289,17 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
         // Thin baseline border across tabs
         Container(
           height: 1.2,
-          color: const Color(0xFFE2E8F0),
+          color: const Color(0xFFD7E2D5),
         ),
         TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFF28543E), // Deep green indicator
-          indicatorWeight: 3.0,
+          indicatorColor: const Color(0xFF2E6A44), // Figma exact green indicator
+          indicatorWeight: 3.5,
           indicatorSize: TabBarIndicatorSize.tab,
-          labelColor: const Color(0xFF0F172A),
-          unselectedLabelColor: const Color(0xFF64748B),
+          labelColor: const Color(0xFF1A201C),
+          unselectedLabelColor: const Color(0xFF5C665F),
           labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-          unselectedLabelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          unselectedLabelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           dividerColor: Colors.transparent,
           tabs: const [
             Tab(text: 'Fridge'),

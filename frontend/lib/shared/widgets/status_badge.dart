@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/freshness_colors.dart';
 
 /// Reusable status badge chip displaying freshness status:
-/// Fresh (Solid Green + Star), Use soon (Solid Orange + Clock), Expired (Solid Red + Alert)
+/// Fresh (Solid Green #34C759 + Star), Use soon (Solid Orange #FF8D28 + Clock), Expired (Solid Red #FF383C + Alert)
 class StatusBadge extends StatelessWidget {
   final FreshnessStatus status;
   final String? customLabel;
@@ -24,18 +24,18 @@ class StatusBadge extends StatelessWidget {
 
     switch (status) {
       case FreshnessStatus.fresh:
-        bgColor = const Color(0xFF22C55E); // Figma vibrant green
+        bgColor = const Color(0xFF34C759); // Figma exact green
         break;
       case FreshnessStatus.useSoon:
-        bgColor = const Color(0xFFF97316); // Figma vibrant orange
+        bgColor = const Color(0xFFFF8D28); // Figma exact orange
         break;
       case FreshnessStatus.expired:
-        bgColor = const Color(0xFFEF4444); // Figma vibrant red
+        bgColor = const Color(0xFFFF383C); // Figma exact red
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
       decoration: BoxDecoration(
         color: solid ? bgColor : bgColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
