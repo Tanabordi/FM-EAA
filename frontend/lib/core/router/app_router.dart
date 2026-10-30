@@ -21,7 +21,7 @@ import '../../features/settings/presentation/pages/edit_profile_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/fridges',
+    initialLocation: '/sign-in',
     // TODO(router redirect): Check authentication token and onboarding completed flag
     // redirect: (context, state) {
     //   final isAuthenticated = ...;

@@ -24,22 +24,22 @@ class OnboardingPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-              // Circle illustration matching Figma
-              Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text('🧊', style: TextStyle(fontSize: 84)),
+              // 3D Mint Green Fridge matching Figma node 11:26
+              Center(
+                child: Image.asset(
+                  'assets/images/onboarding_fridge.png',
+                  height: 240,
+                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(height: 36),
               const Text(
                 'Reduce Food Waste',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.3,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),

@@ -86,5 +86,5 @@ final fridgeRepositoryProvider = Provider<FridgeRepository>((ref) {
 });
 
 final fridgesProvider = StateNotifierProvider<FridgesNotifier, List<FridgeModel>>((ref) {
-  return FridgesNotifier(startEmpty: false);
+  return FridgesNotifier(startEmpty: true);
 });

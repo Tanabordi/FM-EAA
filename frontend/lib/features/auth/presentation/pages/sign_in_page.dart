@@ -27,31 +27,13 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   Future<void> _handleSignIn() async {
-    // Check if user has enabled notifications previously.
-    // If user previously tapped "Skip", remind them again by routing to /onboarding!
-    final prefs = await SharedPreferences.getInstance();
-    final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
-
     if (!mounted) return;
-
-    if (!hasEnabled) {
-      context.go('/onboarding');
-    } else {
-      context.go('/fridges');
-    }
+    context.go('/onboarding');
   }
 
   Future<void> _handleGoogleSignIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
-
     if (!mounted) return;
-
-    if (!hasEnabled) {
-      context.go('/onboarding');
-    } else {
-      context.go('/fridges');
-    }
+    context.go('/onboarding');
   }
 
   @override
