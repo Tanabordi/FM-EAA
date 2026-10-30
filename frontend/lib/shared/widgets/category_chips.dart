@@ -23,55 +23,60 @@ class CategoryChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: kFoodCategories.map((category) {
-          final isSelected = category.toLowerCase() == selectedCategory.toLowerCase();
+          final isSelected =
+              category.toLowerCase() == selectedCategory.toLowerCase();
 
-          return Padding(
-            padding: const EdgeInsets.only(right: 14.0),
-            child: InkWell(
-              onTap: () => onSelected(category),
-              borderRadius: BorderRadius.circular(28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Circular button
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isSelected ? const Color(0xFF2E6A44) : Colors.transparent,
-                      border: isSelected
-                          ? null
-                          : Border.all(color: const Color(0xFFC7D3C5), width: 1.2),
-                    ),
-                    alignment: Alignment.center,
-                    child: CustomPaint(
-                      size: const Size(26, 26),
-                      painter: _CategoryIconPainter(
-                        category: category,
-                        color: isSelected ? Colors.white : const Color(0xFF2C3A2F),
-                      ),
+          return InkWell(
+            onTap: () => onSelected(category),
+            borderRadius: BorderRadius.circular(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Circular button
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? const Color(0xFF2E6A44)
+                        : Colors.transparent,
+                    border: isSelected
+                        ? null
+                        : Border.all(
+                            color: const Color(0xFFBCCBC0),
+                            width: 1.3,
+                          ),
+                  ),
+                  alignment: Alignment.center,
+                  child: CustomPaint(
+                    size: const Size(24, 24),
+                    painter: _CategoryIconPainter(
+                      category: category,
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF2C3A2F),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  // Category label underneath
-                  Text(
-                    category,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? const Color(0xFF1A201C) : const Color(0xFF47574B),
-                    ),
+                ),
+                const SizedBox(height: 5),
+                // Category label underneath
+                Text(
+                  category,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected
+                        ? const Color(0xFF1A201C)
+                        : const Color(0xFF47574B),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         }).toList(),
@@ -91,7 +96,7 @@ class _CategoryIconPainter extends CustomPainter {
     final strokePaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8
+      ..strokeWidth = 1.75
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
@@ -101,96 +106,118 @@ class _CategoryIconPainter extends CustomPainter {
 
     switch (category.toLowerCase()) {
       case 'all':
-        // Menu list with 3 bullet dots and lines
+        // Menu list with 3 bullet dots and 3 rounded horizontal lines
         for (int i = 0; i < 3; i++) {
-          final y = 6.0 + i * 7.0;
-          canvas.drawCircle(Offset(5, y), 1.6, fillPaint);
-          canvas.drawLine(Offset(10, y), Offset(22, y), strokePaint);
+          final y = 5.5 + i * 6.5;
+          canvas.drawCircle(Offset(4.5, y), 1.4, fillPaint);
+          canvas.drawLine(Offset(8.5, y), Offset(20.5, y), strokePaint);
         }
         break;
 
       case 'proteins':
-        // Chicken drumstick
-        final path = Path();
-        // Bone knuckle at bottom-left
-        canvas.drawCircle(const Offset(7, 20), 2.0, fillPaint);
-        canvas.drawCircle(const Offset(10, 22), 2.0, fillPaint);
-        canvas.drawLine(const Offset(8, 19), const Offset(12, 15), strokePaint);
-        // Meat bulb at top-right
-        path.moveTo(11, 16);
-        path.quadraticBezierTo(9, 9, 16, 6);
-        path.quadraticBezierTo(23, 7, 22, 14);
-        path.quadraticBezierTo(19, 20, 13, 16);
-        canvas.drawPath(path, strokePaint);
+        // Chicken drumstick with dual knuckle at bottom-left and meat bulb at top-right
+        final drumstick = Path()
+          ..moveTo(10.5, 14.5)
+          ..cubicTo(7.5, 9.5, 12.0, 4.5, 16.5, 5.0)
+          ..cubicTo(21.5, 5.5, 22.5, 12.0, 19.0, 16.0)
+          ..cubicTo(17.5, 17.5, 14.5, 17.0, 12.5, 15.5);
+        canvas.drawPath(drumstick, strokePaint);
+        // Bone shaft
+        canvas.drawLine(const Offset(11.5, 15.0), const Offset(7.5, 19.0), strokePaint);
+        // Dual knuckles at bone end
+        canvas.drawCircle(const Offset(6.0, 19.5), 1.7, strokePaint);
+        canvas.drawCircle(const Offset(8.5, 21.5), 1.7, strokePaint);
         break;
 
       case 'veggies':
-        // Carrot
-        final path = Path();
+        // Carrot angled down-left
         // Top leafy stems
-        canvas.drawLine(const Offset(18, 7), const Offset(21, 4), strokePaint);
-        canvas.drawLine(const Offset(16, 6), const Offset(17, 3), strokePaint);
+        canvas.drawLine(const Offset(16.5, 8.0), const Offset(20.5, 4.0), strokePaint);
+        canvas.drawLine(const Offset(15.0, 6.5), const Offset(16.5, 2.5), strokePaint);
         // Carrot cone body
-        path.moveTo(14, 8);
-        path.quadraticBezierTo(20, 9, 19, 12);
-        path.lineTo(7, 22);
-        path.quadraticBezierTo(5, 23, 6, 21);
-        path.lineTo(14, 8);
-        canvas.drawPath(path, strokePaint);
-        // Texture marks
-        canvas.drawLine(const Offset(12, 13), const Offset(15, 14), strokePaint);
-        canvas.drawLine(const Offset(9, 17), const Offset(11, 18), strokePaint);
+        final carrot = Path()
+          ..moveTo(13.0, 8.0)
+          ..quadraticBezierTo(18.5, 8.5, 18.0, 11.5)
+          ..lineTo(6.5, 21.0)
+          ..quadraticBezierTo(5.0, 22.0, 5.5, 20.0)
+          ..lineTo(13.0, 8.0);
+        canvas.drawPath(carrot, strokePaint);
+        // Horizontal creases / texture marks
+        canvas.drawLine(const Offset(12.0, 12.5), const Offset(15.5, 13.5), strokePaint);
+        canvas.drawLine(const Offset(9.0, 16.0), const Offset(12.0, 17.0), strokePaint);
         break;
 
       case 'beverages':
-        // Drink cup with straw
-        canvas.drawLine(const Offset(14, 10), const Offset(18, 4), strokePaint);
-        canvas.drawLine(const Offset(6, 10), const Offset(20, 10), strokePaint);
+        // Drink cup with lid rim and angled straw
+        // Straw sticking out and bent to the right
+        final straw = Path()
+          ..moveTo(12.0, 9.0)
+          ..lineTo(13.0, 3.5)
+          ..lineTo(17.0, 3.5);
+        canvas.drawPath(straw, strokePaint);
+        // Lid rim
+        canvas.drawLine(const Offset(5.5, 9.0), const Offset(18.5, 9.0), strokePaint);
+        // Tapered cup body
         final cup = Path()
-          ..moveTo(7, 10)
-          ..lineTo(9, 22)
-          ..quadraticBezierTo(13, 23, 17, 22)
-          ..lineTo(19, 10);
+          ..moveTo(6.5, 9.0)
+          ..lineTo(8.5, 20.5)
+          ..quadraticBezierTo(12.0, 21.5, 15.5, 20.5)
+          ..lineTo(17.5, 9.0);
         canvas.drawPath(cup, strokePaint);
+        // Liquid level line
+        canvas.drawLine(const Offset(7.5, 14.0), const Offset(16.5, 14.0), strokePaint);
         break;
 
       case 'meals':
-        // Food jar / bowl
+        // Food jar with cap and label
+        // Cap
         canvas.drawRRect(
-          RRect.fromRectAndRadius(const Rect.fromLTWH(8, 6, 10, 4), const Radius.circular(2)),
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(8.0, 4.5, 8.0, 3.5),
+            const Radius.circular(1.2),
+          ),
           strokePaint,
         );
+        // Jar body
         final jar = Path()
-          ..moveTo(6, 10)
-          ..lineTo(6, 21)
-          ..quadraticBezierTo(13, 23, 20, 21)
-          ..lineTo(20, 10)
+          ..moveTo(6.0, 9.0)
+          ..lineTo(6.0, 19.5)
+          ..quadraticBezierTo(12.0, 21.5, 18.0, 19.5)
+          ..lineTo(18.0, 9.0)
           ..close();
         canvas.drawPath(jar, strokePaint);
-        canvas.drawLine(const Offset(9, 15), const Offset(17, 15), strokePaint);
+        // Center label line
+        canvas.drawLine(const Offset(8.5, 14.0), const Offset(15.5, 14.0), strokePaint);
         break;
 
       case 'sauces':
-        // Sauce bottle
+        // Sauce / condiment bottle with cap, narrow neck, and stripes
+        // Cap
         canvas.drawRRect(
-          RRect.fromRectAndRadius(const Rect.fromLTWH(11, 4, 4, 3), const Radius.circular(1)),
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(10.5, 3.5, 3.0, 2.5),
+            const Radius.circular(1.0),
+          ),
           strokePaint,
         );
+        // Bottle outline
         final bottle = Path()
-          ..moveTo(11, 7)
-          ..lineTo(11, 11)
-          ..lineTo(8, 14)
-          ..lineTo(8, 22)
-          ..quadraticBezierTo(13, 23, 18, 22)
-          ..lineTo(18, 14)
-          ..lineTo(15, 11)
-          ..lineTo(15, 7);
+          ..moveTo(10.5, 6.0)
+          ..lineTo(10.5, 9.5)
+          ..lineTo(7.5, 13.0)
+          ..lineTo(7.5, 20.5)
+          ..quadraticBezierTo(12.0, 22.0, 16.5, 20.5)
+          ..lineTo(16.5, 13.0)
+          ..lineTo(13.5, 9.5)
+          ..lineTo(13.5, 6.0);
         canvas.drawPath(bottle, strokePaint);
-        canvas.drawLine(const Offset(10, 17), const Offset(16, 17), strokePaint);
+        // Two horizontal label lines across the body
+        canvas.drawLine(const Offset(7.5, 16.0), const Offset(16.5, 16.0), strokePaint);
+        canvas.drawLine(const Offset(7.5, 18.5), const Offset(16.5, 18.5), strokePaint);
         break;
 
       default:
-        canvas.drawCircle(Offset(size.width / 2, size.height / 2), 6, strokePaint);
+        canvas.drawCircle(Offset(size.width / 2, size.height / 2), 5, strokePaint);
     }
   }
 

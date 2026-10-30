@@ -35,11 +35,11 @@ enum FreshnessStatus {
   IconData get icon {
     switch (this) {
       case FreshnessStatus.fresh:
-        return Icons.star_rounded;
+        return Icons.star_border_rounded;
       case FreshnessStatus.useSoon:
         return Icons.access_time_rounded;
       case FreshnessStatus.expired:
-        return Icons.warning_amber_rounded;
+        return Icons.error_outline_rounded;
     }
   }
 

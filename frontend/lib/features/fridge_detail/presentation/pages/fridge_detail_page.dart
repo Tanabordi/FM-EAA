@@ -295,7 +295,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
           controller: _tabController,
           indicatorColor: const Color(0xFF2E6A44), // Figma exact green indicator
           indicatorWeight: 3.5,
-          indicatorSize: TabBarIndicatorSize.tab,
+          indicatorSize: TabBarIndicatorSize.label,
           labelColor: const Color(0xFF1A201C),
           unselectedLabelColor: const Color(0xFF5C665F),
           labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
