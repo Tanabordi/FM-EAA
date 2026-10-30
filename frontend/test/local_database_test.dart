@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/data/local/app_database.dart';
@@ -25,7 +24,6 @@ void main() {
 
   group('1. FridgesTable & FridgeDao Tests', () {
     test('insertFridgeOptimistic saves to SQLite with is_synced = false', () async {
-      final now = DateTime.now();
       await fridgeDao.insertFridgeOptimistic(
         id: 'fridge_test_1',
         name: 'Kitchen Fridge',
