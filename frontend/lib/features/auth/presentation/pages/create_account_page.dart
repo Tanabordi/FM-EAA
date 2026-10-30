@@ -24,7 +24,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   String? _passwordError;
   String? _confirmPasswordError;
@@ -45,50 +45,20 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   }
 
   void _handleSignUp() {
-    final username = _usernameController.text.trim();
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-    final confirmPassword = _confirmPasswordController.text;
-
-    setState(() {
-      _passwordError = null;
-      _confirmPasswordError = null;
-    });
-
-    if (username.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all required fields.')),
-      );
-      return;
-    }
-
-    if (password.length < 8) {
-      setState(() {
-        _passwordError = 'Password must be at least 8 characters long.';
-      });
-      return;
-    }
-
-    if (password != confirmPassword) {
-      setState(() {
-        _confirmPasswordError = 'Passwords do not match.';
-      });
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    // Simulation / TODO(auth repository): connect backend
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      // New signup flow: always navigate to Onboarding & Permission
-      context.go('/onboarding');
-    });
+    // Bypass validation for now while backend/DB is in development
+    // Directly navigate to Onboarding & Permission
+    context.go('/onboarding');
   }
 
-  void _handleGoogleSignUp() {
-    // New signup via Google: navigate to Onboarding & Permission
-    context.go('/onboarding');
+  Future<void> _handleGoogleSignUp() async {
+    // When clicking "Sign up with Google":
+    // If not already in locked state, simulate Google login with prefilled locked email
+    // Otherwise directly proceed to onboarding
+    if (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty) {
+      context.go('/onboarding');
+    } else {
+      context.go('/create-account?email=user@gmail.com');
+    }
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
@@ -13,7 +14,7 @@ class ResetPasswordPage extends StatefulWidget {
 
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final _emailController = TextEditingController();
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   @override
   void dispose() {
@@ -22,24 +23,14 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   }
 
   void _handleSendLink() {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email address.')),
-      );
-      return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Password reset link has been sent to your email.')),
+    );
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/sign-in');
     }
-
-    setState(() => _isLoading = true);
-    // Simulation / TODO(auth repository): connect backend
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset link has been sent to your email.')),
-      );
-      Navigator.of(context).maybePop();
-    });
   }
 
   @override

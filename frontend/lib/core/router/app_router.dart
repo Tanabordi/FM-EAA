@@ -33,7 +33,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/create-account',
-        builder: (context, state) => const CreateAccountPage(),
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'];
+          return CreateAccountPage(prefilledEmail: email);
+        },
       ),
       GoRoute(
         path: '/reset-password',
