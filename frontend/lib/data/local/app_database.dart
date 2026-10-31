@@ -492,6 +492,86 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
           ..orderBy([(t) => OrderingTerm(expression: t.expiryDate, mode: OrderingMode.asc)]))
         .get();
   }
+
+  /// Watch history audit logs for a fridge with optional kind ('consumed' | 'expired')
+  Stream<List<ItemHistoryData>> watchHistoryByFridge(
+    String fridgeId, {
+    String? kind,
+  }) {
+    final query = select(itemHistory)..where((t) => t.fridgeId.equals(fridgeId));
+    if (kind != null && kind.isNotEmpty) {
+      query.where((t) => t.kind.equals(kind));
+    }
+    query.orderBy([
+      (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
+    ]);
+    return query.watch();
+  }
+
+  /// Get history audit logs for a fridge
+  Future<List<ItemHistoryData>> getHistoryByFridge(
+    String fridgeId, {
+    String? kind,
+  }) {
+    final query = select(itemHistory)..where((t) => t.fridgeId.equals(fridgeId));
+    if (kind != null && kind.isNotEmpty) {
+      query.where((t) => t.kind.equals(kind));
+    }
+    query.orderBy([
+      (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
+    ]);
+    return query.get();
+  }
+
+  /// Delete a single history record
+  Future<int> deleteHistoryItem(String historyId) {
+    return (delete(itemHistory)..where((t) => t.id.equals(historyId))).go();
+  }
+
+  /// Clear history records for a fridge (optionally filtered by kind: consumed or expired)
+  Future<int> clearHistoryByFridge(String fridgeId, {String? kind}) {
+    final query = delete(itemHistory)..where((t) => t.fridgeId.equals(fridgeId));
+    if (kind != null && kind.isNotEmpty) {
+      query.where((t) => t.kind.equals(kind));
+    }
+    return query.go();
+  }
+
+  /// Record an expired item into history audit log
+  Future<int> recordExpiredHistory({
+    required String id,
+    required String fridgeId,
+    String? itemId,
+    required String itemName,
+    String? category,
+    String? zone,
+    DateTime? expiryDate,
+    String? imagePath,
+    required double quantityChanged,
+    double quantityLeft = 0.0,
+    String unit = 'pieces',
+    String byUserId = 'system',
+    DateTime? createdAt,
+  }) {
+    return into(itemHistory).insert(
+      ItemHistoryCompanion.insert(
+        id: id,
+        fridgeId: fridgeId,
+        itemId: Value(itemId),
+        itemName: itemName,
+        category: Value(category),
+        zone: Value(zone),
+        expiryDate: Value(expiryDate),
+        imagePath: Value(imagePath),
+        kind: 'expired',
+        quantityChanged: quantityChanged,
+        quantityLeft: Value(quantityLeft),
+        unit: Value(unit),
+        byUserId: byUserId,
+        createdAt: Value(createdAt ?? DateTime.now()),
+      ),
+    );
+  }
 }
 
 // =======================================================================
