@@ -3,7 +3,7 @@ import 'app_back_button.dart';
 
 /// Unified App Bar matching Image 2 and Figma exact styling:
 /// Padding: fromLTRB(16, 6, 16, 8)
-/// Back button: Unified AppBackButton (42x42 square, border #818981)
+/// Back button: Unified AppBackButton (42x42 square, border #717971, white container)
 /// Title: fontSize: 25, fontWeight: FontWeight.w800, color: #1A201C, letterSpacing: -0.5
 /// Action Buttons: prominent circular 42x42 with #EAEFE8 background and enlarged 22dp icons
 class AppTopBar extends StatelessWidget {

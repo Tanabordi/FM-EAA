@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/freshness_colors.dart';
 import '../../../../data/models/history_model.dart';
 import '../../providers/history_provider.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 
 class HistoryPage extends ConsumerStatefulWidget {
   final String fridgeId;
@@ -131,24 +132,9 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
         scrolledUnderElevation: 0,
         centerTitle: false,
         leadingWidth: 68,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Center(
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.12), width: 1.2),
-              ),
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 20),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-          ),
+        leading: const Padding(
+          padding: EdgeInsets.only(left: 16),
+          child: AppBackButton(),
         ),
         title: const Text(
           'History',
