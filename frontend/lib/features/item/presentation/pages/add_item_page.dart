@@ -45,7 +45,11 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon}) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(color: Color(0xFF717971), fontSize: 15),
+      hintStyle: const TextStyle(
+        color: Color(0xFF717971),
+        fontSize: 15,
+        fontWeight: FontWeight.w400,
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       filled: true,
       fillColor: const Color(0xFFF6FBF3),
@@ -215,7 +219,11 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                     // Food Name Field
                     TextFormField(
                       controller: _foodNameController,
-                      style: const TextStyle(fontSize: 15, color: Color(0xFF181D17)),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF181D17),
+                        fontWeight: FontWeight.w400,
+                      ),
                       decoration: _inputDecoration(hintText: 'Food Name'),
                     ),
                     const SizedBox(height: 14),
@@ -223,14 +231,33 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                     DropdownButtonFormField<String>(
                       key: ValueKey('cat_$_selectedCategory'),
                       initialValue: _selectedCategory,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF181D17),
+                        fontWeight: FontWeight.w400,
+                      ),
                       hint: const Text(
                         'Category',
-                        style: TextStyle(color: Color(0xFF717971), fontSize: 15),
+                        style: TextStyle(
+                          color: Color(0xFF717971),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                       icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
                       decoration: _inputDecoration(),
                       items: _categories
-                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .map((c) => DropdownMenuItem(
+                                value: c,
+                                child: Text(
+                                  c,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: Color(0xFF181D17),
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ))
                           .toList(),
                       onChanged: (val) => setState(() => _selectedCategory = val),
                     ),
@@ -243,7 +270,11 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           child: TextFormField(
                             controller: _quantityController,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(fontSize: 15, color: Color(0xFF181D17)),
+                            style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF181D17),
+                        fontWeight: FontWeight.w400,
+                      ),
                             decoration: _inputDecoration(hintText: 'Quantity'),
                           ),
                         ),
@@ -253,14 +284,33 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           child: DropdownButtonFormField<String>(
                             key: ValueKey('unit_$_selectedUnit'),
                             initialValue: _selectedUnit,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Color(0xFF181D17),
+                              fontWeight: FontWeight.w400,
+                            ),
                             hint: const Text(
                               'Unit',
-                              style: TextStyle(color: Color(0xFF717971), fontSize: 15),
+                              style: TextStyle(
+                                color: Color(0xFF717971),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                              ),
                             ),
                             icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
                             decoration: _inputDecoration(),
                             items: _units
-                                .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                                .map((u) => DropdownMenuItem(
+                                      value: u,
+                                      child: Text(
+                                        u,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          color: Color(0xFF181D17),
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ))
                                 .toList(),
                             onChanged: (val) => setState(() => _selectedUnit = val),
                           ),
@@ -272,14 +322,33 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                     DropdownButtonFormField<String>(
                       key: ValueKey('storage_$_selectedStorage'),
                       initialValue: _selectedStorage,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF181D17),
+                        fontWeight: FontWeight.w400,
+                      ),
                       hint: const Text(
                         'Storage Location',
-                        style: TextStyle(color: Color(0xFF717971), fontSize: 15),
+                        style: TextStyle(
+                          color: Color(0xFF717971),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                       icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
                       decoration: _inputDecoration(),
                       items: _storages
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .map((s) => DropdownMenuItem(
+                                value: s,
+                                child: Text(
+                                  s,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: Color(0xFF181D17),
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ))
                           .toList(),
                       onChanged: (val) => setState(() => _selectedStorage = val),
                     ),
@@ -312,6 +381,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                               : 'Expiration Date',
                           style: TextStyle(
                             fontSize: 15,
+                            fontWeight: FontWeight.w400,
                             color: _expirationDate != null
                                 ? const Color(0xFF181D17)
                                 : const Color(0xFF717971),

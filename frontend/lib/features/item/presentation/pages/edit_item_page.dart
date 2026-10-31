@@ -111,7 +111,11 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
   InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon}) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(color: Color(0xFF717971), fontSize: 15),
+      hintStyle: const TextStyle(
+        color: Color(0xFF717971),
+        fontSize: 15,
+        fontWeight: FontWeight.w400,
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       filled: true,
       fillColor: const Color(0xFFF6FBF3),
@@ -224,7 +228,11 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                     // Food Name Field
                     TextFormField(
                       controller: _nameController,
-                      style: const TextStyle(fontSize: 15, color: Color(0xFF181D17)),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF181D17),
+                        fontWeight: FontWeight.w400,
+                      ),
                       decoration: _inputDecoration(hintText: 'Food Name'),
                     ),
                     const SizedBox(height: 14),
@@ -232,10 +240,25 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                     DropdownButtonFormField<String>(
                       key: ValueKey('cat_$_category'),
                       initialValue: _category,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF181D17),
+                        fontWeight: FontWeight.w400,
+                      ),
                       icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
                       decoration: _inputDecoration(),
                       items: _categories
-                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .map((c) => DropdownMenuItem(
+                                value: c,
+                                child: Text(
+                                  c,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: Color(0xFF181D17),
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ))
                           .toList(),
                       onChanged: (val) {
                         if (val != null) setState(() => _category = val);
@@ -250,7 +273,11 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                           child: TextFormField(
                             controller: _quantityController,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(fontSize: 15, color: Color(0xFF181D17)),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Color(0xFF181D17),
+                              fontWeight: FontWeight.w400,
+                            ),
                             decoration: _inputDecoration(hintText: 'Quantity'),
                           ),
                         ),
@@ -260,10 +287,25 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                           child: DropdownButtonFormField<String>(
                             key: ValueKey('unit_$_unit'),
                             initialValue: _unit,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Color(0xFF181D17),
+                              fontWeight: FontWeight.w400,
+                            ),
                             icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
                             decoration: _inputDecoration(),
                             items: _units
-                                .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                                .map((u) => DropdownMenuItem(
+                                      value: u,
+                                      child: Text(
+                                        u,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          color: Color(0xFF181D17),
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ))
                                 .toList(),
                             onChanged: (val) {
                               if (val != null) setState(() => _unit = val);
@@ -277,10 +319,25 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                     DropdownButtonFormField<String>(
                       key: ValueKey('storage_$_storage'),
                       initialValue: _storage,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF181D17),
+                        fontWeight: FontWeight.w400,
+                      ),
                       icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
                       decoration: _inputDecoration(),
                       items: _storages
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .map((s) => DropdownMenuItem(
+                                value: s,
+                                child: Text(
+                                  s,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: Color(0xFF181D17),
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ))
                           .toList(),
                       onChanged: (val) {
                         if (val != null) setState(() => _storage = val);
@@ -311,7 +368,11 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                         ),
                         child: Text(
                           _formatDate(_expirationDate),
-                          style: const TextStyle(fontSize: 15, color: Color(0xFF181D17)),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Color(0xFF181D17),
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ),
                     ),
