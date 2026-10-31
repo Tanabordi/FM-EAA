@@ -6,11 +6,13 @@ import '../../core/theme/freshness_colors.dart';
 class StatusBadge extends StatelessWidget {
   final FreshnessStatus status;
   final String? customLabel;
+  final bool isSolid;
 
   const StatusBadge({
     super.key,
     required this.status,
     this.customLabel,
+    this.isSolid = true,
   });
 
   @override
@@ -21,19 +23,19 @@ class StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: isSolid ? color : color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+        border: isSolid ? null : Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(status.icon, size: 14, color: color),
+          Icon(status.icon, size: 14, color: isSolid ? Colors.white : color),
           const SizedBox(width: 4),
           Text(
             text,
             style: TextStyle(
-              color: color,
+              color: isSolid ? Colors.white : color,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),

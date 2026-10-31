@@ -142,6 +142,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage> with Single
                     quantityText: '${item.quantity.toInt()} ${item.unit}',
                     status: item.status,
                     statusText: item.statusText,
+                    imagePath: item.imagePath,
                     onTap: () => context.push('/fridges/${widget.fridgeId}/items/${item.id}'),
                   );
                 },

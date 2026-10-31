@@ -62,6 +62,34 @@ class ItemModel {
     }
   }
 
+  ItemModel copyWith({
+    String? id,
+    String? fridgeId,
+    String? name,
+    String? category,
+    String? zone,
+    double? quantity,
+    String? unit,
+    DateTime? expiryDate,
+    String? imagePath,
+    bool? isSynced,
+    DateTime? updatedAt,
+  }) {
+    return ItemModel(
+      id: id ?? this.id,
+      fridgeId: fridgeId ?? this.fridgeId,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      zone: zone ?? this.zone,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      expiryDate: expiryDate ?? this.expiryDate,
+      imagePath: imagePath ?? this.imagePath,
+      isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
   factory ItemModel.fromJson(Map<String, dynamic> json) {
     return ItemModel(
       id: json['id'] as String,

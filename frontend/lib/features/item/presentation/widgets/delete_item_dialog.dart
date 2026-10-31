@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
 
-// TODO(screen #16 Delete Item alert): ยืนยันลบของ (และใช้ pattern เดียวกันกับการลบรายการประวัติ)
+/// Screen #16 / Delete Item confirmation dialog.
 class DeleteItemDialog extends StatelessWidget {
   final String itemId;
+  final VoidCallback? onConfirm;
 
-  const DeleteItemDialog({super.key, required this.itemId});
+  const DeleteItemDialog({
+    super.key,
+    required this.itemId,
+    this.onConfirm,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +20,8 @@ class DeleteItemDialog extends StatelessWidget {
       confirmLabel: 'Delete',
       isDestructive: true,
       onConfirm: () {
-        // TODO(item delete): Call itemRepository.deleteItem
+        onConfirm?.call();
       },
     );
   }
 }
-
