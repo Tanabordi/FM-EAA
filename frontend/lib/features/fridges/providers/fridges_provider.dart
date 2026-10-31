@@ -5,25 +5,33 @@ import '../../../data/repositories/fridge_repository.dart';
 class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
   final FridgeRepository? _repository;
 
-  FridgesNotifier([this._repository])
-      : super([
-          FridgeModel(
-            id: 'fridge_kitchen',
-            name: 'Kitchen',
-            description: '1st floor',
-            ownerId: 'user_1',
-            memberCount: 3,
-            updatedAt: DateTime.now(),
-          ),
-          FridgeModel(
-            id: 'fridge_studio',
-            name: 'Studio',
-            description: '2nd floor',
-            ownerId: 'user_1',
-            memberCount: 1,
-            updatedAt: DateTime.now(),
-          ),
-        ]);
+  static final List<FridgeModel> defaultFridges = [
+    FridgeModel(
+      id: 'fridge_studio',
+      name: 'Studio',
+      description: '2nd floor',
+      ownerId: 'user_1',
+      memberCount: 1,
+      itemCount: 0,
+      updatedAt: DateTime.now(),
+    ),
+    FridgeModel(
+      id: 'fridge_kitchen',
+      name: 'Kitchen',
+      description: '1st floor',
+      ownerId: 'user_1',
+      memberCount: 2,
+      itemCount: 35,
+      updatedAt: DateTime.now(),
+    ),
+  ];
+
+  FridgesNotifier([this._repository, bool startEmpty = false])
+      : super(startEmpty ? [] : defaultFridges);
+
+  void loadMockData() {
+    state = defaultFridges;
+  }
 
   List<FridgeModel> get currentFridges => state;
 
@@ -36,7 +44,8 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
       description: description,
       ownerId: userId ?? 'user_1',
       memberCount: 1,
-      isSynced: false, // Optimistic UI: marked not synced
+      itemCount: 0,
+      isSynced: false,
       updatedAt: DateTime.now(),
     );
     state = [...state, newFridge];
@@ -55,6 +64,28 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
     }
   }
 
+  Future<void> updateFridge(String id, String name, String description) async {
+    final previousState = state;
+    state = [
+      for (final f in state)
+        if (f.id == id)
+          f.copyWith(
+            name: name,
+            description: description,
+            updatedAt: DateTime.now(),
+            isSynced: false,
+          )
+        else
+          f
+    ];
+    try {
+      await _repository?.updateFridge(id, name, description);
+    } catch (e) {
+      state = previousState;
+      rethrow;
+    }
+  }
+
   /// Optimistic UI: Removes from local state immediately, then removes from Drift SQLite with rollback protection
   Future<void> removeFridge(String id) async {
     final previousState = state;
@@ -65,6 +96,20 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
       state = previousState;
       rethrow;
     }
+  }
+
+  void clearAll() {
+    state = [];
+  }
+
+  void updateItemCount(String id, int count) {
+    state = [
+      for (final f in state)
+        if (f.id == id)
+          f.copyWith(itemCount: count, updatedAt: DateTime.now())
+        else
+          f
+    ];
   }
 }
 
