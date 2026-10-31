@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/freshness_colors.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/category_chips.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 import '../widgets/delete_item_dialog.dart';
@@ -158,7 +159,11 @@ class ItemDetailsPage extends ConsumerWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.eco_outlined, size: 16, color: Color(0xFF181D17)),
+                              CategoryIcon(
+                                category: item.category,
+                                size: 16,
+                                color: const Color(0xFF181D17),
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 _capitalize(item.category),

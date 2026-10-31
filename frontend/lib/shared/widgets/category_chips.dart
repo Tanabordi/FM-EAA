@@ -10,6 +10,35 @@ const List<String> kFoodCategories = [
   'Sauces',
 ];
 
+/// Reusable Category Icon widget matching Figma category button icons
+class CategoryIcon extends StatelessWidget {
+  final String category;
+  final Color color;
+  final double size;
+
+  const CategoryIcon({
+    super.key,
+    required this.category,
+    this.color = const Color(0xFF414942),
+    this.size = 20,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        size: Size(size, size),
+        painter: CategoryIconPainter(
+          category: category,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
 /// Circular category chip selector matching exact Figma node 11:178 & uploaded mockup
 class CategoryChips extends StatelessWidget {
   final String selectedCategory;
@@ -59,14 +88,12 @@ class CategoryChips extends StatelessWidget {
                                 ),
                         ),
                         alignment: Alignment.center,
-                        child: CustomPaint(
-                          size: const Size(28, 28), // Enlarged from 22x22 to 28x28 for high visibility
-                          painter: _CategoryIconPainter(
-                            category: category,
-                            color: isSelected
-                                ? const Color(0xFFF6FBF3) // Active white-tinted icon
-                                : const Color(0xFF414942), // Inactive dark charcoal green #414942
-                          ),
+                        child: CategoryIcon(
+                          category: category,
+                          size: 28,
+                          color: isSelected
+                              ? const Color(0xFFF6FBF3) // Active white-tinted icon
+                              : const Color(0xFF414942), // Inactive dark charcoal green #414942
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -113,18 +140,19 @@ class CategoryChips extends StatelessWidget {
   }
 }
 
-/// Custom painter rendering prominent, clear vector icons matching uploaded image
-class _CategoryIconPainter extends CustomPainter {
+/// Custom painter rendering prominent, clear vector icons matching category buttons
+class CategoryIconPainter extends CustomPainter {
   final String category;
   final Color color;
 
-  _CategoryIconPainter({required this.category, required this.color});
+  CategoryIconPainter({required this.category, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
+    final strokeW = size.width < 22 ? 1.5 : 2.0;
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 2.0
+      ..strokeWidth = strokeW
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
@@ -185,9 +213,10 @@ class _CategoryIconPainter extends CustomPainter {
         canvas.drawLine(Offset(w * 0.60, h * 0.38), Offset(w * 0.76, h * 0.24), paint);
 
         // 2 ridges on carrot body
+        final thinStroke = size.width < 22 ? 1.2 : 1.6;
         final thinPaint = Paint()
           ..color = color
-          ..strokeWidth = 1.6
+          ..strokeWidth = thinStroke
           ..strokeCap = StrokeCap.round
           ..style = PaintingStyle.stroke;
         canvas.drawLine(Offset(w * 0.38, h * 0.54), Offset(w * 0.52, h * 0.52), thinPaint);
@@ -278,11 +307,16 @@ class _CategoryIconPainter extends CustomPainter {
         canvas.drawLine(Offset(w * 0.24, h * 0.62), Offset(w * 0.76, h * 0.62), paint);
         canvas.drawLine(Offset(w * 0.24, h * 0.70), Offset(w * 0.76, h * 0.70), paint);
         break;
+
+      default:
+        final circleCenter = Offset(w * 0.5, h * 0.5);
+        canvas.drawCircle(circleCenter, w * 0.3, paint);
+        break;
     }
   }
 
   @override
-  bool shouldRepaint(covariant _CategoryIconPainter oldDelegate) {
+  bool shouldRepaint(covariant CategoryIconPainter oldDelegate) {
     return oldDelegate.category != category || oldDelegate.color != color;
   }
 }
