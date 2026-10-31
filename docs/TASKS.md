@@ -107,7 +107,7 @@ flowchart TD
 - ⏳ **ขั้นที่ 6** พัฒนาระบบบันทึกการบริโภคอาหาร (Screens #14–16: Mark as Consumed Sheet, Finished all, และ Undo SnackBar)
 
 #### 👤 ส่วนที่ 3 นายชนินทร์ คำวงศ์ษา (AI Vision & Offline Sync Engine)
-- ⏳ **ขั้นที่ 1** พัฒนาบริการวิเคราะห์ฉลากอาหารฝั่งเซิร์ฟเวอร์ (`aiService.js`, `aiRoutes.js`) เชื่อมต่อ Google Gemini Vision API สกัดชื่ออาหารและวันหมดอายุ
+- ✅ **ขั้นที่ 1** พัฒนาบริการวิเคราะห์ฉลากอาหารฝั่งเซิร์ฟเวอร์ (`aiService.js`, `aiRoutes.js`) เชื่อมต่อ Google Gemini Vision API สกัดชื่ออาหารและวันหมดอายุ
 - ⏳ **ขั้นที่ 2** พัฒนาหน้าจอการสแกนฉลากด้วยกล้องบนมือถือ (`scan_label_page.dart`) และระบบนำผลลัพธ์มา Autofill ข้อมูลลงแบบฟอร์มวัตถุดิบ
 - ⏳ **ขั้นที่ 3** พัฒนาระบบตรวจสอบสถานะการเชื่อมต่อเครือข่ายเบื้องหลัง (`connectivity_watcher.dart`) ด้วย `connectivity_plus`
 - ⏳ **ขั้นที่ 4** พัฒนาระบบซิงค์ข้อมูลฝั่งเซิร์ฟเวอร์ (`syncRoutes.js`, `syncService.js`) รองรับ Last-Write-Wins (LWW) อิงตาม `updated_at`
