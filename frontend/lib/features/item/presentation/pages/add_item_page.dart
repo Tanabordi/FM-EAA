@@ -114,20 +114,20 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                   children: [
                     // AI Label Scan Card
                     Container(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                       decoration: BoxDecoration(
                         color: const Color(0xFFEAEFE8),
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      child: Column(
+                      child: const Column(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.camera_alt_outlined,
                             size: 32,
                             color: Color(0xFF181D17),
                           ),
-                          const SizedBox(height: 10),
-                          const Text(
+                          SizedBox(height: 10),
+                          Text(
                             'Scan Label with AI',
                             style: TextStyle(
                               fontSize: 18,
@@ -135,73 +135,83 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                               color: Color(0xFF181D17),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          const Text(
+                          SizedBox(height: 4),
+                          Text(
                             "Capture the label. We'll fill in the details.",
                             style: TextStyle(
                               fontSize: 13,
                               color: Color(0xFF414941),
                             ),
                           ),
-                          const SizedBox(height: 18),
-                          // Gemini Button with drop shadow
-                          InkWell(
-                            borderRadius: BorderRadius.circular(24),
-                            onTap: _onScanWithGemini,
-                            child: Container(
-                              height: 48,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEAEFE8),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: const Color(0xFF717971).withValues(alpha: 0.4),
-                                  width: 1.0,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.10),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  ShaderMask(
-                                    shaderCallback: (bounds) => const SweepGradient(
-                                      colors: [
-                                        Color(0xFF4285F4),
-                                        Color(0xFF9B72CF),
-                                        Color(0xFFEA4335),
-                                        Color(0xFFFBBC04),
-                                        Color(0xFF4285F4),
-                                      ],
-                                    ).createShader(bounds),
-                                    child: const Icon(
-                                      Icons.auto_awesome,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'ให้ Gemini AI Vision Engine วิเคราะห์',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF181D17),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 14),
+                    // Gemini AI Vision Engine Button (Separate floating button with shadow)
+                    InkWell(
+                      borderRadius: BorderRadius.circular(28),
+                      onTap: _onScanWithGemini,
+                      child: Container(
+                        height: 52,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEAEFE8),
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: const Color(0xFF717971),
+                            width: 1.0,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.22),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: ShaderMask(
+                                  shaderCallback: (bounds) => const SweepGradient(
+                                    colors: [
+                                      Color(0xFF4285F4),
+                                      Color(0xFF9B72CF),
+                                      Color(0xFFEA4335),
+                                      Color(0xFFFBBC04),
+                                      Color(0xFF4285F4),
+                                    ],
+                                  ).createShader(bounds),
+                                  child: const Icon(
+                                    Icons.auto_awesome,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            const Text(
+                              'ให้ Gemini AI Vision Engine วิเคราะห์',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF181D17),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
                     // Food Name Field
                     TextFormField(
                       controller: _foodNameController,

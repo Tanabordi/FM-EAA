@@ -5,12 +5,13 @@ import 'package:fm_eaa/features/fridge_detail/providers/fridge_detail_provider.d
 import 'package:fm_eaa/features/item/presentation/pages/add_item_page.dart';
 import 'package:fm_eaa/features/item/presentation/pages/edit_item_page.dart';
 import 'package:fm_eaa/features/item/presentation/pages/item_details_page.dart';
+import 'package:fm_eaa/features/item/presentation/widgets/delete_item_dialog.dart';
 import 'package:fm_eaa/features/item/presentation/widgets/finish_all_snackbar.dart';
 import 'package:fm_eaa/features/item/presentation/widgets/mark_consumed_sheet.dart';
 
 void main() {
   group('Screens #11-16: Ingredient Form and Consumption Flow Tests', () {
-    testWidgets('Screen #11: AddItemPage renders all form elements and AI Scan card', (tester) async {
+    testWidgets('Screen #11: AddItemPage renders all form elements and separate AI Scan card and button', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -138,6 +139,49 @@ void main() {
       await tester.tap(find.text('Finished all'));
       expect(consumedAmount, 2.0);
       expect(isFinishedAll, true);
+    });
+
+    testWidgets('Screen #16: DeleteItemDialog renders matching title, subtitle, Cancel and red Delete button', (tester) async {
+      bool deleteConfirmed = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => DeleteItemDialog(
+                      itemId: 'item_strawberries',
+                      itemName: 'Strawberries',
+                      onConfirm: () {
+                        deleteConfirmed = true;
+                      },
+                    ),
+                  );
+                },
+                child: const Text('Show Dialog'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Dialog'));
+      await tester.pumpAndSettle();
+
+      // Verify exact text from mockup image
+      expect(find.text('Delete Strawberries?'), findsOneWidget);
+      expect(find.text('This action cannot be undone'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
+
+      // Tap Delete
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(deleteConfirmed, true);
     });
 
     testWidgets('Screen #16: FinishAllSnackbar displays consumed confirmation and Undo restores item', (tester) async {

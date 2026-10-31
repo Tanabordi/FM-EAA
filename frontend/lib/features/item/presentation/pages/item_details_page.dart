@@ -275,6 +275,7 @@ class ItemDetailsPage extends ConsumerWidget {
       context: context,
       builder: (_) => DeleteItemDialog(
         itemId: item.id,
+        itemName: item.name,
         onConfirm: () {
           ref.read(fridgeItemsProvider(fridgeId).notifier).deleteItem(item.id);
           if (context.canPop()) {
