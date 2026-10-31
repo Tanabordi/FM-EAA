@@ -1,3 +1,5 @@
+import '../local/app_database.dart';
+
 class FridgeModel {
   final String id;
   final String name;
@@ -42,6 +44,19 @@ class FridgeModel {
       updatedAt: updatedAt ?? this.updatedAt,
       memberCount: memberCount ?? this.memberCount,
       itemCount: itemCount ?? this.itemCount,
+    );
+  }
+
+  factory FridgeModel.fromEntry(FridgeEntry entry, {int memberCount = 1, int itemCount = 0}) {
+    return FridgeModel(
+      id: entry.id,
+      name: entry.name,
+      description: entry.description ?? '',
+      ownerId: entry.ownerId,
+      isSynced: entry.isSynced,
+      updatedAt: entry.updatedAt,
+      memberCount: memberCount,
+      itemCount: itemCount,
     );
   }
 

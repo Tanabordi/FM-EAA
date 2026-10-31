@@ -77,7 +77,7 @@ void main() {
 
   group('FridgesNotifier Unit Tests', () {
     test('supports startEmpty, add, update, remove, and loadMockData', () {
-      final notifier = FridgesNotifier(startEmpty: true);
+      final notifier = FridgesNotifier(null, true);
       expect(notifier.state.isEmpty, isTrue);
 
       // Load mock data
@@ -111,7 +111,7 @@ void main() {
     testWidgets('Screen #5 Empty State (Image 1): renders cute fridge, text, and Add First Fridge button', (tester) async {
       final container = ProviderContainer(
         overrides: [
-          fridgesProvider.overrideWith((ref) => FridgesNotifier(startEmpty: true)),
+          fridgesProvider.overrideWith((ref) => FridgesNotifier(null, true)),
         ],
       );
 
