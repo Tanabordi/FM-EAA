@@ -14,7 +14,7 @@ class FinishAllSnackbar {
         backgroundColor: const Color(0xFF181D17),
         behavior: SnackBarBehavior.floating,
         elevation: 4,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         content: Row(
