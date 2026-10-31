@@ -62,6 +62,15 @@ class ItemModel {
     }
   }
 
+  /// Formatted quantity text helper (e.g. "1 carton", "2.5 kg", "500g · 2 pieces")
+  String get formattedQuantity {
+    final qtyStr = quantity == quantity.toInt() ? quantity.toInt().toString() : quantity.toString();
+    if (unit.contains('·') || unit.contains('pieces')) {
+      return quantity > 0 ? '$qtyStr $unit'.trim() : unit.trim();
+    }
+    return '$qtyStr $unit'.trim();
+  }
+
   factory ItemModel.fromEntry(ItemEntry entry) {
     return ItemModel(
       id: entry.id,
