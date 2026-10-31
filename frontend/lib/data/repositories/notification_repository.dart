@@ -71,9 +71,9 @@ class NotificationRepository {
     // Call remote API or update local invite state
     try {
       if (inviteId != null) {
-        await apiClient.post(
+        await apiClient.dio.post(
           '/api/invites/$inviteId/${accept ? 'accept' : 'decline'}',
-          {},
+          data: {},
         );
       }
     } catch (_) {

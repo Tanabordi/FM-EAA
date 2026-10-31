@@ -19,7 +19,9 @@ final notificationsStreamProvider = StreamProvider.family<List<NotificationModel
 
 /// Convenience provider for default user_1 notifications
 final defaultNotificationsStreamProvider = StreamProvider<List<NotificationModel>>((ref) {
-  return ref.watch(notificationsStreamProvider('user_1'));
+  final repo = ref.watch(notificationRepositoryProvider);
+  repo.seedInitialNotificationsIfEmpty('user_1');
+  return repo.watchNotifications('user_1');
 });
 
 /// Backward-compatible FutureProvider for notifications list
