@@ -128,6 +128,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                         child: TextField(
                           controller: _nameController,
                           focusNode: _nameFocusNode,
+                          maxLength: 100,
                           style: const TextStyle(
                             fontSize: 15,
                             color: textDark,
@@ -143,6 +144,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                             }
                           },
                           decoration: InputDecoration(
+                            counterText: '',
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
@@ -190,6 +192,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                         child: TextField(
                           controller: _descController,
                           focusNode: _descFocusNode,
+                          maxLength: 500,
                           maxLines: null,
                           expands: true,
                           textAlignVertical: TextAlignVertical.top,
@@ -199,6 +202,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                             fontWeight: FontWeight.w400,
                           ),
                           decoration: InputDecoration(
+                            counterText: '',
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,

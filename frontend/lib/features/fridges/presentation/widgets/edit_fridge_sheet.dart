@@ -139,6 +139,7 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
               child: TextField(
                 controller: _nameController,
+                maxLength: 100,
                 style: const TextStyle(
                   fontSize: 15,
                   color: textDark,
@@ -152,6 +153,7 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
                   }
                 },
                 decoration: InputDecoration(
+                  counterText: '',
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
@@ -202,6 +204,7 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: TextField(
                 controller: _descController,
+                maxLength: 500,
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
@@ -211,6 +214,7 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
                   fontWeight: FontWeight.w400,
                 ),
                 decoration: InputDecoration(
+                  counterText: '',
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,

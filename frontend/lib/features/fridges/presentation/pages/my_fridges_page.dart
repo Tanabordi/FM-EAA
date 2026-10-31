@@ -222,6 +222,7 @@ class MyFridgesPage extends ConsumerWidget {
                         ),
                       ),
                       SizedBox(height: 3),
+                      // TODO: Connect with ItemDao.getExpiringSoonItems() to display dynamic count
                       Text(
                         '2 items need your attention today',
                         style: TextStyle(
@@ -283,17 +284,7 @@ class MyFridgesPage extends ConsumerWidget {
                 itemsCountText: fridge.itemsCountText,
                 isPersonal: fridge.isPersonal,
                 memberCount: fridge.memberCount,
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: const Color(0xFFEAEFE8),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                    ),
-                    builder: (_) => EditFridgeSheet(fridge: fridge),
-                  );
-                },
+                onTap: () => context.push('/fridges/${fridge.id}'),
                 onLongPress: () {
                   showDialog(
                     context: context,
