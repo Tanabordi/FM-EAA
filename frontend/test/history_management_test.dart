@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,7 +52,7 @@ void main() {
           itemName: 'Yogurt',
           kind: 'consumed',
           quantityChanged: 2.0,
-          unit: 'cups',
+          unit: const Value('cups'),
           byUserId: 'user_1',
         ),
       );
@@ -98,7 +99,7 @@ void main() {
           itemName: 'Apple',
           kind: 'consumed',
           quantityChanged: 1.0,
-          unit: 'piece',
+          unit: const Value('piece'),
           byUserId: 'user_1',
         ),
       );
@@ -133,7 +134,7 @@ void main() {
           itemName: 'Old Bread',
           kind: 'consumed',
           quantityChanged: 1.0,
-          unit: 'loaf',
+          unit: const Value('loaf'),
           byUserId: 'user_1',
           createdAt: Value(now.subtract(const Duration(days: 35))),
         ),
@@ -147,7 +148,7 @@ void main() {
           itemName: 'Fresh Butter',
           kind: 'consumed',
           quantityChanged: 1.0,
-          unit: 'pack',
+          unit: const Value('pack'),
           byUserId: 'user_1',
           createdAt: Value(now.subtract(const Duration(days: 5))),
         ),
@@ -161,7 +162,7 @@ void main() {
           itemName: 'Old Expired Juice',
           kind: 'expired',
           quantityChanged: 1.0,
-          unit: 'carton',
+          unit: const Value('carton'),
           byUserId: 'system',
           createdAt: Value(now.subtract(const Duration(days: 35))),
         ),

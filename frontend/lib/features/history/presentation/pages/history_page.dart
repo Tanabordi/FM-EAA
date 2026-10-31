@@ -42,7 +42,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
   String get _currentKind => _tabController.index == 0 ? 'consumed' : 'expired';
   String get _currentTabLabel => _tabController.index == 0 ? 'Consumed' : 'Expired';
 
-  Future<void> _confirmClearAll(BuildContext context, int count) async {
+  Future<void> _confirmClearAll(int count) async {
     if (count == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No $_currentTabLabel history to clear.')),
@@ -79,15 +79,14 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
             widget.fridgeId,
             kind: _currentKind,
           );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('All $_currentTabLabel history records cleared.')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('All $_currentTabLabel history records cleared.')),
+      );
     }
   }
 
-  Future<void> _confirmDeleteSingle(BuildContext context, HistoryModel item) async {
+  Future<void> _confirmDeleteSingle(HistoryModel item) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -112,11 +111,10 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
 
     if (confirmed == true && mounted) {
       await ref.read(historyControllerProvider.notifier).deleteItem(item.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Removed "${item.itemName}" from history.')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Removed "${item.itemName}" from history.')),
+      );
     }
   }
 
@@ -215,7 +213,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                         ),
                       ),
                       InkWell(
-                        onTap: () => _confirmClearAll(context, currentCount),
+                        onTap: () => _confirmClearAll(currentCount),
                         borderRadius: BorderRadius.circular(6),
                         child: const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -274,8 +272,8 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAEFE8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEAEFE8),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -415,7 +413,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
               size: 22,
             ),
             tooltip: 'Delete record',
-            onPressed: () => _confirmDeleteSingle(context, item),
+            onPressed: () => _confirmDeleteSingle(item),
           ),
         ],
       ),
