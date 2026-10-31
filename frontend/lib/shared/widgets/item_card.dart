@@ -10,6 +10,7 @@ class ItemCard extends StatelessWidget {
   final String statusText;
   final String? imagePath;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const ItemCard({
     super.key,
@@ -19,6 +20,7 @@ class ItemCard extends StatelessWidget {
     required this.statusText,
     this.imagePath,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -31,6 +33,7 @@ class ItemCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Row(

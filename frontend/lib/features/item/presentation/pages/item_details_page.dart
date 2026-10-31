@@ -256,15 +256,16 @@ class ItemDetailsPage extends ConsumerWidget {
           Navigator.pop(sheetContext); // Close sheet
           ref.read(fridgeItemsProvider(fridgeId).notifier).consumeItem(item.id, amount, finishedAll);
           if (context.canPop()) {
-            context.pop(); // Return to fridge detail page
+            context.pop(item); // Return to fridge detail page with the consumed item
+          } else {
+            FinishAllSnackbar.show(
+              context,
+              itemName: item.name,
+              onUndo: () {
+                ref.read(fridgeItemsProvider(fridgeId).notifier).undoConsume();
+              },
+            );
           }
-          FinishAllSnackbar.show(
-            context,
-            itemName: item.name,
-            onUndo: () {
-              ref.read(fridgeItemsProvider(fridgeId).notifier).undoConsume();
-            },
-          );
         },
       ),
     );
