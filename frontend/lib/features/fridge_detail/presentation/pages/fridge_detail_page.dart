@@ -19,7 +19,6 @@ class FridgeDetailPage extends ConsumerStatefulWidget {
 class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -36,7 +35,6 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
   @override
   void dispose() {
     _tabController.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -101,13 +99,10 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                       itemCount: items.length,
                       itemBuilder: (context, index) {
                         final item = items[index];
-                        final displayQuantity = item.unit.contains('·') || item.unit.contains('pieces')
-                            ? '${item.quantity > 0 ? (item.quantity == item.quantity.toInt() ? item.quantity.toInt() : item.quantity) : ''} ${item.unit}'.trim()
-                            : '${item.quantity == item.quantity.toInt() ? item.quantity.toInt() : item.quantity} ${item.unit}';
 
                         return ItemCard(
                           name: item.name,
-                          quantityText: displayQuantity,
+                          quantityText: item.formattedQuantity,
                           status: item.status,
                           statusText: item.statusText,
                           imagePath: item.imagePath,
@@ -189,54 +184,23 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
               ref.read(searchQueryProvider.notifier).state = '';
               context.push('/fridges/${widget.fridgeId}/search');
             },
-            child: Row(
+            child: const Row(
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(left: 18, right: 12),
                   child: Icon(Icons.search, color: Color(0xFF3A4A3E), size: 22),
                 ),
                 Expanded(
                   child: Text(
-                    _searchController.text.isNotEmpty
-                        ? _searchController.text
-                        : 'Search for items',
+                    'Search for items',
                     style: TextStyle(
-                      color: _searchController.text.isNotEmpty
-                          ? const Color(0xFF1A201C)
-                          : const Color(0xFF4A5A4E),
+                      color: Color(0xFF4A5A4E),
                       fontSize: 15,
-                      fontWeight: _searchController.text.isNotEmpty
-                          ? FontWeight.w500
-                          : FontWeight.w400,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),
-                if (_searchController.text.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 14.0, left: 8.0),
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        _searchController.clear();
-                        ref.read(fridgeDetailFilterProvider.notifier).setSearchQuery('');
-                      },
-                      child: Container(
-                        width: 26,
-                        height: 26,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFDFE4DC),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close_rounded,
-                          size: 15,
-                          color: Color(0xFF414942),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  const SizedBox(width: 22),
+                SizedBox(width: 22),
               ],
             ),
           ),

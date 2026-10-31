@@ -198,13 +198,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           itemCount: results.length,
                           itemBuilder: (context, index) {
                             final item = results[index];
-                            final displayQuantity = item.unit.contains('·') || item.unit.contains('pieces')
-                                ? '${item.quantity > 0 ? (item.quantity == item.quantity.toInt() ? item.quantity.toInt() : item.quantity) : ''} ${item.unit}'.trim()
-                                : '${item.quantity == item.quantity.toInt() ? item.quantity.toInt() : item.quantity} ${item.unit}';
 
                             return ItemCard(
                               name: '${item.name} (${item.category.capitalize()})',
-                              quantityText: displayQuantity,
+                              quantityText: item.formattedQuantity,
                               status: item.status,
                               statusText: item.statusText,
                               imagePath: item.imagePath,

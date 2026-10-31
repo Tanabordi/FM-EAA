@@ -34,49 +34,56 @@ class CategoryChips extends StatelessWidget {
             return InkWell(
               onTap: () => onSelected(category),
               borderRadius: BorderRadius.circular(28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Circular button with prominent, enlarged icons matching user request
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isSelected
-                          ? const Color(0xFF2E6A44) // Active forest green #2E6A44
-                          : const Color(0xFFEAEFE8), // Inactive surface container #EAEFE8
-                      border: isSelected
-                          ? null
-                          : Border.all(
-                              color: const Color(0xFF717971), // Inactive border outline #717971
-                              width: 1.2,
-                            ),
-                    ),
-                    alignment: Alignment.center,
-                    child: CustomPaint(
-                      size: const Size(28, 28), // Enlarged from 22x22 to 28x28 for high visibility
-                      painter: _CategoryIconPainter(
-                        category: category,
-                        color: isSelected
-                            ? const Color(0xFFF6FBF3) // Active white-tinted icon
-                            : const Color(0xFF414942), // Inactive dark charcoal green #414942
+              child: ConstrainedBox(
+                // Ensure hit target covers at least 48x48 dp (satisfies Apple HIG 44x44 and Material 48x48)
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 2.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Circular button with prominent, enlarged icons matching user request
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? const Color(0xFF2E6A44) // Active forest green #2E6A44
+                              : const Color(0xFFEAEFE8), // Inactive surface container #EAEFE8
+                          border: isSelected
+                              ? null
+                              : Border.all(
+                                  color: const Color(0xFF717971), // Inactive border outline #717971
+                                  width: 1.2,
+                                ),
+                        ),
+                        alignment: Alignment.center,
+                        child: CustomPaint(
+                          size: const Size(28, 28), // Enlarged from 22x22 to 28x28 for high visibility
+                          painter: _CategoryIconPainter(
+                            category: category,
+                            color: isSelected
+                                ? const Color(0xFFF6FBF3) // Active white-tinted icon
+                                : const Color(0xFF414942), // Inactive dark charcoal green #414942
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 5),
+                      // Category label underneath
+                      Text(
+                        category,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected
+                              ? const Color(0xFF1A201C)
+                              : const Color(0xFF414942), // Inactive label #414942
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 5),
-                  // Category label underneath
-                  Text(
-                    category,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected
-                          ? const Color(0xFF1A201C)
-                          : const Color(0xFF414942), // Inactive label #414942
-                    ),
-                  ),
-                ],
+                ),
               ),
             );
           }).toList();
