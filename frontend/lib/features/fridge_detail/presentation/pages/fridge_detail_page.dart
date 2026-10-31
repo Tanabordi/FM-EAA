@@ -152,10 +152,11 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage> with Single
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
+        backgroundColor: const Color(0xFF2E6A44),
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         onPressed: () => context.push('/fridges/${widget.fridgeId}/items/add'),
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, size: 28),
       ),
     );
   }
