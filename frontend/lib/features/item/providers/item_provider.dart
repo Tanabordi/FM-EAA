@@ -1,14 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/item_model.dart';
-import '../../../data/remote/api_client.dart';
-import '../../../data/repositories/item_repository.dart';
 
-final itemRepositoryProvider = Provider<ItemRepository>((ref) {
-  return ItemRepository(apiClient: ApiClient());
-});
+export '../../../data/repositories/item_repository.dart' show itemRepositoryProvider;
 
 final itemDetailProvider = Provider.family<ItemModel?, String>((ref, itemId) {
-  // Mock item detail for skeleton
+  // Mock item detail for skeleton or load from DB
   return ItemModel(
     id: itemId,
     fridgeId: 'fridge_kitchen',
@@ -21,4 +17,3 @@ final itemDetailProvider = Provider.family<ItemModel?, String>((ref, itemId) {
     updatedAt: DateTime.now(),
   );
 });
-
