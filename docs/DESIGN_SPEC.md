@@ -13,7 +13,13 @@ Figma [FM-EAA on Figma](https://www.figma.com/design/MB6XUkZz1GZqJpDqvfkHYc/FM-E
 - On Surface #181D18, On Surface Variant #414942 และ Outline #717971
 - สถานะความสดใหม่ **Fresh** #34C759 (สีเขียว ไอคอนดาว), **Use soon** #FF8D28 (สีส้ม ไอคอนนาฬิกา), **Expired** #FF383C (สีแดง ไอคอนเตือน)
 - ปุ่มการทำงานสำคัญ (Delete, Log out, Clear All, Decline) ใช้สีแดงเข้มประมาณ #B91C1C
-- รูปทรงปุ่มหลักเป็นแบบแคปซูลกว้างเต็มพื้นที่ ปุ่มย้อนกลับเป็นกรอบมน ปุ่มลอย FAB สีเขียวมุมขวาล่าง ช่องค้นหาทรงรีมีมิติเงา และแผ่น Bottom Sheet มุมบนโค้งมน
+- รูปทรงปุ่มหลักเป็นแบบแคปซูลกว้างเต็มพื้นที่ ปุ่มลอย FAB สีเขียวมุมขวาล่าง ช่องค้นหาทรงรีมีมิติเงา และแผ่น Bottom Sheet มุมบนโค้งมน
+- **มาตรฐานปุ่มย้อนกลับกรอบมน (Outlined Back Button - Material 3):**
+  - **รูปทรงและขนาด**: สี่เหลี่ยมจัตุรัสกรอบมน ขนาด 42x42 dp ความโค้งมนรัศมี (Border Radius) 13 dp
+  - **สีพื้นหลัง (Container/Surface)**: #FFFFFF (สีขาวทึบ White Box)
+  - **สีเส้นขอบ (Outline)**: #717971 (ความหนาเส้น 1.2 dp)
+  - **สีไอคอนลูกศร (On Surface Variant)**: #414942 (ขนาดไอคอน 20 dp)
+  - **สถานะเมื่อแตะสัมผัส (Pressed/Ripple State Layer)**: สี #181D18 ความโปร่งแสง 12%
 - แอปพลิเคชันรองรับการสลับภาษา TH/EN และสลับธีม Light/Dark ในหน้า Settings
 
 ## หลักการจัดวางหน้าจอ (Responsive Layout)
@@ -76,3 +82,4 @@ Figma [FM-EAA on Figma](https://www.figma.com/design/MB6XUkZz1GZqJpDqvfkHYc/FM-E
 - เกณฑ์จำนวนวันที่แน่นอนในการเปลี่ยนสถานะเป็น Use soon
 - ข้อความระบุคำถามและคำเตือนในไดอะล็อกยืนยันแต่ละประเภท
 - ชุดสี ColorScheme ทางการสำหรับธีม Dark Mode
+
