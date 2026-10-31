@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Unified Back Button matching Image 2 and Figma exact styling:
-/// Square 42x42 with rounded corners (13dp), transparent/canvas background,
-/// thin border (#818981), and dark slate/charcoal arrow (#414942).
+/// Unified Back Button matching DESIGN_SPEC.md and Material 3 exact styling:
+/// Square 42x42 with rounded corners (13dp), solid white background (#FFFFFF),
+/// outline border (#717971 width 1.2), and dark slate arrow (#414942).
 class AppBackButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final Color? backgroundColor;
@@ -21,10 +21,10 @@ class AppBackButton extends StatelessWidget {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: backgroundColor ?? Colors.transparent,
+          color: backgroundColor ?? Colors.white,
           borderRadius: BorderRadius.circular(13),
           border: Border.all(
-            color: const Color(0xFF818981), // Image 2 exact border #818981
+            color: const Color(0xFF717971), // Material 3 Outline #717971
             width: 1.2,
           ),
         ),
@@ -33,7 +33,7 @@ class AppBackButton extends StatelessWidget {
           icon: const Icon(
             Icons.arrow_back,
             size: 20,
-            color: Color(0xFF414942), // Image 2 exact arrow #414942
+            color: Color(0xFF414942), // Material 3 On Surface Variant #414942
           ),
           onPressed: onPressed ??
               () {

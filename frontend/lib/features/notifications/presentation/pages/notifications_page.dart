@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/freshness_colors.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 
 // TODO(screen #21 Notifications): การ์ดคำเชิญ ("John invited you to join 'Home Fridge'" + ปุ่ม Accept เขียว / Decline แดง), การ์ดแจ้งเตือนวันหมดอายุ (ไอคอนนาฬิกา "Milk expires tomorrow")
 class NotificationsPage extends StatelessWidget {
@@ -11,7 +12,11 @@ class NotificationsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
+        leadingWidth: 68,
+        leading: const Padding(
+          padding: EdgeInsets.only(left: 16),
+          child: AppBackButton(),
+        ),
         title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SafeArea(

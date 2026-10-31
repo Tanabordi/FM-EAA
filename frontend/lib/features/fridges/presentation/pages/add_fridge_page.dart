@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/fridges_provider.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 
 /// Screen #6: Add New Fridge (Matching Image 1: media_1793353246698_627203a3.png 100% pixel-perfect)
 class AddFridgePage extends ConsumerStatefulWidget {
@@ -76,27 +77,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          InkWell(
-                            borderRadius: BorderRadius.circular(10),
-                            onTap: () => context.pop(),
-                            child: Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: bgColor,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: borderColor.withValues(alpha: 0.6),
-                                  width: 1.0,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_back,
-                                size: 20,
-                                color: textDark,
-                              ),
-                            ),
-                          ),
+                          const AppBackButton(),
                           const SizedBox(width: 14),
                           const Text(
                             'Add New Fridge',
