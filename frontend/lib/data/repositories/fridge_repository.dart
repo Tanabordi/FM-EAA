@@ -29,13 +29,14 @@ class FridgeRepository {
   Future<FridgeModel> createFridge(
     String name,
     String description, {
+    String? id,
     String ownerId = 'user_1',
   }) async {
-    final id = 'fridge_${DateTime.now().millisecondsSinceEpoch}';
+    final fridgeId = id ?? 'fridge_${DateTime.now().millisecondsSinceEpoch}';
     final now = DateTime.now();
 
     await database.fridgeDao.insertFridgeOptimistic(
-      id: id,
+      id: fridgeId,
       name: name,
       description: description,
       ownerId: ownerId,
@@ -43,7 +44,7 @@ class FridgeRepository {
     );
 
     return FridgeModel(
-      id: id,
+      id: fridgeId,
       name: name,
       description: description,
       ownerId: ownerId,

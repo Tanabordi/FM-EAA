@@ -112,6 +112,9 @@ class ItemHistory extends Table {
   TextColumn get fridgeId => text()();
   TextColumn get itemId => text().nullable()();
   TextColumn get itemName => text()();
+  TextColumn get category => text().nullable()();
+  TextColumn get zone => text().nullable()();
+  DateTimeColumn get expiryDate => dateTime().nullable()();
   TextColumn get imagePath => text().nullable()();
   TextColumn get kind => text()(); // consumed | expired
   RealColumn get quantityChanged => real()();
@@ -406,6 +409,9 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
           fridgeId: item.fridgeId,
           itemId: Value(itemId),
           itemName: item.name,
+          category: Value(item.category),
+          zone: Value(item.zone),
+          expiryDate: Value(item.expiryDate),
           imagePath: Value(item.imagePath),
           kind: 'consumed',
           quantityChanged: amount,
@@ -441,11 +447,11 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
               id: hist.itemId!,
               fridgeId: hist.fridgeId,
               name: hist.itemName,
-              category: 'meals',
-              zone: 'fridge',
+              category: hist.category ?? 'meals',
+              zone: hist.zone ?? 'fridge',
               quantity: Value(hist.quantityChanged),
               unit: Value(hist.unit),
-              expiryDate: DateTime.now().add(const Duration(days: 3)),
+              expiryDate: hist.expiryDate ?? DateTime.now(),
               imagePath: Value(hist.imagePath),
               isSynced: const Value(false),
               updatedAt: Value(DateTime.now()),

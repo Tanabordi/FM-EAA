@@ -2154,6 +2154,23 @@ class $ItemHistoryTable extends ItemHistory
   late final GeneratedColumn<String> itemName = GeneratedColumn<String>(
       'item_name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _categoryMeta =
+      const VerificationMeta('category');
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+      'category', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _zoneMeta = const VerificationMeta('zone');
+  @override
+  late final GeneratedColumn<String> zone = GeneratedColumn<String>(
+      'zone', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _expiryDateMeta =
+      const VerificationMeta('expiryDate');
+  @override
+  late final GeneratedColumn<DateTime> expiryDate = GeneratedColumn<DateTime>(
+      'expiry_date', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _imagePathMeta =
       const VerificationMeta('imagePath');
   @override
@@ -2206,6 +2223,9 @@ class $ItemHistoryTable extends ItemHistory
         fridgeId,
         itemId,
         itemName,
+        category,
+        zone,
+        expiryDate,
         imagePath,
         kind,
         quantityChanged,
@@ -2244,6 +2264,20 @@ class $ItemHistoryTable extends ItemHistory
           itemName.isAcceptableOrUnknown(data['item_name']!, _itemNameMeta));
     } else if (isInserting) {
       context.missing(_itemNameMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(_categoryMeta,
+          category.isAcceptableOrUnknown(data['category']!, _categoryMeta));
+    }
+    if (data.containsKey('zone')) {
+      context.handle(
+          _zoneMeta, zone.isAcceptableOrUnknown(data['zone']!, _zoneMeta));
+    }
+    if (data.containsKey('expiry_date')) {
+      context.handle(
+          _expiryDateMeta,
+          expiryDate.isAcceptableOrUnknown(
+              data['expiry_date']!, _expiryDateMeta));
     }
     if (data.containsKey('image_path')) {
       context.handle(_imagePathMeta,
@@ -2300,6 +2334,12 @@ class $ItemHistoryTable extends ItemHistory
           .read(DriftSqlType.string, data['${effectivePrefix}item_id']),
       itemName: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}item_name'])!,
+      category: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}category']),
+      zone: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}zone']),
+      expiryDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}expiry_date']),
       imagePath: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}image_path']),
       kind: attachedDatabase.typeMapping
@@ -2328,6 +2368,9 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
   final String fridgeId;
   final String? itemId;
   final String itemName;
+  final String? category;
+  final String? zone;
+  final DateTime? expiryDate;
   final String? imagePath;
   final String kind;
   final double quantityChanged;
@@ -2340,6 +2383,9 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
       required this.fridgeId,
       this.itemId,
       required this.itemName,
+      this.category,
+      this.zone,
+      this.expiryDate,
       this.imagePath,
       required this.kind,
       required this.quantityChanged,
@@ -2356,6 +2402,15 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
       map['item_id'] = Variable<String>(itemId);
     }
     map['item_name'] = Variable<String>(itemName);
+    if (!nullToAbsent || category != null) {
+      map['category'] = Variable<String>(category);
+    }
+    if (!nullToAbsent || zone != null) {
+      map['zone'] = Variable<String>(zone);
+    }
+    if (!nullToAbsent || expiryDate != null) {
+      map['expiry_date'] = Variable<DateTime>(expiryDate);
+    }
     if (!nullToAbsent || imagePath != null) {
       map['image_path'] = Variable<String>(imagePath);
     }
@@ -2375,6 +2430,13 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
       itemId:
           itemId == null && nullToAbsent ? const Value.absent() : Value(itemId),
       itemName: Value(itemName),
+      category: category == null && nullToAbsent
+          ? const Value.absent()
+          : Value(category),
+      zone: zone == null && nullToAbsent ? const Value.absent() : Value(zone),
+      expiryDate: expiryDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expiryDate),
       imagePath: imagePath == null && nullToAbsent
           ? const Value.absent()
           : Value(imagePath),
@@ -2395,6 +2457,9 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
       fridgeId: serializer.fromJson<String>(json['fridgeId']),
       itemId: serializer.fromJson<String?>(json['itemId']),
       itemName: serializer.fromJson<String>(json['itemName']),
+      category: serializer.fromJson<String?>(json['category']),
+      zone: serializer.fromJson<String?>(json['zone']),
+      expiryDate: serializer.fromJson<DateTime?>(json['expiryDate']),
       imagePath: serializer.fromJson<String?>(json['imagePath']),
       kind: serializer.fromJson<String>(json['kind']),
       quantityChanged: serializer.fromJson<double>(json['quantityChanged']),
@@ -2412,6 +2477,9 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
       'fridgeId': serializer.toJson<String>(fridgeId),
       'itemId': serializer.toJson<String?>(itemId),
       'itemName': serializer.toJson<String>(itemName),
+      'category': serializer.toJson<String?>(category),
+      'zone': serializer.toJson<String?>(zone),
+      'expiryDate': serializer.toJson<DateTime?>(expiryDate),
       'imagePath': serializer.toJson<String?>(imagePath),
       'kind': serializer.toJson<String>(kind),
       'quantityChanged': serializer.toJson<double>(quantityChanged),
@@ -2427,6 +2495,9 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
           String? fridgeId,
           Value<String?> itemId = const Value.absent(),
           String? itemName,
+          Value<String?> category = const Value.absent(),
+          Value<String?> zone = const Value.absent(),
+          Value<DateTime?> expiryDate = const Value.absent(),
           Value<String?> imagePath = const Value.absent(),
           String? kind,
           double? quantityChanged,
@@ -2439,6 +2510,9 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
         fridgeId: fridgeId ?? this.fridgeId,
         itemId: itemId.present ? itemId.value : this.itemId,
         itemName: itemName ?? this.itemName,
+        category: category.present ? category.value : this.category,
+        zone: zone.present ? zone.value : this.zone,
+        expiryDate: expiryDate.present ? expiryDate.value : this.expiryDate,
         imagePath: imagePath.present ? imagePath.value : this.imagePath,
         kind: kind ?? this.kind,
         quantityChanged: quantityChanged ?? this.quantityChanged,
@@ -2453,6 +2527,10 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
       fridgeId: data.fridgeId.present ? data.fridgeId.value : this.fridgeId,
       itemId: data.itemId.present ? data.itemId.value : this.itemId,
       itemName: data.itemName.present ? data.itemName.value : this.itemName,
+      category: data.category.present ? data.category.value : this.category,
+      zone: data.zone.present ? data.zone.value : this.zone,
+      expiryDate:
+          data.expiryDate.present ? data.expiryDate.value : this.expiryDate,
       imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
       kind: data.kind.present ? data.kind.value : this.kind,
       quantityChanged: data.quantityChanged.present
@@ -2474,6 +2552,9 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
           ..write('fridgeId: $fridgeId, ')
           ..write('itemId: $itemId, ')
           ..write('itemName: $itemName, ')
+          ..write('category: $category, ')
+          ..write('zone: $zone, ')
+          ..write('expiryDate: $expiryDate, ')
           ..write('imagePath: $imagePath, ')
           ..write('kind: $kind, ')
           ..write('quantityChanged: $quantityChanged, ')
@@ -2486,8 +2567,21 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
   }
 
   @override
-  int get hashCode => Object.hash(id, fridgeId, itemId, itemName, imagePath,
-      kind, quantityChanged, quantityLeft, unit, byUserId, createdAt);
+  int get hashCode => Object.hash(
+      id,
+      fridgeId,
+      itemId,
+      itemName,
+      category,
+      zone,
+      expiryDate,
+      imagePath,
+      kind,
+      quantityChanged,
+      quantityLeft,
+      unit,
+      byUserId,
+      createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2496,6 +2590,9 @@ class ItemHistoryData extends DataClass implements Insertable<ItemHistoryData> {
           other.fridgeId == this.fridgeId &&
           other.itemId == this.itemId &&
           other.itemName == this.itemName &&
+          other.category == this.category &&
+          other.zone == this.zone &&
+          other.expiryDate == this.expiryDate &&
           other.imagePath == this.imagePath &&
           other.kind == this.kind &&
           other.quantityChanged == this.quantityChanged &&
@@ -2510,6 +2607,9 @@ class ItemHistoryCompanion extends UpdateCompanion<ItemHistoryData> {
   final Value<String> fridgeId;
   final Value<String?> itemId;
   final Value<String> itemName;
+  final Value<String?> category;
+  final Value<String?> zone;
+  final Value<DateTime?> expiryDate;
   final Value<String?> imagePath;
   final Value<String> kind;
   final Value<double> quantityChanged;
@@ -2523,6 +2623,9 @@ class ItemHistoryCompanion extends UpdateCompanion<ItemHistoryData> {
     this.fridgeId = const Value.absent(),
     this.itemId = const Value.absent(),
     this.itemName = const Value.absent(),
+    this.category = const Value.absent(),
+    this.zone = const Value.absent(),
+    this.expiryDate = const Value.absent(),
     this.imagePath = const Value.absent(),
     this.kind = const Value.absent(),
     this.quantityChanged = const Value.absent(),
@@ -2537,6 +2640,9 @@ class ItemHistoryCompanion extends UpdateCompanion<ItemHistoryData> {
     required String fridgeId,
     this.itemId = const Value.absent(),
     required String itemName,
+    this.category = const Value.absent(),
+    this.zone = const Value.absent(),
+    this.expiryDate = const Value.absent(),
     this.imagePath = const Value.absent(),
     required String kind,
     required double quantityChanged,
@@ -2556,6 +2662,9 @@ class ItemHistoryCompanion extends UpdateCompanion<ItemHistoryData> {
     Expression<String>? fridgeId,
     Expression<String>? itemId,
     Expression<String>? itemName,
+    Expression<String>? category,
+    Expression<String>? zone,
+    Expression<DateTime>? expiryDate,
     Expression<String>? imagePath,
     Expression<String>? kind,
     Expression<double>? quantityChanged,
@@ -2570,6 +2679,9 @@ class ItemHistoryCompanion extends UpdateCompanion<ItemHistoryData> {
       if (fridgeId != null) 'fridge_id': fridgeId,
       if (itemId != null) 'item_id': itemId,
       if (itemName != null) 'item_name': itemName,
+      if (category != null) 'category': category,
+      if (zone != null) 'zone': zone,
+      if (expiryDate != null) 'expiry_date': expiryDate,
       if (imagePath != null) 'image_path': imagePath,
       if (kind != null) 'kind': kind,
       if (quantityChanged != null) 'quantity_changed': quantityChanged,
@@ -2586,6 +2698,9 @@ class ItemHistoryCompanion extends UpdateCompanion<ItemHistoryData> {
       Value<String>? fridgeId,
       Value<String?>? itemId,
       Value<String>? itemName,
+      Value<String?>? category,
+      Value<String?>? zone,
+      Value<DateTime?>? expiryDate,
       Value<String?>? imagePath,
       Value<String>? kind,
       Value<double>? quantityChanged,
@@ -2599,6 +2714,9 @@ class ItemHistoryCompanion extends UpdateCompanion<ItemHistoryData> {
       fridgeId: fridgeId ?? this.fridgeId,
       itemId: itemId ?? this.itemId,
       itemName: itemName ?? this.itemName,
+      category: category ?? this.category,
+      zone: zone ?? this.zone,
+      expiryDate: expiryDate ?? this.expiryDate,
       imagePath: imagePath ?? this.imagePath,
       kind: kind ?? this.kind,
       quantityChanged: quantityChanged ?? this.quantityChanged,
@@ -2624,6 +2742,15 @@ class ItemHistoryCompanion extends UpdateCompanion<ItemHistoryData> {
     }
     if (itemName.present) {
       map['item_name'] = Variable<String>(itemName.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (zone.present) {
+      map['zone'] = Variable<String>(zone.value);
+    }
+    if (expiryDate.present) {
+      map['expiry_date'] = Variable<DateTime>(expiryDate.value);
     }
     if (imagePath.present) {
       map['image_path'] = Variable<String>(imagePath.value);
@@ -2659,6 +2786,9 @@ class ItemHistoryCompanion extends UpdateCompanion<ItemHistoryData> {
           ..write('fridgeId: $fridgeId, ')
           ..write('itemId: $itemId, ')
           ..write('itemName: $itemName, ')
+          ..write('category: $category, ')
+          ..write('zone: $zone, ')
+          ..write('expiryDate: $expiryDate, ')
           ..write('imagePath: $imagePath, ')
           ..write('kind: $kind, ')
           ..write('quantityChanged: $quantityChanged, ')
@@ -4132,6 +4262,9 @@ typedef $$ItemHistoryTableCreateCompanionBuilder = ItemHistoryCompanion
   required String fridgeId,
   Value<String?> itemId,
   required String itemName,
+  Value<String?> category,
+  Value<String?> zone,
+  Value<DateTime?> expiryDate,
   Value<String?> imagePath,
   required String kind,
   required double quantityChanged,
@@ -4147,6 +4280,9 @@ typedef $$ItemHistoryTableUpdateCompanionBuilder = ItemHistoryCompanion
   Value<String> fridgeId,
   Value<String?> itemId,
   Value<String> itemName,
+  Value<String?> category,
+  Value<String?> zone,
+  Value<DateTime?> expiryDate,
   Value<String?> imagePath,
   Value<String> kind,
   Value<double> quantityChanged,
@@ -4177,6 +4313,15 @@ class $$ItemHistoryTableFilterComposer
 
   ColumnFilters<String> get itemName => $composableBuilder(
       column: $table.itemName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get category => $composableBuilder(
+      column: $table.category, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get zone => $composableBuilder(
+      column: $table.zone, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get expiryDate => $composableBuilder(
+      column: $table.expiryDate, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get imagePath => $composableBuilder(
       column: $table.imagePath, builder: (column) => ColumnFilters(column));
@@ -4222,6 +4367,15 @@ class $$ItemHistoryTableOrderingComposer
   ColumnOrderings<String> get itemName => $composableBuilder(
       column: $table.itemName, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get category => $composableBuilder(
+      column: $table.category, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get zone => $composableBuilder(
+      column: $table.zone, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get expiryDate => $composableBuilder(
+      column: $table.expiryDate, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get imagePath => $composableBuilder(
       column: $table.imagePath, builder: (column) => ColumnOrderings(column));
 
@@ -4266,6 +4420,15 @@ class $$ItemHistoryTableAnnotationComposer
 
   GeneratedColumn<String> get itemName =>
       $composableBuilder(column: $table.itemName, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get zone =>
+      $composableBuilder(column: $table.zone, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expiryDate => $composableBuilder(
+      column: $table.expiryDate, builder: (column) => column);
 
   GeneratedColumn<String> get imagePath =>
       $composableBuilder(column: $table.imagePath, builder: (column) => column);
@@ -4319,6 +4482,9 @@ class $$ItemHistoryTableTableManager extends RootTableManager<
             Value<String> fridgeId = const Value.absent(),
             Value<String?> itemId = const Value.absent(),
             Value<String> itemName = const Value.absent(),
+            Value<String?> category = const Value.absent(),
+            Value<String?> zone = const Value.absent(),
+            Value<DateTime?> expiryDate = const Value.absent(),
             Value<String?> imagePath = const Value.absent(),
             Value<String> kind = const Value.absent(),
             Value<double> quantityChanged = const Value.absent(),
@@ -4333,6 +4499,9 @@ class $$ItemHistoryTableTableManager extends RootTableManager<
             fridgeId: fridgeId,
             itemId: itemId,
             itemName: itemName,
+            category: category,
+            zone: zone,
+            expiryDate: expiryDate,
             imagePath: imagePath,
             kind: kind,
             quantityChanged: quantityChanged,
@@ -4347,6 +4516,9 @@ class $$ItemHistoryTableTableManager extends RootTableManager<
             required String fridgeId,
             Value<String?> itemId = const Value.absent(),
             required String itemName,
+            Value<String?> category = const Value.absent(),
+            Value<String?> zone = const Value.absent(),
+            Value<DateTime?> expiryDate = const Value.absent(),
             Value<String?> imagePath = const Value.absent(),
             required String kind,
             required double quantityChanged,
@@ -4361,6 +4533,9 @@ class $$ItemHistoryTableTableManager extends RootTableManager<
             fridgeId: fridgeId,
             itemId: itemId,
             itemName: itemName,
+            category: category,
+            zone: zone,
+            expiryDate: expiryDate,
             imagePath: imagePath,
             kind: kind,
             quantityChanged: quantityChanged,

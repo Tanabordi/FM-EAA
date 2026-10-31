@@ -1,10 +1,32 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/data/local/app_database.dart';
+import 'package:fm_eaa/data/models/fridge_model.dart';
 import 'package:fm_eaa/data/models/item_model.dart';
 import 'package:fm_eaa/data/remote/api_client.dart';
 import 'package:fm_eaa/data/repositories/fridge_repository.dart';
 import 'package:fm_eaa/data/repositories/item_repository.dart';
+import 'package:fm_eaa/features/fridges/providers/fridges_provider.dart';
+
+class _FailingFridgeRepository extends FridgeRepository {
+  _FailingFridgeRepository(AppDatabase db)
+      : super(apiClient: ApiClient(), database: db);
+
+  @override
+  Future<FridgeModel> createFridge(
+    String name,
+    String description, {
+    String? id,
+    String ownerId = 'user_1',
+  }) async {
+    throw Exception('SQLite disk I/O error');
+  }
+
+  @override
+  Future<void> deleteFridge(String id) async {
+    throw Exception('SQLite disk I/O error');
+  }
+}
 
 void main() {
   late AppDatabase db;
@@ -316,6 +338,48 @@ void main() {
       final remainingHist = await (db.select(db.itemHistory)).get();
       expect(remainingHist.isEmpty, true);
     });
+
+    test('undoConsume completely consumed item restores exact category, zone, and expiryDate', () async {
+      final expiry = DateTime(2026, 12, 25);
+      await itemDao.insertItemOptimistic(
+        id: 'item_beef',
+        fridgeId: 'fridge_1',
+        name: 'Wagyu Beef',
+        category: 'proteins',
+        zone: 'freezer',
+        quantity: 2.0,
+        unit: 'packs',
+        expiryDate: expiry,
+      );
+
+      // Consume completely
+      await itemDao.consumeItemOptimistic(
+        itemId: 'item_beef',
+        amount: 2.0,
+        finishedAll: true,
+        userId: 'user_1',
+      );
+
+      // Verify item deleted from ItemsTable
+      expect(await itemDao.getItemById('item_beef'), isNull);
+
+      final historyList = await (db.select(db.itemHistory)).get();
+      expect(historyList.length, 1);
+      final historyId = historyList.first.id;
+
+      // Undo consume
+      await itemDao.undoConsume(historyId);
+
+      // Verify item restored with exact original metadata (not hardcoded meals/fridge)
+      final restoredItem = await itemDao.getItemById('item_beef');
+      expect(restoredItem, isNotNull);
+      expect(restoredItem!.name, 'Wagyu Beef');
+      expect(restoredItem.category, 'proteins');
+      expect(restoredItem.zone, 'freezer');
+      expect(restoredItem.expiryDate, expiry);
+      expect(restoredItem.quantity, 2.0);
+      expect(restoredItem.unit, 'packs');
+    });
   });
 
   group('4. Repositories & Optimistic UI Integration Tests', () {
@@ -354,6 +418,68 @@ void main() {
       expect(inDb, isNotNull);
       expect(inDb!.isSynced, false);
       expect(inDb.name, 'Orange Juice');
+    });
+
+    test('FridgeRepository.createFridge accepts external id to prevent desynchronization', () async {
+      final repo = FridgeRepository(apiClient: ApiClient(), database: db);
+
+      const customId = 'fridge_custom_sync_id';
+      final fridge = await repo.createFridge(
+        'Synced Fridge',
+        'Direct id sync',
+        id: customId,
+      );
+
+      expect(fridge.id, customId);
+
+      final inDb = await db.fridgeDao.getFridgeById(customId);
+      expect(inDb, isNotNull);
+      expect(inDb!.id, customId);
+    });
+
+    test('FridgesNotifier passes exact id to repository and syncs state', () async {
+      final repo = FridgeRepository(apiClient: ApiClient(), database: db);
+      final notifier = FridgesNotifier(repo);
+
+      await notifier.addFridge('Pantry Fridge', 'Basement storage');
+
+      final added = notifier.currentFridges.firstWhere((f) => f.name == 'Pantry Fridge');
+      expect(added.id, startsWith('fridge_'));
+
+      // Check that the exact same ID is stored in SQLite
+      final inDb = await db.fridgeDao.getFridgeById(added.id);
+      expect(inDb, isNotNull, reason: 'ID in SQLite must match ID in FridgesNotifier state');
+      expect(inDb!.id, added.id);
+    });
+
+    test('FridgesNotifier rolls back optimistic state if SQLite creation throws', () async {
+      final failingRepo = _FailingFridgeRepository(db);
+      final notifier = FridgesNotifier(failingRepo);
+
+      final initialLength = notifier.currentFridges.length;
+
+      await expectLater(
+        notifier.addFridge('Failing Fridge', 'Should rollback'),
+        throwsA(isA<Exception>()),
+      );
+
+      // State rolled back to initial length
+      expect(notifier.currentFridges.length, initialLength);
+    });
+
+    test('FridgesNotifier rolls back optimistic state if SQLite delete throws', () async {
+      final failingRepo = _FailingFridgeRepository(db);
+      final notifier = FridgesNotifier(failingRepo);
+
+      final initialLength = notifier.currentFridges.length;
+
+      await expectLater(
+        notifier.removeFridge('fridge_kitchen'),
+        throwsA(isA<Exception>()),
+      );
+
+      // State rolled back to initial length
+      expect(notifier.currentFridges.length, initialLength);
     });
 
     test('AppDatabase implements AppDatabaseSkeleton for SyncEngine compatibility', () async {

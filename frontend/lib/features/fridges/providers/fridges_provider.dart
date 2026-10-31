@@ -25,27 +25,46 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
           ),
         ]);
 
-  /// Optimistic UI: Updates local state immediately, then asynchronously persists to Drift SQLite with is_synced = false
-  void addFridge(String name, String description) {
+  List<FridgeModel> get currentFridges => state;
+
+  /// Optimistic UI: Updates local state immediately, then asynchronously persists to Drift SQLite with rollback protection
+  Future<void> addFridge(String name, String description, {String? userId}) async {
+    final previousState = state;
     final newFridge = FridgeModel(
       id: 'fridge_${DateTime.now().millisecondsSinceEpoch}',
       name: name,
       description: description,
-      ownerId: 'user_1',
+      ownerId: userId ?? 'user_1',
       memberCount: 1,
       isSynced: false, // Optimistic UI: marked not synced
       updatedAt: DateTime.now(),
     );
     state = [...state, newFridge];
 
-    // Asynchronous local SQLite persistence
-    _repository?.createFridge(name, description);
+    // Asynchronous local SQLite persistence with rollback protection
+    try {
+      await _repository?.createFridge(
+        name,
+        description,
+        id: newFridge.id,
+        ownerId: userId ?? 'user_1',
+      );
+    } catch (e) {
+      state = previousState;
+      rethrow;
+    }
   }
 
-  /// Optimistic UI: Removes from local state immediately, then removes from Drift SQLite
-  void removeFridge(String id) {
+  /// Optimistic UI: Removes from local state immediately, then removes from Drift SQLite with rollback protection
+  Future<void> removeFridge(String id) async {
+    final previousState = state;
     state = state.where((f) => f.id != id).toList();
-    _repository?.deleteFridge(id);
+    try {
+      await _repository?.deleteFridge(id);
+    } catch (e) {
+      state = previousState;
+      rethrow;
+    }
   }
 }
 
