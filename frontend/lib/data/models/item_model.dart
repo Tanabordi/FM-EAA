@@ -1,4 +1,5 @@
 import '../../core/theme/freshness_colors.dart';
+import '../local/app_database.dart';
 
 class ItemModel {
   final String id;
@@ -12,8 +13,6 @@ class ItemModel {
   final String? imagePath;
   final bool isSynced;
   final DateTime updatedAt;
-  final FreshnessStatus? customStatus;
-  final String? customStatusText;
 
   const ItemModel({
     required this.id,
@@ -27,13 +26,10 @@ class ItemModel {
     this.imagePath,
     this.isSynced = true,
     required this.updatedAt,
-    this.customStatus,
-    this.customStatusText,
   });
 
   /// Calculate FreshnessStatus and human readable label
   FreshnessStatus get status {
-    if (customStatus != null) return customStatus!;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(expiryDate.year, expiryDate.month, expiryDate.day);
@@ -42,7 +38,6 @@ class ItemModel {
     if (diffDays < 0) {
       return FreshnessStatus.expired;
     } else if (diffDays <= 2) {
-      // TODO(open question): Confirm exact threshold for useSoon (currently <= 2 days based on Figma examples)
       return FreshnessStatus.useSoon;
     } else {
       return FreshnessStatus.fresh;
@@ -50,7 +45,6 @@ class ItemModel {
   }
 
   String get statusText {
-    if (customStatusText != null) return customStatusText!;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(expiryDate.year, expiryDate.month, expiryDate.day);
@@ -66,6 +60,22 @@ class ItemModel {
     } else {
       return '$diffDays days left';
     }
+  }
+
+  factory ItemModel.fromEntry(ItemEntry entry) {
+    return ItemModel(
+      id: entry.id,
+      fridgeId: entry.fridgeId,
+      name: entry.name,
+      category: entry.category,
+      zone: entry.zone,
+      quantity: entry.quantity,
+      unit: entry.unit,
+      expiryDate: entry.expiryDate,
+      imagePath: entry.imagePath,
+      isSynced: entry.isSynced,
+      updatedAt: entry.updatedAt,
+    );
   }
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
@@ -100,4 +110,3 @@ class ItemModel {
     };
   }
 }
-

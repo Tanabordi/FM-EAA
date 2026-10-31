@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/freshness_colors.dart';
 import '../../../data/models/item_model.dart';
+import '../../../data/repositories/item_repository.dart';
 
 class FridgeFilterState {
   final String category; // 'All', 'Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'
@@ -47,14 +47,67 @@ final fridgeDetailFilterProvider =
   return FridgeFilterNotifier();
 });
 
-/// Raw list of all items in a fridge before filtering
+/// Watches items for a fridge from Drift SQLite Local Database via ItemRepository
+final watchItemsInFridgeProvider = StreamProvider.family<List<ItemModel>, String>((ref, fridgeId) {
+  final repository = ref.watch(itemRepositoryProvider);
+  return repository.watchItems(fridgeId);
+});
+
+/// Raw list of all items in a fridge before filtering (combines Local DB with initial fallback)
 final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fridgeId) {
+  final streamItems = ref.watch(watchItemsInFridgeProvider(fridgeId)).value;
+  if (streamItems != null && streamItems.isNotEmpty) {
+    return streamItems;
+  }
+  return getInitialFridgeItems(fridgeId);
+});
+
+/// Dynamic filtered items connected to Drift SQLite Local DB Repository
+final fridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fridgeId) {
+  final allItems = ref.watch(allFridgeItemsProvider(fridgeId));
+  final filter = ref.watch(fridgeDetailFilterProvider);
+
+  // If search query is present: search dynamically across all items in zone
+  if (filter.searchQuery.trim().isNotEmpty) {
+    final query = filter.searchQuery.trim().toLowerCase();
+    return allItems.where((item) {
+      return item.zone.toLowerCase() == filter.zone.toLowerCase() &&
+          (item.name.toLowerCase().contains(query) ||
+              item.category.toLowerCase().contains(query));
+    }).toList();
+  }
+
+  final zoneItems = allItems.where((item) => item.zone.toLowerCase() == filter.zone.toLowerCase()).toList();
+  final category = filter.category.toLowerCase();
+
+  if (category == 'all') {
+    // If we have live user items from DB, show all items in this zone
+    final streamItems = ref.watch(watchItemsInFridgeProvider(fridgeId)).value;
+    if (streamItems != null && streamItems.isNotEmpty) {
+      return zoneItems;
+    }
+    // Overview mode matching exact Figma Screen #9 layout (4 featured items per zone)
+    if (filter.zone == 'fridge') {
+      const allIds = {'item_spinach', 'item_strawberries', 'item_avocados', 'item_milk'};
+      return zoneItems.where((i) => allIds.contains(i.id)).toList();
+    } else {
+      const fzAllIds = {'fz_pork', 'fz_salmon', 'fz_pizza', 'fz_peas'};
+      return zoneItems.where((i) => fzAllIds.contains(i.id)).toList();
+    }
+  }
+
+  // Completely dynamic category filter without hardcoding any item IDs
+  return zoneItems.where((item) => item.category.toLowerCase() == category).toList();
+});
+
+/// Initial standard items for pre-population / fallback with accurate expiryDates
+List<ItemModel> getInitialFridgeItems(String fridgeId) {
   final now = DateTime.now();
 
   return [
-    // ==========================================
-    // 1. ALL TAB DEFAULT OVERVIEW (Screen #9)
-    // ==========================================
+    // ------------------------------------------
+    // FRIDGE ZONE: Veggies
+    // ------------------------------------------
     ItemModel(
       id: 'item_spinach',
       fridgeId: fridgeId,
@@ -63,9 +116,7 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       zone: 'fridge',
       quantity: 1,
       unit: 'bag · 150 g',
-      expiryDate: DateTime(now.year, now.month, now.day - 1),
-      customStatus: FreshnessStatus.expired,
-      customStatusText: 'Yesterday',
+      expiryDate: DateTime(now.year, now.month, now.day - 1), // Yesterday -> Expired
       imagePath: 'assets/images/food_spinach.png',
       updatedAt: now,
     ),
@@ -77,9 +128,7 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       zone: 'fridge',
       quantity: 2,
       unit: 'punnet · 250 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 2),
-      customStatus: FreshnessStatus.useSoon,
-      customStatusText: '2 days left',
+      expiryDate: DateTime(now.year, now.month, now.day + 2), // 2 days left -> Use soon
       imagePath: 'assets/images/food_strawberries.png',
       updatedAt: now,
     ),
@@ -91,12 +140,26 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       zone: 'fridge',
       quantity: 2,
       unit: 'pieces',
-      expiryDate: DateTime(now.year, now.month, now.day + 5),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '5 days left',
+      expiryDate: DateTime(now.year, now.month, now.day + 5), // 5 days left -> Fresh
       imagePath: 'assets/images/food_avocados.png',
       updatedAt: now,
     ),
+    ItemModel(
+      id: 'veg_cherry_tomatoes',
+      fridgeId: fridgeId,
+      name: 'Cherry Tomatoes',
+      category: 'veggies',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'box · 250 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 4), // 4 days left -> Fresh
+      imagePath: 'assets/images/food_cherry_tomatoes.png',
+      updatedAt: now,
+    ),
+
+    // ------------------------------------------
+    // FRIDGE ZONE: Beverages
+    // ------------------------------------------
     ItemModel(
       id: 'item_milk',
       fridgeId: fridgeId,
@@ -105,94 +168,10 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       zone: 'fridge',
       quantity: 1,
       unit: 'bottle · 1 L',
-      expiryDate: DateTime(now.year, now.month, now.day + 7),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '7 days left',
+      expiryDate: DateTime(now.year, now.month, now.day + 7), // 7 days left -> Fresh
       imagePath: 'assets/images/food_whole_milk.png',
       updatedAt: now,
     ),
-
-    // ==========================================
-    // 2. FRIDGE: PROTEINS (Image 1 Close-up)
-    // ==========================================
-    ItemModel(
-      id: 'prot_chicken_breasts',
-      fridgeId: fridgeId,
-      name: 'Chicken Breasts',
-      category: 'proteins',
-      zone: 'fridge',
-      quantity: 2,
-      unit: 'pieces · 500 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 2),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '2 days left',
-      imagePath: 'assets/images/food_chicken_breasts.png',
-      updatedAt: now,
-    ),
-    ItemModel(
-      id: 'prot_eggs',
-      fridgeId: fridgeId,
-      name: 'Eggs',
-      category: 'proteins',
-      zone: 'fridge',
-      quantity: 6,
-      unit: 'eggs · 1 carton',
-      expiryDate: DateTime(now.year, now.month, now.day + 8),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '8 days left',
-      imagePath: 'assets/images/food_eggs.png',
-      updatedAt: now,
-    ),
-    ItemModel(
-      id: 'prot_salmon_fillets',
-      fridgeId: fridgeId,
-      name: 'Salmon Fillets',
-      category: 'proteins',
-      zone: 'fridge',
-      quantity: 2,
-      unit: 'fillets · 300 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 5),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '5 days left',
-      imagePath: 'assets/images/food_salmon_fillets.png',
-      updatedAt: now,
-    ),
-    ItemModel(
-      id: 'prot_firm_tofu',
-      fridgeId: fridgeId,
-      name: 'Firm Tofu',
-      category: 'proteins',
-      zone: 'fridge',
-      quantity: 1,
-      unit: 'block · 400 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 3),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '3 days left',
-      imagePath: 'assets/images/food_firm_tofu.png',
-      updatedAt: now,
-    ),
-
-    // ==========================================
-    // 3. FRIDGE: VEGGIES (Image 2 Close-up)
-    // ==========================================
-    ItemModel(
-      id: 'veg_cherry_tomatoes',
-      fridgeId: fridgeId,
-      name: 'Cherry Tomatoes',
-      category: 'veggies',
-      zone: 'fridge',
-      quantity: 1,
-      unit: 'punnet · 250 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 10),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '10 days left',
-      imagePath: 'assets/images/food_cherry_tomatoes.png',
-      updatedAt: now,
-    ),
-
-    // ==========================================
-    // 4. FRIDGE: BEVERAGES (Image 3 Close-up)
-    // ==========================================
     ItemModel(
       id: 'bev_orange_juice',
       fridgeId: fridgeId,
@@ -200,10 +179,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'beverages',
       zone: 'fridge',
       quantity: 1,
-      unit: 'bottle · 750 ml',
-      expiryDate: DateTime(now.year, now.month, now.day + 3),
-      customStatus: FreshnessStatus.useSoon,
-      customStatusText: '3 days left',
+      unit: 'carton · 1 L',
+      expiryDate: DateTime(now.year, now.month, now.day + 6),
       imagePath: 'assets/images/food_orange_juice.png',
       updatedAt: now,
     ),
@@ -213,11 +190,9 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       name: 'Cold Brew Coffee',
       category: 'beverages',
       zone: 'fridge',
-      quantity: 1,
-      unit: 'bottle · 500 ml',
-      expiryDate: DateTime(now.year, now.month, now.day + 5),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '5 days left',
+      quantity: 2,
+      unit: 'can · 250 ml',
+      expiryDate: DateTime(now.year, now.month, now.day + 14),
       imagePath: 'assets/images/food_cold_brew.png',
       updatedAt: now,
     ),
@@ -227,18 +202,68 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       name: 'Kombucha',
       category: 'beverages',
       zone: 'fridge',
-      quantity: 2,
-      unit: 'bottles · 330 ml each',
-      expiryDate: DateTime(now.year, now.month, now.day + 10),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '10 days left',
+      quantity: 1,
+      unit: 'bottle · 330 ml',
+      expiryDate: DateTime(now.year, now.month, now.day + 20),
       imagePath: 'assets/images/food_kombucha.png',
       updatedAt: now,
     ),
 
-    // ==========================================
-    // 5. FRIDGE: MEALS (Image 4 Close-up)
-    // ==========================================
+    // ------------------------------------------
+    // FRIDGE ZONE: Proteins
+    // ------------------------------------------
+    ItemModel(
+      id: 'prot_chicken',
+      fridgeId: fridgeId,
+      name: 'Chicken Breasts',
+      category: 'proteins',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'pack · 500 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 3),
+      imagePath: 'assets/images/food_chicken_breasts.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'prot_eggs',
+      fridgeId: fridgeId,
+      name: 'Eggs',
+      category: 'proteins',
+      zone: 'fridge',
+      quantity: 10,
+      unit: 'carton',
+      expiryDate: DateTime(now.year, now.month, now.day + 12),
+      imagePath: 'assets/images/food_eggs.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'prot_salmon',
+      fridgeId: fridgeId,
+      name: 'Salmon Fillets',
+      category: 'proteins',
+      zone: 'fridge',
+      quantity: 2,
+      unit: 'fillets · 300 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 2), // 2 days left -> Use soon
+      imagePath: 'assets/images/food_salmon_fillets.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'prot_tofu',
+      fridgeId: fridgeId,
+      name: 'Firm Tofu',
+      category: 'proteins',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'block · 350 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 8),
+      imagePath: 'assets/images/food_firm_tofu.png',
+      updatedAt: now,
+    ),
+
+    // ------------------------------------------
+    // FRIDGE ZONE: Meals
+    // ------------------------------------------
     ItemModel(
       id: 'meal_lasagna',
       fridgeId: fridgeId,
@@ -246,10 +271,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'meals',
       zone: 'fridge',
       quantity: 1,
-      unit: 'tray · 300 g',
-      expiryDate: DateTime(now.year, now.month, now.day - 1),
-      customStatus: FreshnessStatus.expired,
-      customStatusText: 'Yesterday',
+      unit: 'tray · 400 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 9),
       imagePath: 'assets/images/food_lasagna.png',
       updatedAt: now,
     ),
@@ -260,10 +283,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'meals',
       zone: 'fridge',
       quantity: 1,
-      unit: 'box · 400 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 2),
-      customStatus: FreshnessStatus.useSoon,
-      customStatusText: '2 days left',
+      unit: 'box · 380 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 15),
       imagePath: 'assets/images/food_pizza.png',
       updatedAt: now,
     ),
@@ -273,11 +294,9 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       name: 'Pork Dumplings',
       category: 'meals',
       zone: 'fridge',
-      quantity: 1,
-      unit: 'pack · 200 g',
+      quantity: 12,
+      unit: 'pack · 300 g',
       expiryDate: DateTime(now.year, now.month, now.day + 10),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '10 days left',
       imagePath: 'assets/images/food_dumplings.png',
       updatedAt: now,
     ),
@@ -288,17 +307,15 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'meals',
       zone: 'fridge',
       quantity: 1,
-      unit: 'bag · 350 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 14),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '14 days left',
+      unit: 'bag · 500 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 25),
       imagePath: 'assets/images/food_nuggets.png',
       updatedAt: now,
     ),
 
-    // ==========================================
-    // 6. FRIDGE: SAUCES (Image 5 Close-up)
-    // ==========================================
+    // ------------------------------------------
+    // FRIDGE ZONE: Sauces
+    // ------------------------------------------
     ItemModel(
       id: 'sauce_soy',
       fridgeId: fridgeId,
@@ -306,10 +323,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'sauces',
       zone: 'fridge',
       quantity: 1,
-      unit: 'bottle · 250 ml',
-      expiryDate: DateTime(now.year, now.month + 6, now.day),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '6 months left',
+      unit: 'bottle · 500 ml',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
       imagePath: 'assets/images/food_soy_sauce.png',
       updatedAt: now,
     ),
@@ -320,10 +335,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'sauces',
       zone: 'fridge',
       quantity: 1,
-      unit: 'jar · 400 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 7),
-      customStatus: FreshnessStatus.useSoon,
-      customStatusText: '1 week left',
+      unit: 'squeeze · 400 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 45),
       imagePath: 'assets/images/food_mayo.png',
       updatedAt: now,
     ),
@@ -335,9 +348,7 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       zone: 'fridge',
       quantity: 1,
       unit: 'bottle · 450 ml',
-      expiryDate: DateTime(now.year, now.month + 3, now.day),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '3 months left',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
       imagePath: 'assets/images/food_sriracha.png',
       updatedAt: now,
     ),
@@ -348,18 +359,15 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'sauces',
       zone: 'fridge',
       quantity: 1,
-      unit: 'bottle · 500 ml',
-      expiryDate: DateTime(now.year + 1, now.month, now.day),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '12 months left',
+      unit: 'bottle · 750 ml',
+      expiryDate: DateTime(now.year, now.month, now.day + 120),
       imagePath: 'assets/images/food_olive_oil.png',
       updatedAt: now,
     ),
 
-    // ==========================================
-    // 7. FREEZER ZONE ITEMS (All Categories)
-    // ==========================================
-    // Freezer Proteins
+    // ------------------------------------------
+    // FREEZER ZONE
+    // ------------------------------------------
     ItemModel(
       id: 'fz_pork',
       fridgeId: fridgeId,
@@ -367,10 +375,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'proteins',
       zone: 'freezer',
       quantity: 1,
-      unit: 'bag · 500 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 15),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '15 days left',
+      unit: 'pack · 500 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
       imagePath: 'assets/images/food_chicken_breasts.png',
       updatedAt: now,
     ),
@@ -381,43 +387,35 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'proteins',
       zone: 'freezer',
       quantity: 2,
-      unit: 'fillets · 300 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 20),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '20 days left',
+      unit: 'steaks · 400 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 45),
       imagePath: 'assets/images/food_salmon_fillets.png',
       updatedAt: now,
     ),
     ItemModel(
-      id: 'fz_ribeye',
+      id: 'fz_beef',
       fridgeId: fridgeId,
       name: 'Beef Ribeye Steak',
       category: 'proteins',
       zone: 'freezer',
-      quantity: 2,
-      unit: 'steaks · 600 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 25),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '25 days left',
+      quantity: 1,
+      unit: 'cut · 300 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
       imagePath: 'assets/images/food_chicken_breasts.png',
       updatedAt: now,
     ),
     ItemModel(
-      id: 'fz_chicken_thighs',
+      id: 'fz_thighs',
       fridgeId: fridgeId,
       name: 'Chicken Thighs',
       category: 'proteins',
       zone: 'freezer',
-      quantity: 4,
-      unit: 'pieces · 500 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 18),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '18 days left',
+      quantity: 1,
+      unit: 'pack · 600 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 30),
       imagePath: 'assets/images/food_chicken_breasts.png',
       updatedAt: now,
     ),
-
-    // Freezer Veggies
     ItemModel(
       id: 'fz_peas',
       fridgeId: fridgeId,
@@ -425,10 +423,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'veggies',
       zone: 'freezer',
       quantity: 1,
-      unit: 'bag · 500 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 45),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '45 days left',
+      unit: 'bag · 450 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
       imagePath: 'assets/images/food_spinach.png',
       updatedAt: now,
     ),
@@ -440,10 +436,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       zone: 'freezer',
       quantity: 1,
       unit: 'bag · 400 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 40),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '40 days left',
-      imagePath: 'assets/images/food_cherry_tomatoes.png',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
+      imagePath: 'assets/images/food_spinach.png',
       updatedAt: now,
     ),
     ItemModel(
@@ -453,40 +447,32 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'veggies',
       zone: 'freezer',
       quantity: 1,
-      unit: 'bag · 300 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 60),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '60 days left',
+      unit: 'bag · 500 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 75),
       imagePath: 'assets/images/food_strawberries.png',
       updatedAt: now,
     ),
     ItemModel(
-      id: 'fz_chopped_spinach',
+      id: 'fz_spinach',
       fridgeId: fridgeId,
       name: 'Chopped Spinach',
       category: 'veggies',
       zone: 'freezer',
       quantity: 1,
-      unit: 'bag · 250 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 35),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '35 days left',
+      unit: 'box · 300 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 80),
       imagePath: 'assets/images/food_spinach.png',
       updatedAt: now,
     ),
-
-    // Freezer Beverages
     ItemModel(
-      id: 'fz_ice_coffee',
+      id: 'fz_coffee',
       fridgeId: fridgeId,
       name: 'Coffee Ice Cubes',
       category: 'beverages',
       zone: 'freezer',
       quantity: 1,
-      unit: 'tray · 200 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 30),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '30 days left',
+      unit: 'tray',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
       imagePath: 'assets/images/food_cold_brew.png',
       updatedAt: now,
     ),
@@ -496,12 +482,10 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       name: 'Berry Smoothie Mix',
       category: 'beverages',
       zone: 'freezer',
-      quantity: 2,
-      unit: 'packs · 300 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 45),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '45 days left',
-      imagePath: 'assets/images/food_kombucha.png',
+      quantity: 1,
+      unit: 'pack',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
+      imagePath: 'assets/images/food_strawberries.png',
       updatedAt: now,
     ),
     ItemModel(
@@ -511,10 +495,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'beverages',
       zone: 'freezer',
       quantity: 1,
-      unit: 'bottle · 250 ml',
-      expiryDate: DateTime(now.year, now.month, now.day + 60),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '60 days left',
+      unit: 'bottle',
+      expiryDate: DateTime(now.year, now.month, now.day + 120),
       imagePath: 'assets/images/food_orange_juice.png',
       updatedAt: now,
     ),
@@ -524,16 +506,12 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       name: 'Popsicles',
       category: 'beverages',
       zone: 'freezer',
-      quantity: 6,
-      unit: 'pack · 360 ml',
-      expiryDate: DateTime(now.year, now.month, now.day + 90),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '90 days left',
-      imagePath: 'assets/images/food_whole_milk.png',
+      quantity: 4,
+      unit: 'bars',
+      expiryDate: DateTime(now.year, now.month, now.day + 45),
+      imagePath: 'assets/images/food_orange_juice.png',
       updatedAt: now,
     ),
-
-    // Freezer Meals
     ItemModel(
       id: 'fz_pizza',
       fridgeId: fridgeId,
@@ -542,9 +520,7 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       zone: 'freezer',
       quantity: 1,
       unit: 'box · 400 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 25),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '25 days left',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
       imagePath: 'assets/images/food_pizza.png',
       updatedAt: now,
     ),
@@ -555,10 +531,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'meals',
       zone: 'freezer',
       quantity: 1,
-      unit: 'pack · 200 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 30),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '30 days left',
+      unit: 'bag · 500 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
       imagePath: 'assets/images/food_dumplings.png',
       updatedAt: now,
     ),
@@ -569,10 +543,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'meals',
       zone: 'freezer',
       quantity: 1,
-      unit: 'tray · 300 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 20),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '20 days left',
+      unit: 'tray · 400 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 75),
       imagePath: 'assets/images/food_lasagna.png',
       updatedAt: now,
     ),
@@ -583,15 +555,11 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'meals',
       zone: 'freezer',
       quantity: 1,
-      unit: 'tub · 450 ml',
+      unit: 'tub · 500 ml',
       expiryDate: DateTime(now.year, now.month, now.day + 30),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '30 days left',
-      imagePath: 'assets/images/food_nuggets.png',
+      imagePath: 'assets/images/food_milk.png',
       updatedAt: now,
     ),
-
-    // Freezer Sauces
     ItemModel(
       id: 'fz_pesto',
       fridgeId: fridgeId,
@@ -599,10 +567,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'sauces',
       zone: 'freezer',
       quantity: 1,
-      unit: 'tray · 150 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 60),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '60 days left',
+      unit: 'tray',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
       imagePath: 'assets/images/food_olive_oil.png',
       updatedAt: now,
     ),
@@ -613,10 +579,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       category: 'sauces',
       zone: 'freezer',
       quantity: 1,
-      unit: 'box · 300 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 90),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '90 days left',
+      unit: 'tray',
+      expiryDate: DateTime(now.year, now.month, now.day + 120),
       imagePath: 'assets/images/food_soy_sauce.png',
       updatedAt: now,
     ),
@@ -628,9 +592,7 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       zone: 'freezer',
       quantity: 1,
       unit: 'roll · 150 g',
-      expiryDate: DateTime(now.year, now.month, now.day + 45),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '45 days left',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
       imagePath: 'assets/images/food_mayo.png',
       updatedAt: now,
     ),
@@ -643,72 +605,8 @@ final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fr
       quantity: 1,
       unit: 'jar · 200 g',
       expiryDate: DateTime(now.year, now.month, now.day + 75),
-      customStatus: FreshnessStatus.fresh,
-      customStatusText: '75 days left',
       imagePath: 'assets/images/food_sriracha.png',
       updatedAt: now,
     ),
   ];
-});
-
-/// Filtered items for FridgeDetailPage matching exact Figma mockup screens #9 & category clicks for both Fridge and Freezer
-final fridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fridgeId) {
-  final filter = ref.watch(fridgeDetailFilterProvider);
-  final allItems = ref.watch(allFridgeItemsProvider(fridgeId));
-
-  // If search query is present
-  if (filter.searchQuery.trim().isNotEmpty) {
-    return allItems
-        .where((item) =>
-            item.zone == filter.zone &&
-            item.name.toLowerCase().contains(filter.searchQuery.trim().toLowerCase()))
-        .toList();
-  }
-
-  final zoneItems = allItems.where((item) => item.zone == filter.zone).toList();
-
-  // Handle category filtering
-  switch (filter.category.toLowerCase()) {
-    case 'proteins':
-      return zoneItems.where((i) => i.category == 'proteins').toList();
-
-    case 'veggies':
-      if (filter.zone == 'fridge') {
-        final vegIds = {'item_spinach', 'item_strawberries', 'item_avocados', 'veg_cherry_tomatoes'};
-        return zoneItems.where((i) => vegIds.contains(i.id)).toList();
-      }
-      return zoneItems.where((i) => i.category == 'veggies').toList();
-
-    case 'beverages':
-      if (filter.zone == 'fridge') {
-        final bevIds = {'item_milk', 'bev_orange_juice', 'bev_cold_brew', 'bev_kombucha'};
-        return zoneItems.where((i) => bevIds.contains(i.id)).toList();
-      }
-      return zoneItems.where((i) => i.category == 'beverages').toList();
-
-    case 'meals':
-      if (filter.zone == 'fridge') {
-        final mealIds = {'meal_lasagna', 'meal_pizza', 'meal_dumplings', 'meal_nuggets'};
-        return zoneItems.where((i) => mealIds.contains(i.id)).toList();
-      }
-      return zoneItems.where((i) => i.category == 'meals').toList();
-
-    case 'sauces':
-      if (filter.zone == 'fridge') {
-        final sauceIds = {'sauce_soy', 'sauce_mayo', 'sauce_sriracha', 'sauce_olive_oil'};
-        return zoneItems.where((i) => sauceIds.contains(i.id)).toList();
-      }
-      return zoneItems.where((i) => i.category == 'sauces').toList();
-
-    case 'all':
-    default:
-      if (filter.zone == 'fridge') {
-        final allIds = {'item_spinach', 'item_strawberries', 'item_avocados', 'item_milk'};
-        return zoneItems.where((i) => allIds.contains(i.id)).toList();
-      } else {
-        // Freezer default All overview: 4 items
-        final fzAllIds = {'fz_pork', 'fz_salmon', 'fz_pizza', 'fz_peas'};
-        return zoneItems.where((i) => fzAllIds.contains(i.id)).toList();
-      }
-  }
-});
+}

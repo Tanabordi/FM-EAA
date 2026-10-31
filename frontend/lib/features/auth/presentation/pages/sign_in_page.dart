@@ -234,10 +234,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 onPressed: _handleGoogleSignIn,
               ),
               const SizedBox(height: 36),
-              // Don’t have an account? Sign up
-              Wrap(
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              // Don't have an account? Sign up
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     "Don’t have an account? ",

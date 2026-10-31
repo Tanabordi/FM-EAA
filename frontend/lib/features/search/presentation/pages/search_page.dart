@@ -18,6 +18,15 @@ class SearchPage extends ConsumerStatefulWidget {
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _searchController = TextEditingController();
 
+  void _onQueryChanged(String val) {
+    ref.read(searchQueryProvider.notifier).state = val;
+  }
+
+  void _onClearQuery() {
+    _searchController.clear();
+    ref.read(searchQueryProvider.notifier).state = '';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -109,9 +118,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           contentPadding: EdgeInsets.zero,
                           isDense: true,
                         ),
-                        onChanged: (val) {
-                          ref.read(searchQueryProvider.notifier).state = val;
-                        },
+                        onChanged: _onQueryChanged,
                       ),
                     ),
                     if (_searchController.text.isNotEmpty)
@@ -119,10 +126,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         padding: const EdgeInsets.only(right: 14.0, left: 8.0),
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            _searchController.clear();
-                            ref.read(searchQueryProvider.notifier).state = '';
-                          },
+                          onTap: _onClearQuery,
                           child: Container(
                             width: 26,
                             height: 26,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/freshness_colors.dart';
-import '../../../../shared/widgets/app_top_bar.dart';
 
 // TODO(screen #21 Notifications): การ์ดคำเชิญ ("John invited you to join 'Home Fridge'" + ปุ่ม Accept เขียว / Decline แดง), การ์ดแจ้งเตือนวันหมดอายุ (ไอคอนนาฬิกา "Milk expires tomorrow")
 class NotificationsPage extends StatelessWidget {
@@ -11,13 +10,12 @@ class NotificationsPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
       body: SafeArea(
-        child: Column(
-          children: [
-            const AppTopBar(title: 'Notifications'),
-            Expanded(
-              child: ListView(
+        child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             // Invitation Card
@@ -105,11 +103,9 @@ class NotificationsPage extends StatelessWidget {
               ),
             ),
           ],
-              ),
-            ),
-          ],
         ),
       ),
     );
   }
 }
+

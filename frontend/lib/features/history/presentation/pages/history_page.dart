@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/freshness_colors.dart';
-import '../../../../shared/widgets/app_top_bar.dart';
 import '../../providers/history_provider.dart';
 
 // TODO(screen #17 History): แท็บ Consumed | Expired; ข้อความ "Consumed is auto-deleted after 30 days", ปุ่ม "Clear All" (แดง + ถังขยะ); จัดกลุ่มตามวัน ("Today · 29 Oct", "Yesterday · 28 Oct"); แถว: รูป, ชื่อ, "-1 bottle (1 left) • by @alex.lee • 29 Oct • 08:30 AM", ป้าย Consumed, ปุ่มลบรายการ. แท็บ Expired มีโครงเดียวกัน (ไม่ได้ตรวจเนื้อหาละเอียด)
@@ -35,40 +34,32 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
     final historyList = ref.watch(historyItemsProvider(widget.fridgeId));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('History', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: FreshnessColors.danger),
+            icon: const Icon(Icons.delete_sweep_outlined, size: 20),
+            label: const Text('Clear All'),
+            onPressed: () {
+              // TODO(history clear): Clear history records matching active tab
+            },
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: theme.colorScheme.primary,
+          labelColor: theme.colorScheme.primary,
+          tabs: const [
+            Tab(text: 'Consumed'),
+            Tab(text: 'Expired'),
+          ],
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            AppTopBar(
-              title: 'History',
-              trailing: TextButton.icon(
-                style: TextButton.styleFrom(foregroundColor: FreshnessColors.danger),
-                icon: const Icon(Icons.delete_sweep_outlined, size: 20),
-                label: const Text('Clear All'),
-                onPressed: () {},
-              ),
-            ),
-            Stack(
-              alignment: Alignment.bottomCenter,
-              children: [
-                Container(height: 1.2, color: const Color(0xFFD7E2D5)),
-                TabBar(
-                  controller: _tabController,
-                  indicatorColor: const Color(0xFF2E6A44),
-                  indicatorWeight: 3.5,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  labelColor: const Color(0xFF1A201C),
-                  unselectedLabelColor: const Color(0xFF5C665F),
-                  labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                  unselectedLabelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                  dividerColor: Colors.transparent,
-                  tabs: const [
-                    Tab(text: 'Consumed'),
-                    Tab(text: 'Expired'),
-                  ],
-                ),
-              ],
-            ),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

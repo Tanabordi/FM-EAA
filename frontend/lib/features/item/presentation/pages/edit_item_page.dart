@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 
@@ -31,15 +30,13 @@ class _EditItemPageState extends State<EditItemPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Edit Item', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
       body: SafeArea(
-        child: Column(
-          children: [
-            const AppTopBar(title: 'Edit Item'),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -119,10 +116,7 @@ class _EditItemPageState extends State<EditItemPage> {
                 },
               ),
             ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
