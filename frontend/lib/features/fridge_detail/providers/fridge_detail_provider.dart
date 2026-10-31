@@ -47,60 +47,140 @@ final fridgeDetailFilterProvider =
   return FridgeFilterNotifier();
 });
 
-/// Watches items for a fridge from Drift SQLite Local Database via ItemRepository
-final watchItemsInFridgeProvider = StreamProvider.family<List<ItemModel>, String>((ref, fridgeId) {
+class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
+  final String fridgeId;
+  final ItemRepository? _repository;
+
+  FridgeItemsNotifier(this.fridgeId, [this._repository])
+      : super(getInitialFridgeItems(fridgeId)) {
+    _init();
+  }
+
+  void _init() {
+    if (_repository != null) {
+      _repository.watchItems(fridgeId).listen((items) {
+        if (items.isNotEmpty) {
+          state = items;
+        }
+      });
+    }
+  }
+
+  ItemModel? _lastConsumedItem;
+  int? _lastConsumedIndex;
+  double? _lastConsumedAmount;
+  bool? _lastFinishedAll;
+
+  ItemModel? getItem(String id) {
+    try {
+      return state.firstWhere((item) => item.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void addItem(ItemModel item) {
+    state = [item, ...state];
+    _repository?.addItem(item);
+  }
+
+  void updateItem(ItemModel updated) {
+    state = [
+      for (final item in state)
+        if (item.id == updated.id) updated else item,
+    ];
+    _repository?.updateItem(updated);
+  }
+
+  void deleteItem(String id) {
+    state = state.where((item) => item.id != id).toList();
+    _repository?.deleteItem(id);
+  }
+
+  void consumeItem(String id, double amount, bool finishedAll) {
+    final index = state.indexWhere((item) => item.id == id);
+    if (index == -1) return;
+
+    final item = state[index];
+    _lastConsumedItem = item;
+    _lastConsumedIndex = index;
+    _lastConsumedAmount = amount;
+    _lastFinishedAll = finishedAll;
+
+    if (finishedAll || item.quantity <= amount) {
+      // Remove completely from list
+      state = [
+        for (int i = 0; i < state.length; i++)
+          if (i != index) state[i],
+      ];
+    } else {
+      // Decrement quantity
+      final newQuantity = item.quantity - amount;
+      state = [
+        for (int i = 0; i < state.length; i++)
+          if (i == index)
+            item.copyWith(quantity: newQuantity, updatedAt: DateTime.now())
+          else
+            state[i],
+      ];
+    }
+
+    _repository?.consumeItem(id, amount, finishedAll: finishedAll);
+  }
+
+  void undoConsume() {
+    if (_lastConsumedItem == null) return;
+
+    if (_lastFinishedAll == true ||
+        (_lastConsumedAmount != null &&
+            _lastConsumedItem!.quantity <= _lastConsumedAmount!)) {
+      final idx = (_lastConsumedIndex != null &&
+              _lastConsumedIndex! <= state.length)
+          ? _lastConsumedIndex!
+          : state.length;
+      final newList = List<ItemModel>.from(state);
+      newList.insert(idx, _lastConsumedItem!);
+      state = newList;
+    } else if (_lastConsumedAmount != null) {
+      final id = _lastConsumedItem!.id;
+      state = [
+        for (final item in state)
+          if (item.id == id) _lastConsumedItem! else item,
+      ];
+    }
+
+    _lastConsumedItem = null;
+    _lastConsumedIndex = null;
+    _lastConsumedAmount = null;
+    _lastFinishedAll = null;
+  }
+}
+
+/// Stream provider watching items in Drift SQLite
+final watchItemsInFridgeProvider =
+    StreamProvider.family<List<ItemModel>, String>((ref, fridgeId) {
   final repository = ref.watch(itemRepositoryProvider);
   return repository.watchItems(fridgeId);
 });
 
-/// Raw list of all items in a fridge before filtering (combines Local DB with initial fallback)
-final allFridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fridgeId) {
-  final streamItems = ref.watch(watchItemsInFridgeProvider(fridgeId)).value;
-  if (streamItems != null && streamItems.isNotEmpty) {
-    return streamItems;
-  }
-  return getInitialFridgeItems(fridgeId);
+/// StateNotifierProvider for items in a fridge, providing active list & mutation methods
+final fridgeItemsProvider =
+    StateNotifierProvider.family<FridgeItemsNotifier, List<ItemModel>, String>(
+        (ref, fridgeId) {
+  ItemRepository? repo;
+  try {
+    repo = ref.watch(itemRepositoryProvider);
+  } catch (_) {}
+  return FridgeItemsNotifier(fridgeId, repo);
 });
 
-/// Dynamic filtered items connected to Drift SQLite Local DB Repository
-final fridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fridgeId) {
-  final allItems = ref.watch(allFridgeItemsProvider(fridgeId));
-  final filter = ref.watch(fridgeDetailFilterProvider);
-
-  // If search query is present: search dynamically across all items in zone
-  if (filter.searchQuery.trim().isNotEmpty) {
-    final query = filter.searchQuery.trim().toLowerCase();
-    return allItems.where((item) {
-      return item.zone.toLowerCase() == filter.zone.toLowerCase() &&
-          (item.name.toLowerCase().contains(query) ||
-              item.category.toLowerCase().contains(query));
-    }).toList();
-  }
-
-  final zoneItems = allItems.where((item) => item.zone.toLowerCase() == filter.zone.toLowerCase()).toList();
-  final category = filter.category.toLowerCase();
-
-  if (category == 'all') {
-    // If we have live user items from DB, show all items in this zone
-    final streamItems = ref.watch(watchItemsInFridgeProvider(fridgeId)).value;
-    if (streamItems != null && streamItems.isNotEmpty) {
-      return zoneItems;
-    }
-    // Overview mode matching exact Figma Screen #9 layout (4 featured items per zone)
-    if (filter.zone == 'fridge') {
-      const allIds = {'item_spinach', 'item_strawberries', 'item_avocados', 'item_milk'};
-      return zoneItems.where((i) => allIds.contains(i.id)).toList();
-    } else {
-      const fzAllIds = {'fz_pork', 'fz_salmon', 'fz_pizza', 'fz_peas'};
-      return zoneItems.where((i) => fzAllIds.contains(i.id)).toList();
-    }
-  }
-
-  // Completely dynamic category filter without hardcoding any item IDs
-  return zoneItems.where((item) => item.category.toLowerCase() == category).toList();
+/// Legacy provider alias watching all fridge items
+final allFridgeItemsProvider =
+    Provider.family<List<ItemModel>, String>((ref, fridgeId) {
+  return ref.watch(fridgeItemsProvider(fridgeId));
 });
 
-/// Initial standard items for pre-population / fallback with accurate expiryDates
+/// Default initial mockup items computed dynamically against real-time
 List<ItemModel> getInitialFridgeItems(String fridgeId) {
   final now = DateTime.now();
 

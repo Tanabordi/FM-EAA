@@ -1,9 +1,12 @@
-import '../../../../shared/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../data/models/item_model.dart';
+import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/category_chips.dart';
 import '../../../../shared/widgets/item_card.dart';
+import '../../../item/presentation/widgets/finish_all_snackbar.dart';
+import '../../../item/presentation/widgets/mark_consumed_sheet.dart';
 import '../../providers/fridge_detail_provider.dart';
 import '../../../search/providers/search_provider.dart';
 
@@ -38,10 +41,45 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     super.dispose();
   }
 
+  void _showMarkConsumedSheet(BuildContext context, ItemModel item) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => MarkConsumedSheet(
+        itemName: item.name,
+        availablePieces: item.quantity,
+        unit: item.unit.contains('punnet')
+            ? 'pieces'
+            : (item.unit.contains('bag')
+                ? 'bag'
+                : (item.unit.contains('bottle') ? 'bottle' : 'pieces')),
+        onConsumed: (amount, finishedAll) {
+          Navigator.pop(sheetContext);
+          ref.read(fridgeItemsProvider(widget.fridgeId).notifier).consumeItem(item.id, amount, finishedAll);
+          FinishAllSnackbar.show(
+            context,
+            itemName: item.name,
+            onUndo: () {
+              ref.read(fridgeItemsProvider(widget.fridgeId).notifier).undoConsume();
+            },
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filter = ref.watch(fridgeDetailFilterProvider);
-    final items = ref.watch(fridgeItemsProvider(widget.fridgeId));
+    final allItems = ref.watch(fridgeItemsProvider(widget.fridgeId));
+
+    final items = allItems.where((item) {
+      final matchesZone = item.zone == filter.zone;
+      final matchesCategory = filter.category == 'All' ||
+          item.category.toLowerCase() == filter.category.toLowerCase();
+      return matchesZone && matchesCategory;
+    }).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6FBF3), // Figma exact background #F6FBF3
@@ -106,7 +144,21 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                           status: item.status,
                           statusText: item.statusText,
                           imagePath: item.imagePath,
-                          onTap: () => context.push('/fridges/${widget.fridgeId}/items/${item.id}'),
+                          onTap: () async {
+                            final result = await context.push<ItemModel?>(
+                              '/fridges/${widget.fridgeId}/items/${item.id}',
+                            );
+                            if (result != null && context.mounted) {
+                              FinishAllSnackbar.show(
+                                context,
+                                itemName: result.name,
+                                onUndo: () {
+                                  ref.read(fridgeItemsProvider(widget.fridgeId).notifier).undoConsume();
+                                },
+                              );
+                            }
+                          },
+                          onLongPress: () => _showMarkConsumedSheet(context, item),
                         );
                       },
                     ),
