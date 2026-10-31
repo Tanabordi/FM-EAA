@@ -91,29 +91,35 @@ flowchart TD
 ### 📋 ลำดับขั้นตอนการพัฒนาเจาะจงตามขอบเขตงาน (Role-Based Implementation Steps)
 
 #### 👤 ส่วนที่ 1 นายธีธัช รัตนโสภา (Backend & Cloud DB)
-- **ขั้นที่ 1** กำหนดค่าการเชื่อมต่อ Oracle Cloud DB ใน `config/db.js` และประมวลผลสคริปต์ `001_init.sql` สร้างโครงสร้างตารางข้อมูล
-- **ขั้นที่ 2** พัฒนาฟังก์ชันการลงทะเบียนและการเข้าสู่ระบบใน `authService.js` พร้อมการเข้ารหัสรหัสผ่านและการออก JWT Token
-- **ขั้นที่ 3** จัดทำ `authenticateToken` ใน `middleware/auth.js` สำหรับตรวจสอบสิทธิ์การเข้าถึง API ทุกเส้นทาง
-- **ขั้นที่ 4** พัฒนา REST API จัดการข้อมูลตู้เย็นและรายการวัตถุดิบ (`/api/fridges`, `/api/items`)
-- **ขั้นที่ 5** พัฒนาชุดทดสอบอัตโนมัติ (Automated Tests) ใน `backend/tests/` เพื่อรับประกันความเสถียรของระบบ
+- ⏳ **ขั้นที่ 1** กำหนดค่าการเชื่อมต่อ Oracle Cloud DB ใน `backend/src/config/db.js` และประมวลผลสคริปต์ `backend/src/db/migrations/001_init.sql` เพื่อสร้างตารางข้อมูลทั้ง 7 ตารางบนระบบคลาวด์
+- ⏳ **ขั้นที่ 2** พัฒนาระบบยืนยันตัวตนใน `authService.js` และ `authRoutes.js` (Register, Login, Password Hashing ด้วย `bcrypt`, และการออก JWT Token)
+- ⏳ **ขั้นที่ 3** จัดทำ `authenticateToken` ใน `middleware/auth.js` สำหรับตรวจสอบสิทธิ์การเข้าถึง API ทุกเส้นทาง
+- ⏳ **ขั้นที่ 4** พัฒนา REST API และ Service จัดการตู้เย็นและสมาชิก (`fridgeRoutes.js`, `fridgeService.js`) รองรับ CRUD ตู้เย็นและการเช็คสิทธิ์ Owner/Member
+- ⏳ **ขั้นที่ 5** พัฒนา REST API และ Service จัดการสต็อกวัตถุดิบและประวัติ (`itemRoutes.js`, `historyRoutes.js`)
+- ⏳ **ขั้นที่ 6** พัฒนาชุดทดสอบอัตโนมัติ (Automated Tests) ด้วย Jest/Supertest ใน `backend/tests/` เพื่อทดสอบ Route, Auth, และ Error Handling
 
 #### 👤 ส่วนที่ 2 นางสาวอาทิตยา ผิวขำ (Frontend Inventory & Local DB)
-- **ขั้นที่ 1** พัฒนาระบบฐานข้อมูล Drift SQLite ในเครื่อง (`app_database.dart`) ให้รองรับการทำงานแบบออฟไลน์
-- **ขั้นที่ 2** พัฒนาหน้าจอแสดงรายการตู้เย็น (`My Fridges`) และเชื่อมต่อการดึงข้อมูลจาก Local Database
-- **ขั้นที่ 3** พัฒนาหน้ารายละเอียดวัตถุดิบภายในตู้เย็น (`Fridge Detail`) จำแนกตามโซนและระดับความสดของอาหาร
-- **ขั้นที่ 4** พัฒนาแบบฟอร์มการบันทึกวัตถุดิบ และฟังก์ชันการบันทึกการบริโภคอาหาร (Mark as Consumed Flow)
+- ⏳ **ขั้นที่ 1** พัฒนาระบบฐานข้อมูล Drift SQLite ในเครื่อง (`app_database.dart`) ให้รองรับตาราง `FridgesTable` และ `ItemsTable` แบบออฟไลน์
+- ⏳ **ขั้นที่ 2** พัฒนาหน้าจอแสดงรายการตู้เย็นและฟอร์มสร้าง/แก้ไขตู้เย็น (Screens #5–8: `MyFridgesPage`, `AddFridgePage`, `EditFridgeSheet`)
+- ⏳ **ขั้นที่ 3** พัฒนาหน้ารายละเอียดวัตถุดิบภายในตู้เย็นและการกรอง (Screen #9: `FridgeDetailPage` แยกแท็บ Fridge/Freezer และชิปหมวดหมู่ พร้อมเชื่อมต่อ Local DB)
+- ⏳ **ขั้นที่ 4** พัฒนาระบบค้นหาวัตถุดิบ (Screen #10: `SearchPage` ค้นหาแบบ Real-time พร้อมปุ่มล้างคำค้น)
+- ⏳ **ขั้นที่ 5** พัฒนาแบบฟอร์มการบันทึกและแก้ไขวัตถุดิบ (Screens #11–13: `AddItemPage`, `EditItemPage`, `ItemDetailsPage`)
+- ⏳ **ขั้นที่ 6** พัฒนาระบบบันทึกการบริโภคอาหาร (Screens #14–16: Mark as Consumed Sheet, Finished all, และ Undo SnackBar)
 
 #### 👤 ส่วนที่ 3 นายชนินทร์ คำวงศ์ษา (AI Vision & Offline Sync Engine)
-- **ขั้นที่ 1** พัฒนาระบบบริการวิเคราะห์ฉลากอาหารฝั่งเซิร์ฟเวอร์ (`aiService.js`) พร้อมระบบรักษาความปลอดภัยและการตรวจสอบข้อมูล
-- **ขั้นที่ 2** พัฒนาหน้าจอการสแกนฉลากด้วยกล้องบนมือถือ (`scan_label_page.dart`) และระบบนำเข้าข้อมูลลงแบบฟอร์มอัตโนมัติ
-- **ขั้นที่ 3** พัฒนาระบบตรวจสอบสถานะการเชื่อมต่อเครือข่าย (`connectivity_watcher.dart`)
-- **ขั้นที่ 4** พัฒนาระบบเชื่อมโยงข้อมูลอัตโนมัติ (`sync_engine.dart`) รองรับการซิงค์ข้อมูลตามหลัก Last-Write-Wins (LWW)
+- ⏳ **ขั้นที่ 1** พัฒนาบริการวิเคราะห์ฉลากอาหารฝั่งเซิร์ฟเวอร์ (`aiService.js`, `aiRoutes.js`) เชื่อมต่อ Google Gemini Vision API สกัดชื่ออาหารและวันหมดอายุ
+- ⏳ **ขั้นที่ 2** พัฒนาหน้าจอการสแกนฉลากด้วยกล้องบนมือถือ (`scan_label_page.dart`) และระบบนำผลลัพธ์มา Autofill ข้อมูลลงแบบฟอร์มวัตถุดิบ
+- ⏳ **ขั้นที่ 3** พัฒนาระบบตรวจสอบสถานะการเชื่อมต่อเครือข่ายเบื้องหลัง (`connectivity_watcher.dart`) ด้วย `connectivity_plus`
+- ⏳ **ขั้นที่ 4** พัฒนาระบบซิงค์ข้อมูลฝั่งเซิร์ฟเวอร์ (`syncRoutes.js`, `syncService.js`) รองรับ Last-Write-Wins (LWW) อิงตาม `updated_at`
+- ⏳ **ขั้นที่ 5** พัฒนาระบบประมวลผลการซิงค์ฝั่งมือถือ (`sync_engine.dart`) รวมส่งข้อมูลแบบ Batched และจัดการสถานะ `is_synced`
 
 #### 👤 ส่วนที่ 4 นายธนบดี บุญภมร (Auth, Family Sharing & Notifications)
-- **ขั้นที่ 1** พัฒนาหน้าจอการพิสูจน์ตัวตน (`SignInPage`, `CreateAccountPage`) พร้อมระบบตรวจสอบความถูกต้องของข้อมูลนำเข้า
-- **ขั้นที่ 2** เชื่อมโยงระบบเข้าสู่ระบบฝั่งหน้าบ้านเข้ากับเซิร์ฟเวอร์หลักผ่าน `AuthRepository`
-- **ขั้นที่ 3** พัฒนาระบบจัดการสมาชิกตู้เย็น (`Family Sharing`) รองรับการเชิญและการกำหนดบทบาทสมาชิก
-- **ขั้นที่ 4** พัฒนาระบบแจ้งเตือนบนอุปกรณ์ (`Local Notifications`) และระบบเก็บบันทึกประวัติการบริโภคย้อนหลัง
+- ✅ **ขั้นที่ 1** พัฒนาหน้าจอการพิสูจน์ตัวตน (Screens #1–4: `OnboardingPage`, `SignInPage`, `CreateAccountPage`, `ResetPasswordPage`) พร้อมระบบตรวจสอบความถูกต้องของข้อมูลนำเข้า (Form Validation & Loading State)
+- ⏳ **ขั้นที่ 2** เชื่อมโยงระบบเข้าสู่ระบบฝั่งหน้าบ้านเข้ากับเซิร์ฟเวอร์หลักผ่าน `AuthRepository` และจัดเก็บ Session/Token ปลอดภัย (`flutter_secure_storage`)
+- ✅ **ขั้นที่ 3** พัฒนาระบบจัดการสมาชิกตู้เย็นและแชร์ครอบครัว (Screens #18–20: `FamilySharePage`, `InviteMemberPage`, `RemoveMemberDialog`)
+- ⏳ **ขั้นที่ 4** พัฒนาระบบประวัติการใช้งานตู้เย็น (Screen #17: `HistoryPage` แยกแท็บ Consumed/Expired พร้อมปุ่มล้างประวัติเดี่ยวและ Clear All)
+- ⏳ **ขั้นที่ 5** พัฒนาระบบแจ้งเตือนบนอุปกรณ์ (Screen #21: `NotificationsPage` และ Local Notifications เตือนของใกล้หมดอายุล่วงหน้า)
+- ⏳ **ขั้นที่ 6** พัฒนาหน้าจอการตั้งค่าและโปรไฟล์ (Screens #22–24: `SettingsPage`, `EditProfilePage` รองรับการสลับธีม/ภาษา และการออกจากระบบ)
 
 ---
 
@@ -148,7 +154,7 @@ flowchart TD
 
 ---
 
-## 👤 ส่วนที่  Frontend Inventory & Local Database (สต็อกวัตถุดิบและตู้เย็น)
+## 👤 ส่วนที่ 2 Frontend Inventory & Local Database (สต็อกวัตถุดิบและตู้เย็น)
 **ผู้รับผิดชอบ** นางสาวอาทิตยา ผิวขำ (67030260)
 
 > **เป้าหมาย** สร้าง UI สำหรับจัดการตู้เย็น สต็อกอาหาร การค้นหา และฐานข้อมูล SQLite ในเครื่องมือถือ
@@ -180,7 +186,7 @@ flowchart TD
 
 ---
 
-## 👤 ส่วนที่  AI Vision & Offline-First Sync Engine (ระบบ AI และการซิงค์ข้อมูล)
+## 👤 ส่วนที่ 3 AI Vision & Offline-First Sync Engine (ระบบ AI และการซิงค์ข้อมูล)
 **ผู้รับผิดชอบ** นายชนินทร์ คำวงศ์ษา (67030281)
 
 > **เป้าหมาย** พัฒนาระบบสแกนฉลากด้วย Gemini Vision API และเครื่องมือเชื่อมโยงข้อมูลระหว่างมือถือกับ Cloud Database
@@ -209,7 +215,7 @@ flowchart TD
 
 ---
 
-## 👤 ส่วนที่  Auth, Family Sharing, History & Notifications (ระบบสมาชิกและการแจ้งเตือน)
+## 👤 ส่วนที่ 4 Auth, Family Sharing, History & Notifications (ระบบสมาชิกและการแจ้งเตือน)
 **ผู้รับผิดชอบ** นายธนบดี บุญภมร (67030298)
 
 > **เป้าหมาย** ดูแลระบบสิทธิ์ผู้ใช้ การแชร์ตู้เย็นกับครอบครัว ประวัติการบริโภค และระบบแจ้งเตือนเตือนวันหมดอายุ

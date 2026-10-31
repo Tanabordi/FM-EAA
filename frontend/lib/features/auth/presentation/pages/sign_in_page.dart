@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../providers/auth_provider.dart';
 
 /// Screen #2: Sign In matching Figma node 8:39 exactly
-class SignInPage extends StatefulWidget {
+class SignInPage extends ConsumerStatefulWidget {
   const SignInPage({super.key});
 
   @override
-  State<SignInPage> createState() => _SignInPageState();
+  ConsumerState<SignInPage> createState() => _SignInPageState();
 }
 
-class _SignInPageState extends State<SignInPage> {
+class _SignInPageState extends ConsumerState<SignInPage> {
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  final bool _isLoading = false;
+  bool _isLoading = false;
+  String? _identifierError;
+  String? _passwordError;
 
   @override
   void dispose() {
@@ -27,30 +31,62 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   Future<void> _handleSignIn() async {
-    // Check if user has enabled notifications previously.
-    // If user previously tapped "Skip", remind them again by routing to /onboarding!
-    final prefs = await SharedPreferences.getInstance();
-    final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
+    final identifier = _identifierController.text.trim();
+    final password = _passwordController.text;
 
-    if (!mounted) return;
+    setState(() {
+      _identifierError = identifier.isEmpty ? 'Please enter username or email' : null;
+      _passwordError = password.isEmpty ? 'Please enter password' : null;
+    });
 
-    if (!hasEnabled) {
-      context.go('/onboarding');
-    } else {
-      context.go('/fridges');
+    if (identifier.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in both username/email and password')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Connect to authProvider
+      await ref.read(authProvider.notifier).signIn(identifier, password);
+
+      final prefs = await SharedPreferences.getInstance();
+      final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
+
+      if (!mounted) return;
+
+      if (!hasEnabled) {
+        context.go('/onboarding');
+      } else {
+        context.go('/fridges');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sign in failed: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _handleGoogleSignIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (!hasEnabled) {
-      context.go('/onboarding');
-    } else {
-      context.go('/fridges');
+      if (!hasEnabled) {
+        context.go('/onboarding');
+      } else {
+        context.go('/fridges');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -112,6 +148,10 @@ class _SignInPageState extends State<SignInPage> {
                 controller: _identifierController,
                 labelText: 'Username or Email',
                 hintText: '',
+                errorText: _identifierError,
+                onChanged: (_) {
+                  if (_identifierError != null) setState(() => _identifierError = null);
+                },
               ),
               const SizedBox(height: 20),
               // Password
@@ -119,6 +159,10 @@ class _SignInPageState extends State<SignInPage> {
                 controller: _passwordController,
                 labelText: 'Password',
                 hintText: '',
+                errorText: _passwordError,
+                onChanged: (_) {
+                  if (_passwordError != null) setState(() => _passwordError = null);
+                },
                 obscureText: _obscurePassword,
                 suffixIcon: IconButton(
                   icon: Icon(

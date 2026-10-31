@@ -56,9 +56,16 @@ class OnboardingPage extends StatelessWidget {
               PrimaryButton(
                 label: 'Enable Notifications',
                 onPressed: () async {
-                  await NotificationService().requestPermissions();
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setBool('notifications_permission_granted', true);
+                  try {
+                    await NotificationService().requestPermissions();
+                  } catch (_) {
+                    // Gracefully handle platform channel error
+                  }
+
+                  try {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('notifications_permission_granted', true);
+                  } catch (_) {}
 
                   if (context.mounted) {
                     context.go('/fridges');
