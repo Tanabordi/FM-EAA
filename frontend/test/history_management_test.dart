@@ -238,8 +238,8 @@ void main() {
       expect(find.text('Clear All'), findsOneWidget);
 
       // Check Tabs
-      expect(find.text('Consumed'), findsOneWidget);
-      expect(find.text('Expired'), findsOneWidget);
+      expect(find.widgetWithText(Tab, 'Consumed'), findsOneWidget);
+      expect(find.widgetWithText(Tab, 'Expired'), findsOneWidget);
 
       // Check banner
       expect(find.text('Consumed is auto-deleted after 30 days'), findsOneWidget);
@@ -249,7 +249,7 @@ void main() {
       expect(find.textContaining('by @alex.lee'), findsOneWidget);
 
       // Switch to Expired Tab
-      await tester.tap(find.text('Expired'));
+      await tester.tap(find.widgetWithText(Tab, 'Expired'));
       await tester.pumpAndSettle();
 
       // Check Expired Tab Item
