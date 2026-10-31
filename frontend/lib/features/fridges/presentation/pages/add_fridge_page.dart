@@ -39,8 +39,9 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
     final desc = _descController.text.trim();
     ref.read(fridgesProvider.notifier).addFridge(name, desc);
 
+    final messenger = ScaffoldMessenger.of(context);
     context.pop();
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
         content: Text('Fridge "$name" created successfully'),
         behavior: SnackBarBehavior.floating,

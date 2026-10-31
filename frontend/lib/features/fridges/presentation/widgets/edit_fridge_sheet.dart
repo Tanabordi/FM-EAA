@@ -49,8 +49,9 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
           desc,
         );
 
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
         content: Text('Fridge "$name" updated successfully'),
         behavior: SnackBarBehavior.floating,
