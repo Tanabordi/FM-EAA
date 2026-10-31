@@ -74,12 +74,12 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                     children: [
                       const SizedBox(height: 12),
                       // Top Header: Back Button box + "Add New Fridge" Title
-                      Row(
+                      const Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const AppBackButton(),
-                          const SizedBox(width: 14),
-                          const Text(
+                          AppBackButton(),
+                          SizedBox(width: 14),
+                          Text(
                             'Add New Fridge',
                             style: TextStyle(
                               fontSize: 22,
