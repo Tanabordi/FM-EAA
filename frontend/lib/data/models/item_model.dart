@@ -1,4 +1,5 @@
 import '../../core/theme/freshness_colors.dart';
+import '../local/app_database.dart';
 
 class ItemModel {
   final String id;
@@ -37,7 +38,6 @@ class ItemModel {
     if (diffDays < 0) {
       return FreshnessStatus.expired;
     } else if (diffDays <= 2) {
-      // TODO(open question): Confirm exact threshold for useSoon (currently <= 2 days based on Figma examples)
       return FreshnessStatus.useSoon;
     } else {
       return FreshnessStatus.fresh;
@@ -60,6 +60,15 @@ class ItemModel {
     } else {
       return '$diffDays days left';
     }
+  }
+
+  /// Formatted quantity text helper (e.g. "1 carton", "2.5 kg", "500g · 2 pieces")
+  String get formattedQuantity {
+    final qtyStr = quantity == quantity.toInt() ? quantity.toInt().toString() : quantity.toString();
+    if (unit.contains('·') || unit.contains('pieces')) {
+      return quantity > 0 ? '$qtyStr $unit'.trim() : unit.trim();
+    }
+    return '$qtyStr $unit'.trim();
   }
 
   ItemModel copyWith({
@@ -87,6 +96,22 @@ class ItemModel {
       imagePath: imagePath ?? this.imagePath,
       isSynced: isSynced ?? this.isSynced,
       updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  factory ItemModel.fromEntry(ItemEntry entry) {
+    return ItemModel(
+      id: entry.id,
+      fridgeId: entry.fridgeId,
+      name: entry.name,
+      category: entry.category,
+      zone: entry.zone,
+      quantity: entry.quantity,
+      unit: entry.unit,
+      expiryDate: entry.expiryDate,
+      imagePath: entry.imagePath,
+      isSynced: entry.isSynced,
+      updatedAt: entry.updatedAt,
     );
   }
 
@@ -122,4 +147,3 @@ class ItemModel {
     };
   }
 }
-

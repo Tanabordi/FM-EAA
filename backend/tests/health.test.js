@@ -24,9 +24,9 @@ describe('Backend Skeleton Tests', () => {
     expect(res.statusCode).toBe(501);
   });
 
-  it('POST /api/ai/scan-label returns 501 Not implemented', async () => {
-    const res = await request(app).post('/api/ai/scan-label');
-    expect(res.statusCode).toBe(501);
+  it('POST /api/ai/scan-label requires auth (401 without token)', async () => {
+  const res = await request(app).post('/api/ai/scan-label');
+  expect(res.status).toBe(401);
   });
 });
 

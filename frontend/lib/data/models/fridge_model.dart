@@ -1,3 +1,5 @@
+import '../local/app_database.dart';
+
 class FridgeModel {
   final String id;
   final String name;
@@ -6,6 +8,7 @@ class FridgeModel {
   final bool isSynced;
   final DateTime updatedAt;
   final int memberCount;
+  final int itemCount;
 
   const FridgeModel({
     required this.id,
@@ -15,9 +18,47 @@ class FridgeModel {
     this.isSynced = true,
     required this.updatedAt,
     this.memberCount = 1,
+    this.itemCount = 0,
   });
 
   bool get isPersonal => memberCount <= 1;
+
+  String get itemsCountText => itemCount == 0 ? 'Empty' : '$itemCount Items';
+
+  FridgeModel copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? ownerId,
+    bool? isSynced,
+    DateTime? updatedAt,
+    int? memberCount,
+    int? itemCount,
+  }) {
+    return FridgeModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      ownerId: ownerId ?? this.ownerId,
+      isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
+      memberCount: memberCount ?? this.memberCount,
+      itemCount: itemCount ?? this.itemCount,
+    );
+  }
+
+  factory FridgeModel.fromEntry(FridgeEntry entry, {int memberCount = 1, int itemCount = 0}) {
+    return FridgeModel(
+      id: entry.id,
+      name: entry.name,
+      description: entry.description ?? '',
+      ownerId: entry.ownerId,
+      isSynced: entry.isSynced,
+      updatedAt: entry.updatedAt,
+      memberCount: memberCount,
+      itemCount: itemCount,
+    );
+  }
 
   factory FridgeModel.fromJson(Map<String, dynamic> json) {
     return FridgeModel(
@@ -28,6 +69,7 @@ class FridgeModel {
       isSynced: (json['is_synced'] as int? ?? 1) == 1,
       updatedAt: DateTime.parse(json['updated_at'] as String),
       memberCount: json['member_count'] as int? ?? 1,
+      itemCount: json['item_count'] as int? ?? 0,
     );
   }
 
@@ -39,7 +81,8 @@ class FridgeModel {
       'owner_id': ownerId,
       'is_synced': isSynced ? 1 : 0,
       'updated_at': updatedAt.toIso8601String(),
+      'member_count': memberCount,
+      'item_count': itemCount,
     };
   }
 }
-
