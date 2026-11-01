@@ -1,6 +1,6 @@
 # FM-EAA Screen Mapping & Specifications
 
-เอกสารสรุปความเชื่อมโยงระหว่างหน้าจอในดีไซน์ Figma (24 หน้าจอและคอมโพเนนต์ตาม [DESIGN_SPEC.md](DESIGN_SPEC.md)) กับโครงสร้างไฟล์และ Route ใน Flutter Application
+เอกสารสรุปความเชื่อมโยงระหว่างหน้าจอในดีไซน์ Figma (26 หน้าจอและคอมโพเนนต์ตาม [DESIGN_SPEC.md](DESIGN_SPEC.md)) กับโครงสร้างไฟล์และ Route ใน Flutter Application
 
 Figma File [FM-EAA on Figma](https://www.figma.com/design/MB6XUkZz1GZqJpDqvfkHYc/FM-EAA?node-id=0-1&t=dJwjYD0ae67KEzdu-1)
 
@@ -34,6 +34,8 @@ Figma File [FM-EAA on Figma](https://www.figma.com/design/MB6XUkZz1GZqJpDqvfkHYc
 | **22** | Settings | `features/settings/presentation/pages/settings_page.dart` | `/settings` | `134:187` | การ์ด Profile (แสดงตัวอักษรย่อ, ชื่อ, อีเมล และปุ่มแก้ไข) หัวข้อ Preferences เลือกภาษา TH / EN เลือกธีม Light / Dark และปุ่ม "Log out" (สีแดง) |
 | **23** | Edit Profile | `features/settings/presentation/pages/edit_profile_page.dart` | `/settings/profile` | `138:183` | รูปอวตารพร้อมปุ่มกล้องถ่ายรูป ช่องแก้ไข Name, Email ส่วนเปลี่ยนรหัสผ่าน (Current Password, New Password) และปุ่ม Save Changes |
 | **24** | Log Out Alert (Dialog) | `features/settings/presentation/widgets/logout_dialog.dart` | *(Dialog)* | `133:438` | ไดอะล็อกยืนยันการออกจากระบบ |
+| **25** | AI Recipe Recommendations | `features/recipe/presentation/pages/recipe_recommendation_page.dart` | `/fridges/:id/recipes` | `0-1` | แถบด้านบนแสดงปุ่มย้อนกลับและชื่อตู้เย็น ปุ่มไอคอนสร้างเมนูใหม่ (Regenerate) การ์ดแบนเนอร์สรุปจำนวนวัตถุดิบใกล้หมดอายุ รายการการ์ดเมนูอาหารที่ AI แนะนำ (แสดงชื่อเมนู, รูปตัวแทนอาหาร, เวลาปรุง, ระดับความยาก, ชิปวัตถุดิบที่ใช้) และแตะการ์ดเพื่อนำทางไปหน้ารายละเอียดสูตร |
+| **26** | Recipe Details | `features/recipe/presentation/pages/recipe_detail_page.dart` | `/fridges/:id/recipes/:recipeId` | `0-1` | แถบด้านบนแสดงปุ่มย้อนกลับ ภาพอาหารขนาดใหญ่ หัวข้อชื่อเมนูอาหาร ป้ายกำกับเวลาปรุง (Cooking Time) และระดับความยาก (Difficulty) รายการวัตถุดิบในตู้เย็นที่ใช้ รายการเครื่องปรุงที่ต้องเตรียมเพิ่ม ขั้นตอนการทำอาหารทีละขั้นตอนอย่างละเอียด และปุ่มหลักสีเขียว #2E6A44 "Cook This Recipe" ยืนยันการทำอาหารและตัดสต็อกอาหารอัตโนมัติ |
 
 ---
 

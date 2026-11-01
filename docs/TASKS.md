@@ -9,16 +9,16 @@
 ```mermaid
 flowchart TD
     subgraph Team ["👥 สมาชิกและขอบเขตงานทั้ง 4 ส่วน"]
-        M1["👤 ส่วนที่  Backend & Cloud Infrastructure<br/><b>ผู้รับผิดชอบ นายธีธัช รัตนโสภา (67030302)</b><br/>(Node.js + Oracle Cloud DB + REST API)"]
-        M2["👤 ส่วนที่  Frontend Inventory & Local DB<br/><b>ผู้รับผิดชอบ นางสาวอาทิตยา ผิวขำ (67030260)</b><br/>(ตู้เย็น, จัดการวัตถุดิบ, Drift SQLite)"]
-        M3["👤 ส่วนที่  AI Vision & Offline Sync Engine<br/><b>ผู้รับผิดชอบ นายชนินทร์ คำวงศ์ษา (67030281)</b><br/>(Gemini OCR + ระบบซิงค์ข้อมูล LWW)"]
-        M4["👤 ส่วนที่  Auth, Family & Notifications<br/><b>ผู้รับผิดชอบ นายธนบดี บุญภมร (67030298)</b><br/>(ระบบสมาชิก, แชร์ครอบครัว, แจ้งเตือน, ตั้งค่า)"]
+        M1["👤 ส่วนที่ 1 Backend & Cloud Infrastructure<br/><b>ผู้รับผิดชอบ นายธีธัช รัตนโสภา (67030302)</b><br/>(Node.js + Oracle Cloud DB + REST API)"]
+        M2["👤 ส่วนที่ 2 Frontend Inventory & Local DB<br/><b>ผู้รับผิดชอบ นางสาวอาทิตยา ผิวขำ (67030260)</b><br/>(ตู้เย็น, จัดการวัตถุดิบ, Drift SQLite)"]
+        M3["👤 ส่วนที่ 3 AI Vision, Recipe Suggestion & Offline Sync<br/><b>ผู้รับผิดชอบ นายชนินทร์ คำวงศ์ษา (67030281)</b><br/>(Gemini OCR + AI เมนูอาหาร + ระบบซิงค์ข้อมูล LWW)"]
+        M4["👤 ส่วนที่ 4 Auth, Family & Notifications<br/><b>ผู้รับผิดชอบ นายธนบดี บุญภมร (67030298)</b><br/>(ระบบสมาชิก, แชร์ครอบครัว, แจ้งเตือน, ตั้งค่า)"]
     end
 
     M1 <-->|"REST API Contracts"| M2
-    M1 <-->|"Sync & AI Endpoints"| M3
+    M1 <-->|"Sync & Gemini AI Endpoints"| M3
     M1 <-->|"Auth & Family Endpoints"| M4
-    M2 <-->|"Local Tables & Events"| M3
+    M2 <-->|"Local Tables & Expiring Items Query"| M3
     M2 <-->|"Fridge Sharing Context"| M4
 ```
 
@@ -26,9 +26,9 @@ flowchart TD
 
 | ส่วนที่ | ขอบเขตงาน (Module) | ผู้รับผิดชอบหลัก | รหัสนักศึกษา | หน้าที่หลักโดยสรุป |
 | :---: | :--- | :--- | :---: | :--- |
-| **1** | **Backend & Cloud Infrastructure** | **นายธีธัช รัตนโสภา** | 67030302 | Oracle Cloud DB (OCI), Database Migrations, REST API Core, JWT Auth และ Server Security |
-| **2** | **Frontend Inventory & Local DB** | **นางสาวอาทิตยา ผิวขำ** | 67030260 | Drift SQLite, หน้ารายการตู้เย็น (My Fridges), หน้าสต็อกวัตถุดิบ (Fridge Detail), ฟอร์มสินค้า และ Consume Flow |
-| **3** | **AI Vision & Offline Sync Engine** | **นายชนินทร์ คำวงศ์ษา** | 67030281 | สแกนฉลากด้วย Gemini Vision API, ตรวจสอบสถานะการเชื่อมต่อ และสร้างระบบ Auto-Sync (Last-Write-Wins) |
+| **1** | **Backend & Cloud Infrastructure** | **นายธีธัช รัตนโสภา** | 67030302 | Oracle Cloud DB (OCI), Database Migrations, REST API Core, JWT Auth, AI Recipe Endpoint และ Server Security |
+| **2** | **Frontend Inventory & Local DB** | **นางสาวอาทิตยา ผิวขำ** | 67030260 | Drift SQLite, หน้ารายการตู้เย็น (My Fridges), หน้าสต็อกวัตถุดิบ (Fridge Detail), ฟอร์มสินค้า, Consume Flow และรองรับตัดสต็อกจากการปรุงอาหาร |
+| **3** | **AI Vision, Recipe Suggestion & Offline Sync Engine** | **นายชนินทร์ คำวงศ์ษา** | 67030281 | สแกนฉลากด้วย Gemini Vision API, **ระบบแนะนำเมนูอาหารจากวัตถุดิบใกล้หมดอายุด้วย Gemini AI**, ตรวจสอบสถานะการเชื่อมต่อ และสร้างระบบ Auto-Sync (Last-Write-Wins) |
 | **4** | **Auth, Family & Notifications** | **นายธนบดี บุญภมร** | 67030298 | ระบบ Login/Register/Google Sign-In, ระบบแชร์ตู้เย็นกับครอบครัว (Family Share), ประวัติ (History), ระบบแจ้งเตือน และหน้าตั้งค่า |
 
 ---
@@ -60,6 +60,7 @@ flowchart TD
         M_Family["<b>7. ระบบแชร์ตู้เย็นในครอบครัว</b><br/>(Family Share, สิทธิ์ Owner/Member)<br/><i>ผู้รับผิดชอบ: นายธนบดี</i>"]
         M_Sync["<b>8. เอนจินเชื่อมโยงข้อมูลแบบออฟไลน์</b><br/>(Offline Sync Engine - Last-Write-Wins)<br/><i>ผู้รับผิดชอบ: นายชนินทร์</i>"]
         M_Noti["<b>9. ระบบแจ้งเตือนวันหมดอายุและประวัติ</b><br/>(Local Notifications & History Tracking)<br/><i>ผู้รับผิดชอบ: นายธนบดี</i>"]
+        M_AIRecipe["<b>10. ระบบแนะนำเมนูอาหารด้วย AI</b><br/>(Gemini Prompting เมนูจากของใกล้หมดอายุ)<br/><i>ผู้รับผิดชอบ: นายชนินทร์</i>"]
     end
 
     M_LocalDB --> M_FridgeUI
@@ -70,12 +71,15 @@ flowchart TD
     M_FridgeUI --> M_Family
     M_BackendCRUD --> M_Sync
     M_LocalDB --> M_Sync
+    M_LocalDB --> M_AIRecipe
+    M_BackendCRUD --> M_AIRecipe
+    M_AIRecipe --> M_FridgeUI
 ```
 
 ### 📊 ตารางลำดับการผสานระบบ (Module Integration Sequence)
 
 | ลำดับ | โมดูลงาน (Module Component) | ผู้รับผิดชอบหลัก | ความสัมพันธ์กับระบบอื่น (Prerequisites) | ความสำคัญ |
-| :---: | :--- | :---: | :--- | :---: |
+| :---: | :--- | :--- :--- | :--- | :---: |
 | **1** | **ระบบฐานข้อมูลภายในเครื่อง (Local SQLite Database)** | นางสาวอาทิตยา | เป็นรากฐานของแอปทั้งหมด จัดเตรียมตาราง `FridgesTable`, `ItemsTable` | 🔴 **ชั้นรากฐาน (Foundation)** |
 | **2** | **ระบบยืนยันตัวตนฝั่งผู้ใช้ (Client-Side Authentication)** | นายธนบดี | วางโครงสร้างฟอร์มเข้าสู่ระบบ, สมัครสมาชิก และการตรวจสอบความถูกต้องของข้อมูล | 🔴 **ชั้นรากฐาน (Foundation)** |
 | **3** | **ระบบเซิร์ฟเวอร์และฐานข้อมูลกลาง (Cloud Database & Auth Core)** | นายธีธัช | ติดตั้ง Oracle Cloud DB, ตารางหลัก 7 ตาราง และ `authenticateToken` middleware | 🔴 **ชั้นรากฐาน (Foundation)** |
@@ -85,6 +89,7 @@ flowchart TD
 | **7** | **ระบบแบ่งปันตู้เย็นกับครอบครัว (Family Sharing Module)** | นายธนบดี | อาศัยข้อมูลผู้ใช้ (ลำดับ 2) และข้อมูลตู้เย็น (ลำดับ 4) ในการจัดการสิทธิ์การเข้าถึง | 🟢 **ระบบขั้นสูง (Advanced)** |
 | **8** | **ระบบประสานข้อมูลแบบออฟไลน์ (Offline-First Sync Engine)** | นายชนินทร์ | เชื่อมโยงข้อมูลระหว่าง Local DB (ลำดับ 1) กับ Cloud Services (ลำดับ 6) ด้วยหลัก LWW | 🟢 **ระบบขั้นสูง (Advanced)** |
 | **9** | **ระบบแจ้งเตือนเตือนวันหมดอายุและประวัติ (Alerts & History)** | นายธนบดี | ดึงข้อมูลวันหมดอายุจากสต็อกอาหาร เพื่อตั้งเวลาแจ้งเตือนล่วงหน้าบนอุปกรณ์ | 🟢 **ระบบขั้นสูง (Advanced)** |
+| **10** | **ระบบแนะนำเมนูอาหารจากวัตถุดิบใกล้หมดอายุด้วยปัญญาประดิษฐ์ (AI Recipe Recommendation)** | นายชนินทร์ | อาศัยข้อมูลวัตถุดิบสถานะ Use soon จาก Local DB (ลำดับ 1, 4) และเรียกใช้ Gemini AI API ผ่านบริการคลาวด์ (ลำดับ 3, 5) เพื่อแนะนำเมนูพร้อมหักลดยอดวัตถุดิบ | 🟢 **ระบบขั้นสูง (Advanced)** |
 
 ---
 
@@ -105,13 +110,15 @@ flowchart TD
 - ✅ **ขั้นที่ 4** พัฒนาระบบค้นหาวัตถุดิบ (Screen #10: `SearchPage` ค้นหาแบบ Real-time พร้อมปุ่มล้างคำค้น)
 - ✅ **ขั้นที่ 5** พัฒนาแบบฟอร์มการบันทึกและแก้ไขวัตถุดิบ (Screens #11–13: `AddItemPage`, `EditItemPage`, `ItemDetailsPage`)
 - ✅ **ขั้นที่ 6** พัฒนาระบบบันทึกการบริโภคอาหาร (Screens #14–16: Mark as Consumed Sheet, Finished all, และ Undo SnackBar)
+- ⏳ **ขั้นที่ 7** พัฒนาระบบคิวรีวัตถุดิบใกล้หมดอายุและเชื่อมต่อระบบตัดสต็อกอาหารอัตโนมัติ (Screens #9, #14–16) เพื่อรองรับระบบ AI แนะนำเมนู (Screens #25–26)
 
-#### 👤 ส่วนที่ 3 นายชนินทร์ คำวงศ์ษา (AI Vision & Offline Sync Engine)
+#### 👤 ส่วนที่ 3 นายชนินทร์ คำวงศ์ษา (AI Vision, Recipe Suggestion & Offline Sync Engine)
 - ✅ **ขั้นที่ 1** พัฒนาบริการวิเคราะห์ฉลากอาหารฝั่งเซิร์ฟเวอร์ (`aiService.js`, `aiRoutes.js`) เชื่อมต่อ Google Gemini Vision API สกัดชื่ออาหารและวันหมดอายุ
 - ⏳ **ขั้นที่ 2** พัฒนาหน้าจอการสแกนฉลากด้วยกล้องบนมือถือ (`scan_label_page.dart`) และระบบนำผลลัพธ์มา Autofill ข้อมูลลงแบบฟอร์มวัตถุดิบ
 - ✅ **ขั้นที่ 3** พัฒนาระบบตรวจสอบสถานะการเชื่อมต่อเครือข่ายเบื้องหลัง (`connectivity_watcher.dart`) ด้วย `connectivity_plus`
 - ⏳ **ขั้นที่ 4** พัฒนาระบบซิงค์ข้อมูลฝั่งเซิร์ฟเวอร์ (`syncRoutes.js`, `syncService.js`) รองรับ Last-Write-Wins (LWW) อิงตาม `updated_at`
 - ⏳ **ขั้นที่ 5** พัฒนาระบบประมวลผลการซิงค์ฝั่งมือถือ (`sync_engine.dart`) รวมส่งข้อมูลแบบ Batched และจัดการสถานะ `is_synced`
+- ⏳ **ขั้นที่ 6** พัฒนาระบบปัญญาประดิษฐ์แนะนำเมนูอาหารและรายละเอียดสูตร (Screens #25–26: `recipe_recommendation_page.dart`, `recipe_detail_page.dart` พร้อม `recipe_provider.dart`, `aiRoutes.js`, `aiService.js`) รองรับ Structured JSON Prompt สร้างสรรค์เมนู และเชื่อมต่อระบบตัดสต็อกอาหารอัตโนมัติ
 
 #### 👤 ส่วนที่ 4 นายธนบดี บุญภมร (Auth, Family Sharing & Notifications)
 - ✅ **ขั้นที่ 1** พัฒนาหน้าจอการพิสูจน์ตัวตน (Screens #1–4: `OnboardingPage`, `SignInPage`, `CreateAccountPage`, `ResetPasswordPage`) พร้อมระบบตรวจสอบความถูกต้องของข้อมูลนำเข้า (Form Validation & Loading State)
@@ -183,17 +190,21 @@ flowchart TD
    - ฟอร์มเพิ่ม/แก้ไขวัตถุดิบ (Food Name, Category, Quantity, Unit, Storage Location, Expiry Date)
    - Flow **"Mark as Consumed"** Bottom Sheet เลือกลดจำนวนที่บริโภค หรือกด **"Finished all"**
    - แสดง Snackbar ยืนยันการกิน พร้อมปุ่ม **Undo** เพื่อย้อนสถานะกลับได้
+5. **การเชื่อมโยงระบบตัดสต็อกอาหารอัตโนมัติ (Screens #9, #14–16)**
+   - จัดเตรียมฟังก์ชัน `getExpiringSoonItems` ใน `ItemDao` เพื่อดึงรายการวัตถุดิบสถานะ **Use soon** ($\le 2$ วัน) จากหน้าสต็อกอาหาร (Screen #9) ส่งต่อให้ระบบ AI
+   - รองรับคำสั่งตัดสต็อกอาหารอัตโนมัติ (Consume Flow ใน Screens #14–16) เมื่อผู้ใช้กดยืนยันทำอาหารจากหน้าระบบ AI แนะนำเมนู (Screens #25–26) พร้อมบันทึกลงประวัติ History ใน Local Database
 
 ---
 
-## 👤 ส่วนที่ 3 AI Vision & Offline-First Sync Engine (ระบบ AI และการซิงค์ข้อมูล)
+## 👤 ส่วนที่ 3 AI Vision, Recipe Suggestion & Offline-First Sync Engine (ระบบ AI และการซิงค์ข้อมูล)
 **ผู้รับผิดชอบ** นายชนินทร์ คำวงศ์ษา (67030281)
 
-> **เป้าหมาย** พัฒนาระบบสแกนฉลากด้วย Gemini Vision API และเครื่องมือเชื่อมโยงข้อมูลระหว่างมือถือกับ Cloud Database
+> **เป้าหมาย** พัฒนาระบบสแกนฉลากด้วย Gemini Vision API, ระบบแนะนำเมนูอาหารจากของใกล้หมดอายุด้วย Gemini AI และเครื่องมือเชื่อมโยงข้อมูลระหว่างมือถือกับ Cloud Database
 
 ### 📁 ไฟล์และโฟลเดอร์ที่รับผิดชอบ
 - `frontend/lib/features/item/presentation/pages/scan_label_page.dart`
 - `frontend/lib/features/item/presentation/pages/barcode_scanner_page.dart`
+- `frontend/lib/features/recipe/` (หน้าจอแนะนำเมนูอาหาร `recipe_recommendation_page.dart`, หน้ารายละเอียดสูตร `recipe_detail_page.dart`, การ์ดเมนู `widgets/recipe_card.dart` และ State Provider `providers/recipe_provider.dart`)
 - `frontend/lib/sync/` (`sync_engine.dart`, `connectivity_watcher.dart`)
 - `backend/src/routes/aiRoutes.js`, `backend/src/services/aiService.js`
 - `backend/src/routes/syncRoutes.js`, `backend/src/services/syncService.js`
@@ -212,6 +223,14 @@ flowchart TD
    - ฝั่ง Backend บันทึกลง Oracle Cloud โดยใช้หลักการ **Last-Write-Wins (LWW)** อิงตามฟิลด์ `updated_at`
    - อัปเดตสถานะในเครื่องเป็น `is_synced = true` เมื่อซิงค์สำเร็จ
    - ปรับการซิงค์ให้ครอบคลุมขอบเขตรายตู้เย็น (Scoping by `fridge_id`) เพื่อรองรับการแชร์ตู้
+4. **AI Recipe Recommendations & Details (Screens #25–26)**
+   - คัดกรองวัตถุดิบสถานะ **Use soon** (วันหมดอายุ $\le 2$ วัน) จาก Local DB ของส่วนที่ 2 รวบรวมส่งไปยัง `POST /api/ai/recipes` ของส่วนที่ 1
+   - เรียกใช้ **Google Gemini API** (`gemini-1.5-flash`) สั่งการด้วย Structured Prompt ให้คิดค้นเมนูอาหารที่เน้นใช้วัตถุดิบใกล้หมดอายุ เพื่อลดปัญหาขยะอาหาร (Zero Food Waste)
+   - ส่งผลลัพธ์ในรูปแบบ JSON โครงสร้างชัดเจน (ชื่ออาหาร, เวลาทำ, ความยาก, สัดส่วนวัตถุดิบ, ขั้นตอนการปรุง)
+   - หน้าจอ UI ประกอบด้วย 2 หน้าจอหลัก:
+     - **Screen #25 AI Recipe Recommendations:** หน้ารายการการ์ดเมนูอาหารแนะนำ ระยะเวลาปรุง ความยาก และชิปวัตถุดิบที่ใช้
+     - **Screen #26 Recipe Details:** หน้ารายละเอียดสูตรอาหาร วัตถุดิบ ขั้นตอนการปรุงทีละขั้นตอน และปุ่ม "Cook This Recipe"
+   - เชื่อมต่อฟังก์ชันตัดสต็อกวัตถุดิบอัตโนมัติ (Consume Flow) ของส่วนที่ 2 เมื่อกดยืนยันทำอาหาร พร้อมบันทึกลงประวัติ History
 
 ---
 
