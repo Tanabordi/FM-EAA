@@ -15,13 +15,10 @@ class LogoutDialog extends ConsumerWidget {
       message: 'Are you sure you want to log out of your account?',
       confirmLabel: 'Log out',
       isDestructive: true,
-      onConfirm: () async {
-        try {
-          await ref.read(authRepositoryProvider).logout();
-        } catch (_) {}
-        if (context.mounted) {
-          context.go('/sign-in');
-        }
+      onConfirm: () {
+        final router = GoRouter.of(context);
+        ref.read(authRepositoryProvider).logout().catchError((_) {});
+        router.go('/sign-in');
       },
     );
   }

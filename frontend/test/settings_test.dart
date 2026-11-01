@@ -345,6 +345,31 @@ void main() {
 
       expect(find.text('Discard changes?'), findsNothing);
     });
+
+    testWidgets('Tapping Discard successfully exits EditProfilePage', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: EditProfilePage(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.widgetWithText(TextField, 'Alex Lee'), 'Changed Name');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(IconButton).first); // Back button
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard changes?'), findsOneWidget);
+
+      await tester.tap(find.text('Discard')); // Tap Discard
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EditProfilePage), findsNothing);
+    });
   });
 
   group('LogoutDialog (Screen #24) Widget Tests', () {

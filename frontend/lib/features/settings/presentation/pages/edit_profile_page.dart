@@ -40,6 +40,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   String? _selectedAvatarPath;
   bool _removeAvatar = false;
+  bool _forceExit = false;
 
   @override
   void initState() {
@@ -60,7 +61,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _currentPasswordController.clear();
     _currentPasswordController.dispose();
+    _newPasswordController.clear();
     _newPasswordController.dispose();
 
     _nameFocus.dispose();
@@ -71,6 +74,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   }
 
   bool get _hasUnsavedChanges {
+    if (_forceExit) return false;
     final user = ref.read(userProfileProvider);
     return _nameController.text != user.username ||
         _emailController.text != user.email ||
@@ -91,9 +95,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           cancelLabel: 'Keep editing',
           isDestructive: true,
           onConfirm: () {
-            if (context.mounted) {
-              Navigator.of(context).pop();
-            }
+            setState(() => _forceExit = true);
+            Navigator.of(context).pop();
           },
         ),
       );
@@ -266,6 +269,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         ),
       );
 
+      setState(() => _forceExit = true);
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
