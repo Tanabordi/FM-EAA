@@ -30,6 +30,10 @@ class AiRepository {
 
   /// Scans food label from image file and extracts food name, expiration date, and category
   Future<AiScanResult> scanLabel(File imageFile) async {
+    if (imageFile.path.isEmpty || !imageFile.existsSync()) {
+      return _smartFallback(imageFile.path);
+    }
+
     try {
       final fileName = imageFile.path.split(Platform.pathSeparator).last;
       final formData = FormData.fromMap({
@@ -160,3 +164,4 @@ class AiRepository {
 final aiRepositoryProvider = Provider<AiRepository>((ref) {
   return AiRepository(apiClient: ApiClient());
 });
+

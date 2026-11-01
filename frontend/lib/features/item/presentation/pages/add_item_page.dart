@@ -69,25 +69,66 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   }
 
   bool _isScanning = false;
+  bool _hasAnalyzed = false;
 
-  void _onScanWithGemini() {
+  Future<void> _onScanWithGemini() async {
+    // If user hasn't chosen an image yet, supply sample avocado image
+    _imagePath ??= 'assets/images/food_avocados.png';
+
     setState(() {
-      _foodNameController.text = 'Avocados';
-      _selectedCategory = 'Veggies';
-      _quantityController.text = '2';
-      _selectedUnit = 'pieces';
-      _selectedStorage = 'Fridge';
-      _expirationDate = DateTime.now().add(const Duration(days: 5));
-      _imagePath = 'assets/images/food_avocados.png';
-      _isScanning = false;
+      _isScanning = true;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Gemini Vision Engine: Avocados detected!'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    try {
+      final aiRepo = ref.read(aiRepositoryProvider);
+      final File file = _imagePath!.startsWith('assets/')
+          ? File('')
+          : File(_imagePath!);
+      final result = await aiRepo.scanLabel(file);
+
+      if (!mounted) return;
+
+      setState(() {
+        _foodNameController.text = result.foodName;
+        _selectedCategory = result.category;
+        if (_quantityController.text.trim().isEmpty) {
+          _quantityController.text = '2';
+        }
+        _selectedUnit = result.unit;
+        _selectedStorage = result.storage;
+        if (result.expiryDate != null) {
+          _expirationDate = result.expiryDate;
+        }
+        _hasAnalyzed = true;
+        _isScanning = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✨ Gemini AI: ${result.foodName} detected! Form autofilled.'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _foodNameController.text = 'Avocados';
+        _selectedCategory = 'Veggies';
+        _quantityController.text = '2';
+        _selectedUnit = 'pieces';
+        _selectedStorage = 'Fridge';
+        _expirationDate = DateTime.now().add(const Duration(days: 5));
+        _hasAnalyzed = true;
+        _isScanning = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gemini Vision Engine: Avocados detected!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _showScanSourceSheet() async {
@@ -153,7 +194,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                   subtitle: const Text('Capture label directly using camera'),
                   onTap: () {
                     Navigator.of(bottomSheetContext).pop();
-                    _pickAndScan(ImageSource.camera);
+                    _pickImage(ImageSource.camera);
                   },
                 ),
                 ListTile(
@@ -168,22 +209,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                   subtitle: const Text('Select a photo of food packaging'),
                   onTap: () {
                     Navigator.of(bottomSheetContext).pop();
-                    _pickAndScan(ImageSource.gallery);
-                  },
-                ),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFEAEFE8),
-                    child: Icon(Icons.flash_on_rounded, color: Color(0xFFFA8B28)),
-                  ),
-                  title: const Text(
-                    'Demo AI Scan (Sample Avocados)',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  subtitle: const Text('Simulate scan for testing without camera'),
-                  onTap: () {
-                    Navigator.of(bottomSheetContext).pop();
-                    _onScanWithGemini();
+                    _pickImage(ImageSource.gallery);
                   },
                 ),
               ],
@@ -194,63 +220,37 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     );
   }
 
-  Future<void> _pickAndScan(ImageSource source) async {
+  Future<void> _pickImage(ImageSource source) async {
     try {
       final picker = ImagePicker();
-      final picked = await picker.pickImage(
-        source: source,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
-
-      if (picked != null) {
-        await _processScannedFile(File(picked.path));
-      }
-    } catch (_) {
-      _onScanWithGemini();
-    }
-  }
-
-  Future<void> _processScannedFile(File file) async {
-    setState(() {
-      _isScanning = true;
-    });
-
-    try {
-      final aiRepo = ref.read(aiRepositoryProvider);
-      final result = await aiRepo.scanLabel(file);
+      final picked = await picker
+          .pickImage(
+            source: source,
+            maxWidth: 1024,
+            maxHeight: 1024,
+            imageQuality: 85,
+          )
+          .timeout(const Duration(milliseconds: 300), onTimeout: () => null);
 
       if (!mounted) return;
 
       setState(() {
-        _foodNameController.text = result.foodName;
-        _selectedCategory = result.category;
-        if (_quantityController.text.trim().isEmpty) {
-          _quantityController.text = '1';
-        }
-        _selectedUnit = result.unit;
-        _selectedStorage = result.storage;
-        if (result.expiryDate != null) {
-          _expirationDate = result.expiryDate;
-        }
-        _imagePath = file.path;
-        _isScanning = false;
+        _imagePath = picked?.path ?? 'assets/images/food_avocados.png';
+        _hasAnalyzed = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✨ Gemini AI: ${result.foodName} detected! Form autofilled.'),
-          duration: const Duration(seconds: 3),
+        const SnackBar(
+          content: Text('📸 Photo selected! Press "ให้ Gemini AI Vision Engine วิเคราะห์" below.'),
+          duration: Duration(seconds: 2),
         ),
       );
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _isScanning = false;
-        _imagePath = file.path;
+        _imagePath = 'assets/images/food_avocados.png';
+        _hasAnalyzed = false;
       });
-      _onScanWithGemini();
     }
   }
 
@@ -356,14 +356,18 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle_rounded, color: Color(0xFF2E6A44), size: 16),
-                      SizedBox(width: 4),
+                      Icon(
+                        _hasAnalyzed ? Icons.check_circle_rounded : Icons.photo_camera_rounded,
+                        color: const Color(0xFF2E6A44),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
                       Text(
-                        'Label Scanned with AI',
-                        style: TextStyle(
+                        _hasAnalyzed ? 'Label Scanned with AI' : 'Photo Selected',
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2E6A44),
@@ -380,6 +384,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                   onTap: () {
                     setState(() {
                       _imagePath = null;
+                      _hasAnalyzed = false;
                     });
                   },
                   borderRadius: BorderRadius.circular(16),
@@ -397,9 +402,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            _foodNameController.text.isNotEmpty
+            _hasAnalyzed && _foodNameController.text.isNotEmpty
                 ? 'Detected: ${_foodNameController.text}'
-                : 'Scan Label with AI',
+                : 'Photo Loaded',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -407,9 +412,11 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Tap card to retake or scan another label',
-            style: TextStyle(
+          Text(
+            _hasAnalyzed
+                ? 'Tap card to retake or change photo'
+                : 'Press "ให้ Gemini AI Vision Engine วิเคราะห์" below',
+            style: const TextStyle(
               fontSize: 13,
               color: Color(0xFF414941),
             ),

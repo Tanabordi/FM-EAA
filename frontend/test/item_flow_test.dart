@@ -51,6 +51,7 @@ void main() {
       // Tap Gemini AI Vision Engine button
       await tester.tap(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'));
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
 
       // Check fields are populated
       expect(find.text('Avocados'), findsOneWidget);
@@ -59,7 +60,7 @@ void main() {
       expect(find.text('Fridge'), findsOneWidget);
     });
 
-    testWidgets('Screen #11: Tapping Scan Label with AI card opens camera/gallery options and autofills form', (tester) async {
+    testWidgets('Screen #11: Tapping Scan Label with AI card opens 2 options (Camera/Gallery), loads image, and analyzes on button tap', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -73,16 +74,28 @@ void main() {
       await tester.tap(find.text('Scan Label with AI'));
       await tester.pumpAndSettle();
 
-      // Check bottom sheet options appear
+      // Check bottom sheet options: exactly 2 options from user request
       expect(find.text('Take Photo with Camera'), findsOneWidget);
       expect(find.text('Choose from Gallery'), findsOneWidget);
-      expect(find.text('Demo AI Scan (Sample Avocados)'), findsOneWidget);
+      expect(find.text('Demo AI Scan (Sample Avocados)'), findsNothing);
 
-      // Tap demo scan in sheet
-      await tester.tap(find.text('Demo AI Scan (Sample Avocados)'));
+      // Tap Choose from Gallery in sheet
+      await tester.tap(find.text('Choose from Gallery'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 350));
       await tester.pumpAndSettle();
 
-      // Form fields should be populated
+      // Image is loaded, but form fields are NOT populated yet before analysis
+      expect(find.text('Photo Loaded'), findsOneWidget);
+      expect(find.text('Photo Selected'), findsOneWidget);
+      expect(find.text('Avocados'), findsNothing);
+
+      // Now tap "ให้ Gemini AI Vision Engine วิเคราะห์"
+      await tester.tap(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Form fields should NOW be populated ("กดวิเคราะห์ข้อมูลถึงมา")
       expect(find.text('Avocados'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
       expect(find.text('pieces'), findsOneWidget);
