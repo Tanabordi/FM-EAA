@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../data/models/recipe_model.dart';
+import '../../../../data/repositories/item_repository.dart';
 import 'recipe_detail_page.dart';
 
 /// Screen #25: AI Suggested Recipes Page
 /// Matches Figma and uploaded screenshot (media_1793552072245_8dd28d30.jpg)
-class RecipeRecommendationPage extends StatefulWidget {
+class RecipeRecommendationPage extends ConsumerStatefulWidget {
   final String fridgeId;
   final String initialIngredient;
 
@@ -17,10 +19,10 @@ class RecipeRecommendationPage extends StatefulWidget {
   });
 
   @override
-  State<RecipeRecommendationPage> createState() => _RecipeRecommendationPageState();
+  ConsumerState<RecipeRecommendationPage> createState() => _RecipeRecommendationPageState();
 }
 
-class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
+class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationPage> {
   late String _currentIngredient;
   late List<RecipeModel> _recipes;
   bool _isRegenerating = false;
@@ -32,6 +34,21 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
         ? 'Strawberries'
         : widget.initialIngredient;
     _recipes = _getRecipesForIngredient(_currentIngredient);
+
+    // Query expiring soon items from Local SQLite DB if available
+    Future.microtask(() async {
+      try {
+        final expiringItems = await ref.read(itemRepositoryProvider).getExpiringSoonItems(widget.fridgeId);
+        if (expiringItems.isNotEmpty && widget.initialIngredient == 'Strawberries') {
+          if (mounted) {
+            setState(() {
+              _currentIngredient = expiringItems.first.name;
+              _recipes = _getRecipesForIngredient(_currentIngredient);
+            });
+          }
+        }
+      } catch (_) {}
+    });
   }
 
   List<RecipeModel> _getRecipesForIngredient(String ingredient) {
