@@ -293,11 +293,22 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.lightTheme,
-            home: const EditProfilePage(),
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: ElevatedButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const EditProfilePage()),
+                  ),
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
           ),
         ),
       );
 
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
       // Update name and email
@@ -307,23 +318,33 @@ void main() {
       // Scroll to and tap Save Changes
       await tester.ensureVisible(find.text('Save Changes'));
       await tester.tap(find.text('Save Changes'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
 
       expect(container.read(userProfileProvider).username, 'Alexander Great');
       expect(container.read(userProfileProvider).email, 'alexander@test.com');
-      expect(find.text('Profile updated successfully'), findsOneWidget);
+      expect(find.byType(EditProfilePage), findsNothing);
     });
 
     testWidgets('Shows discard dialog when back button is pressed with unsaved changes', (tester) async {
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
-            home: EditProfilePage(),
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: ElevatedButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const EditProfilePage()),
+                  ),
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
           ),
         ),
       );
 
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
       // Change name to create unsaved changes
@@ -331,7 +352,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap back button
-      await tester.tap(find.byType(IconButton).first);
+      await tester.tap(find.byIcon(Icons.arrow_back));
       await tester.pumpAndSettle();
 
       expect(find.text('Discard changes?'), findsOneWidget);
@@ -344,6 +365,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byType(EditProfilePage), findsOneWidget);
     });
 
     testWidgets('Tapping Discard successfully exits EditProfilePage', (tester) async {
@@ -356,7 +378,7 @@ void main() {
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const EditProfilePage()),
                   ),
-                  child: const Text('Open Edit Profile'),
+                  child: const Text('Open'),
                 ),
               ),
             ),
@@ -365,8 +387,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Open Edit Profile'));
+      await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
       expect(find.byType(EditProfilePage), findsOneWidget);
@@ -376,7 +397,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap back button
-      await tester.tap(find.byType(IconButton).first);
+      await tester.tap(find.byIcon(Icons.arrow_back));
       await tester.pumpAndSettle();
 
       expect(find.text('Discard changes?'), findsOneWidget);
@@ -385,7 +406,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(EditProfilePage), findsNothing);
-      expect(find.text('Open Edit Profile'), findsOneWidget);
+      expect(find.text('Open'), findsOneWidget);
     });
   });
 
