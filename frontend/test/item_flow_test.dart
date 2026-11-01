@@ -39,7 +39,7 @@ void main() {
       expect(find.text('Save'), findsOneWidget);
     });
 
-    testWidgets('Screen #11: Tapping Gemini AI button populates form fields with detected food', (tester) async {
+    testWidgets('Screen #11: Tapping analyze without photo does nothing; requires photo first', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -48,15 +48,90 @@ void main() {
         ),
       );
 
-      // Tap Gemini AI Vision Engine button
+      // Tapping analyze before photo is loaded does NOT populate form ("ถ้ายังไม่ใส่รูปกดวิเคราะห์จะไม่เกิดอะไรขึ้น")
       await tester.tap(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'));
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
 
-      // Check fields are populated
+      expect(find.text('Avocados'), findsNothing);
+      expect(find.text('Scan Label with AI'), findsOneWidget);
+
+      // Tapping Save before analyzing or inputting data does NOT save ("ถ้ายังไม่วิเคราะห์หรือยังไม่ได้ใส่อะไรลงไปไม่สามารถsaveได้ หรือกดไม่ไปนั่นเอง")
+      await tester.ensureVisible(find.text('Save'));
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      expect(find.text('Add items'), findsOneWidget); // still on Add items page, does not pop
+    });
+
+    testWidgets('Screen #11: Tapping Scan Label with AI card opens 2 options (Camera/Gallery), loads image, analyzes on button tap, and X clears all data', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddItemPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+
+      // Verify Scan Label with AI card is visible and tappable
+      expect(find.text('Scan Label with AI'), findsOneWidget);
+      await tester.tap(find.text('Scan Label with AI'));
+      await tester.pumpAndSettle();
+
+      // Check bottom sheet options: exactly 2 options from user request
+      expect(find.text('Take Photo with Camera'), findsOneWidget);
+      expect(find.text('Choose from Gallery'), findsOneWidget);
+      expect(find.text('Demo AI Scan (Sample Avocados)'), findsNothing);
+
+      // Tap Choose from Gallery in sheet
+      await tester.tap(find.text('Choose from Gallery'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      // Image is loaded, but form fields are NOT populated yet before analysis
+      expect(find.text('Photo Loaded'), findsOneWidget);
+      expect(find.text('Photo Selected'), findsOneWidget);
+      expect(find.text('Avocados'), findsNothing);
+
+      // Now tap "ให้ Gemini AI Vision Engine วิเคราะห์"
+      await tester.tap(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Form fields should NOW be populated ("กดวิเคราะห์ข้อมูลถึงมา")
       expect(find.text('Avocados'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
       expect(find.text('pieces'), findsOneWidget);
       expect(find.text('Fridge'), findsOneWidget);
+
+      // Now test: "ถ้ากด กากบาทออกข้อมูลทั้งหมดในหน้า add itemก้จะหายหมดเหมือนกัน"
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      // Image and all fields must be cleared
+      expect(find.text('Scan Label with AI'), findsOneWidget);
+      expect(find.text('Avocados'), findsNothing);
+      expect(find.text('Photo Loaded'), findsNothing);
+
+      // User can choose new photo and analyze again ("ถ้าหากจะใส่รูปต้องเลือกรูปที่ใส่ใหม่ได้และกดวิเคราะห์ใหม่ได้")
+      await tester.tap(find.text('Scan Label with AI'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Take Photo with Camera'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Photo Loaded'), findsOneWidget);
+      await tester.tap(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('Avocados'), findsOneWidget);
+
+      // Now tap Save to add the analyzed item to the fridge
+      await tester.ensureVisible(find.text('Save'));
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Screen #12: ItemDetailsPage renders title, badge, tags, and action buttons', (tester) async {

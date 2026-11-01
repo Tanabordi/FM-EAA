@@ -50,6 +50,7 @@ final fridgeDetailFilterProvider =
 class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
   final String fridgeId;
   final ItemRepository? _repository;
+  final Set<String> _consumedIds = {};
 
   FridgeItemsNotifier(this.fridgeId, [this._repository])
       : super(getInitialFridgeItems(fridgeId)) {
@@ -58,10 +59,13 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
 
   void _init() {
     if (_repository != null) {
-      _repository.watchItems(fridgeId).listen((items) {
-        if (items.isNotEmpty) {
-          state = items;
-        }
+      _repository.watchItems(fridgeId).listen((sqliteItems) {
+        final initial = getInitialFridgeItems(fridgeId);
+        final sqliteIds = sqliteItems.map((e) => e.id).toSet();
+        final remainingInitial = initial.where(
+          (it) => !sqliteIds.contains(it.id) && !_consumedIds.contains(it.id),
+        );
+        state = [...sqliteItems, ...remainingInitial];
       });
     }
   }
@@ -93,6 +97,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
   }
 
   void deleteItem(String id) {
+    _consumedIds.add(id);
     state = state.where((item) => item.id != id).toList();
     _repository?.deleteItem(id);
   }
@@ -108,6 +113,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
     _lastFinishedAll = finishedAll;
 
     if (finishedAll || item.quantity <= amount) {
+      _consumedIds.add(id);
       // Remove completely from list
       state = [
         for (int i = 0; i < state.length; i++)
@@ -130,6 +136,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
 
   void undoConsume() {
     if (_lastConsumedItem == null) return;
+    _consumedIds.remove(_lastConsumedItem!.id);
 
     if (_lastFinishedAll == true ||
         (_lastConsumedAmount != null &&

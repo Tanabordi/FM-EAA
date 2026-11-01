@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../core/theme/freshness_colors.dart';
 import 'status_badge.dart';
@@ -111,11 +112,19 @@ class ItemCard extends StatelessWidget {
 
   Widget _buildFoodImage() {
     if (imagePath != null && imagePath!.isNotEmpty) {
-      return Image.asset(
-        imagePath!,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-      );
+      if (imagePath!.startsWith('assets/')) {
+        return Image.asset(
+          imagePath!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+        );
+      } else {
+        return Image.file(
+          File(imagePath!),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+        );
+      }
     }
     return _buildPlaceholder();
   }
