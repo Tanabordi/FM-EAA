@@ -108,7 +108,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar: Back button on left, Centered "Recipe" title
+            // Top App Bar: Outlined Back Button and left-aligned Title matching other screens
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
               child: Row(
@@ -122,21 +122,18 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                       }
                     },
                   ),
+                  const SizedBox(width: 12),
                   const Expanded(
-                    child: Center(
-                      child: Text(
-                        'Recipe',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF181D17),
-                          letterSpacing: -0.5,
-                        ),
+                    child: Text(
+                      'Recipe',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF181D17),
+                        letterSpacing: -0.5,
                       ),
                     ),
                   ),
-                  // Spacer to balance the AppBackButton width (42px) and keep title centered
-                  const SizedBox(width: 42),
                 ],
               ),
             ),
