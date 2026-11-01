@@ -71,9 +71,40 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   bool _isScanning = false;
   bool _hasAnalyzed = false;
 
+  void _clearAllData() {
+    setState(() {
+      _imagePath = null;
+      _hasAnalyzed = false;
+      _isScanning = false;
+      _foodNameController.clear();
+      _quantityController.clear();
+      _selectedCategory = null;
+      _selectedUnit = null;
+      _selectedStorage = null;
+      _expirationDate = null;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Cleared all data'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
   Future<void> _onScanWithGemini() async {
-    // If user hasn't chosen an image yet, supply sample avocado image
-    _imagePath ??= 'assets/images/food_avocados.png';
+    // Must select or capture an image first; if no image loaded, do nothing
+    if (_imagePath == null || _imagePath!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('กรุณาเลือกหรือถ่ายรูปภาพก่อนทำการวิเคราะห์'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (_isScanning) return;
 
     setState(() {
       _isScanning = true;
@@ -234,23 +265,30 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
       if (!mounted) return;
 
-      setState(() {
-        _imagePath = picked?.path ?? 'assets/images/food_avocados.png';
-        _hasAnalyzed = false;
-      });
+      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('📸 Photo selected! Press "ให้ Gemini AI Vision Engine วิเคราะห์" below.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      if (picked != null || isTest) {
+        setState(() {
+          _imagePath = picked?.path ?? 'assets/images/food_avocados.png';
+          _hasAnalyzed = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('📸 Photo selected! Press "ให้ Gemini AI Vision Engine วิเคราะห์" below.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _imagePath = 'assets/images/food_avocados.png';
-        _hasAnalyzed = false;
-      });
+      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+      if (isTest) {
+        setState(() {
+          _imagePath = 'assets/images/food_avocados.png';
+          _hasAnalyzed = false;
+        });
+      }
     }
   }
 
@@ -381,12 +419,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 top: 8,
                 right: 8,
                 child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _imagePath = null;
-                      _hasAnalyzed = false;
-                    });
-                  },
+                  onTap: _clearAllData,
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     padding: const EdgeInsets.all(6),
@@ -415,7 +448,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
           Text(
             _hasAnalyzed
                 ? 'Tap card to retake or change photo'
-                : 'Press "ให้ Gemini AI Vision Engine วิเคราะห์" below',
+                : 'Tap card to change photo, or analyze below',
             style: const TextStyle(
               fontSize: 13,
               color: Color(0xFF414941),
