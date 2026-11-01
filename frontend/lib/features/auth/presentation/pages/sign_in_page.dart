@@ -104,20 +104,29 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 32),
-              // App Logo - Green rounded square with fridge illustration
+              // App Logo matching Figma
               Center(
                 child: Container(
-                  width: 72,
-                  height: 72,
+                  width: 76,
+                  height: 76,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD7E8D8),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.kitchen_outlined,
-                      size: 40,
-                      color: Color(0xFF2E6A44),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 76,
+                      height: 76,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
