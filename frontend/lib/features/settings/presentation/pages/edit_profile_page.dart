@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
@@ -8,8 +9,10 @@ import '../../../../shared/widgets/user_avatar.dart';
 import 'package:fm_eaa/features/settings/providers/settings_provider.dart';
 
 /// Screen #23: Edit Profile matching Figma Node 138:183
-/// Features Avatar with camera button, Name and Email fields, Change password section,
-/// unsaved changes discard confirmation on back, and Save Changes
+/// Features Avatar with camera button and photo picker bottom sheet (Camera/Gallery/Remove),
+/// Name and Email fields, Change password section, password visibility toggle,
+/// unsaved changes discard confirmation on back, tap-outside keyboard dismissal,
+/// and smooth TextInputAction navigation
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
 
@@ -23,12 +26,20 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   late final TextEditingController _currentPasswordController;
   late final TextEditingController _newPasswordController;
 
+  late final FocusNode _nameFocus;
+  late final FocusNode _emailFocus;
+  late final FocusNode _currentPasswordFocus;
+  late final FocusNode _newPasswordFocus;
+
   String? _nameError;
   String? _emailError;
   String? _passwordError;
   bool _isLoading = false;
   bool _obscureCurrentPassword = true;
   bool _obscureNewPassword = true;
+
+  String? _selectedAvatarPath;
+  bool _removeAvatar = false;
 
   @override
   void initState() {
@@ -38,6 +49,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _emailController = TextEditingController(text: user.email);
     _currentPasswordController = TextEditingController();
     _newPasswordController = TextEditingController();
+
+    _nameFocus = FocusNode();
+    _emailFocus = FocusNode();
+    _currentPasswordFocus = FocusNode();
+    _newPasswordFocus = FocusNode();
   }
 
   @override
@@ -46,6 +62,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _emailController.dispose();
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
+
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _currentPasswordFocus.dispose();
+    _newPasswordFocus.dispose();
     super.dispose();
   }
 
@@ -54,7 +75,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     return _nameController.text != user.username ||
         _emailController.text != user.email ||
         _currentPasswordController.text.isNotEmpty ||
-        _newPasswordController.text.isNotEmpty;
+        _newPasswordController.text.isNotEmpty ||
+        _selectedAvatarPath != null ||
+        _removeAvatar;
   }
 
   void _handleBack() {
@@ -76,6 +99,113 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       );
     } else {
       Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _showPhotoPickerSheet() async {
+    final theme = Theme.of(context);
+    final user = ref.read(userProfileProvider);
+    final hasPhoto = (!_removeAvatar && (_selectedAvatarPath != null || (user.avatarUrl != null && user.avatarUrl!.isNotEmpty)));
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const Text(
+                  'Change Profile Photo',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    child: Icon(Icons.photo_camera_outlined, color: theme.colorScheme.primary),
+                  ),
+                  title: const Text('Take Photo'),
+                  onTap: () {
+                    Navigator.of(bottomSheetContext).pop();
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    child: Icon(Icons.photo_library_outlined, color: theme.colorScheme.primary),
+                  ),
+                  title: const Text('Choose from Gallery'),
+                  onTap: () {
+                    Navigator.of(bottomSheetContext).pop();
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+                if (hasPhoto)
+                  ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Color(0xFFFFEBEE),
+                      child: Icon(Icons.delete_outline, color: Color(0xFFB91C1C)),
+                    ),
+                    title: const Text(
+                      'Remove Photo',
+                      style: TextStyle(color: Color(0xFFB91C1C), fontWeight: FontWeight.w500),
+                    ),
+                    onTap: () {
+                      Navigator.of(bottomSheetContext).pop();
+                      setState(() {
+                        _selectedAvatarPath = null;
+                        _removeAvatar = true;
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _selectedAvatarPath = pickedFile.path;
+          _removeAvatar = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not access image: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -121,6 +251,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       await ref.read(userProfileProvider.notifier).updateProfile(
             name: name,
             email: email,
+            avatarUrl: _selectedAvatarPath,
+            clearAvatar: _removeAvatar,
             currentPassword: currentPassword.isNotEmpty ? currentPassword : null,
             newPassword: newPassword.isNotEmpty ? newPassword : null,
           );
@@ -152,6 +284,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final user = ref.watch(userProfileProvider);
+    final displayedAvatarUrl = _removeAvatar ? null : (_selectedAvatarPath ?? user.avatarUrl);
 
     return PopScope(
       canPop: !_hasUnsavedChanges,
@@ -175,128 +308,140 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           title: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Avatar with camera icon
-                Center(
-                  child: Stack(
-                    children: [
-                      UserAvatar(name: user.username, avatarUrl: user.avatarUrl, radius: 48),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Photo upload will be supported in a future update.'),
-                                duration: Duration(seconds: 2),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                          child: CircleAvatar(
-                            radius: 16,
-                            backgroundColor: theme.colorScheme.primary,
-                            child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Avatar with camera icon
+                  Center(
+                    child: GestureDetector(
+                      onTap: _showPhotoPickerSheet,
+                      child: Stack(
+                        children: [
+                          UserAvatar(name: user.username, avatarUrl: displayedAvatarUrl, radius: 48),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: CircleAvatar(
+                              radius: 16,
+                              backgroundColor: theme.colorScheme.primary,
+                              child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 28),
+                  const SizedBox(height: 28),
 
-                // Name Field
-                AppTextField(
-                  controller: _nameController,
-                  labelText: 'Name',
-                  hintText: 'Enter your name',
-                  errorText: _nameError,
-                  onChanged: (_) {
-                    if (_nameError != null) setState(() => _nameError = null);
-                  },
-                ),
-                const SizedBox(height: 16),
+                  // Name Field
+                  AppTextField(
+                    controller: _nameController,
+                    focusNode: _nameFocus,
+                    labelText: 'Name',
+                    hintText: 'Enter your name',
+                    errorText: _nameError,
+                    keyboardType: TextInputType.name,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => _emailFocus.requestFocus(),
+                    onChanged: (_) {
+                      if (_nameError != null) setState(() => _nameError = null);
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
-                // Email Field
-                AppTextField(
-                  controller: _emailController,
-                  labelText: 'Email',
-                  hintText: 'Enter your email',
-                  errorText: _emailError,
-                  keyboardType: TextInputType.emailAddress,
-                  onChanged: (_) {
-                    if (_emailError != null) setState(() => _emailError = null);
-                  },
-                ),
-                const SizedBox(height: 32),
+                  // Email Field
+                  AppTextField(
+                    controller: _emailController,
+                    focusNode: _emailFocus,
+                    labelText: 'Email',
+                    hintText: 'Enter your email',
+                    errorText: _emailError,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => _currentPasswordFocus.requestFocus(),
+                    onChanged: (_) {
+                      if (_emailError != null) setState(() => _emailError = null);
+                    },
+                  ),
+                  const SizedBox(height: 32),
 
-                // Change Password Section
-                const Text(
-                  'Change password',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Leave blank to keep your current password.',
-                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
-                ),
-                if (_passwordError != null) ...[
-                  const SizedBox(height: 8),
+                  // Change Password Section
+                  const Text(
+                    'Change password',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 4),
                   Text(
-                    _passwordError!,
-                    style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+                    'Leave blank to keep your current password.',
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
+                  ),
+                  if (_passwordError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _passwordError!,
+                      style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+
+                  AppTextField(
+                    controller: _currentPasswordController,
+                    focusNode: _currentPasswordFocus,
+                    labelText: 'Current Password',
+                    hintText: 'Enter current password',
+                    obscureText: _obscureCurrentPassword,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => _newPasswordFocus.requestFocus(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureCurrentPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      onPressed: () => setState(() => _obscureCurrentPassword = !_obscureCurrentPassword),
+                    ),
+                    onChanged: (_) {
+                      if (_passwordError != null) setState(() => _passwordError = null);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  AppTextField(
+                    controller: _newPasswordController,
+                    focusNode: _newPasswordFocus,
+                    labelText: 'New Password',
+                    hintText: 'Enter new password',
+                    obscureText: _obscureNewPassword,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) {
+                      FocusScope.of(context).unfocus();
+                      _handleSave();
+                    },
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureNewPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
+                    ),
+                    onChanged: (_) {
+                      if (_passwordError != null) setState(() => _passwordError = null);
+                    },
+                  ),
+                  const SizedBox(height: 36),
+
+                  // Save Changes Button
+                  PrimaryButton(
+                    label: 'Save Changes',
+                    isLoading: _isLoading,
+                    onPressed: _isLoading ? null : _handleSave,
                   ),
                 ],
-                const SizedBox(height: 16),
-
-                AppTextField(
-                  controller: _currentPasswordController,
-                  labelText: 'Current Password',
-                  hintText: 'Enter current password',
-                  obscureText: _obscureCurrentPassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureCurrentPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    onPressed: () => setState(() => _obscureCurrentPassword = !_obscureCurrentPassword),
-                  ),
-                  onChanged: (_) {
-                    if (_passwordError != null) setState(() => _passwordError = null);
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                AppTextField(
-                  controller: _newPasswordController,
-                  labelText: 'New Password',
-                  hintText: 'Enter new password',
-                  obscureText: _obscureNewPassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureNewPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
-                  ),
-                  onChanged: (_) {
-                    if (_passwordError != null) setState(() => _passwordError = null);
-                  },
-                ),
-                const SizedBox(height: 36),
-
-                // Save Changes Button
-                PrimaryButton(
-                  label: 'Save Changes',
-                  isLoading: _isLoading,
-                  onPressed: _isLoading ? null : _handleSave,
-                ),
-              ],
+              ),
             ),
           ),
         ),
