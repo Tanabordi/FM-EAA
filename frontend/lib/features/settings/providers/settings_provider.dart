@@ -10,8 +10,6 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 /// StateNotifier to manage user profile state (Screen #22 Settings & Screen #23 Edit Profile)
 class UserProfileNotifier extends StateNotifier<UserModel> {
-  final AuthRepository? _authRepository;
-
   static final UserModel defaultUser = UserModel(
     id: 'user_1',
     username: 'Alex Lee',
@@ -20,7 +18,7 @@ class UserProfileNotifier extends StateNotifier<UserModel> {
     updatedAt: DateTime.now(),
   );
 
-  UserProfileNotifier([this._authRepository]) : super(defaultUser);
+  UserProfileNotifier() : super(defaultUser);
 
   /// Update user profile details with validation
   Future<void> updateProfile({
@@ -65,8 +63,7 @@ class UserProfileNotifier extends StateNotifier<UserModel> {
 }
 
 final userProfileProvider = StateNotifierProvider<UserProfileNotifier, UserModel>((ref) {
-  final authRepo = ref.watch(authRepositoryProvider);
-  return UserProfileNotifier(authRepo);
+  return UserProfileNotifier();
 });
 
 final settingsLoadingProvider = StateProvider<bool>((ref) => false);

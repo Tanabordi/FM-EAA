@@ -3,12 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/core/l10n/locale_provider.dart';
 import 'package:fm_eaa/core/theme/app_theme.dart';
-import 'package:fm_eaa/data/models/user_model.dart';
 import 'package:fm_eaa/features/settings/presentation/pages/edit_profile_page.dart';
 import 'package:fm_eaa/features/settings/presentation/pages/settings_page.dart';
 import 'package:fm_eaa/features/settings/presentation/widgets/logout_dialog.dart';
 import 'package:fm_eaa/features/settings/providers/settings_provider.dart';
-import 'package:go_router/go_router.dart';
 
 void main() {
   group('UserProfileNotifier Unit Tests', () {
