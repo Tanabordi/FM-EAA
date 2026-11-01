@@ -18,6 +18,7 @@ import '../../features/family/presentation/pages/invite_member_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/settings/presentation/pages/edit_profile_page.dart';
+import '../../features/recipe/presentation/pages/recipe_recommendation_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -94,6 +95,17 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ],
               ),
               GoRoute(
+                path: 'recipes',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  final ingredient = state.uri.queryParameters['ingredient'] ?? 'Strawberries';
+                  return RecipeRecommendationPage(
+                    fridgeId: id,
+                    initialIngredient: ingredient,
+                  );
+                },
+              ),
+              GoRoute(
                 path: 'items/add',
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
@@ -121,6 +133,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/recipes',
+        builder: (context, state) {
+          final ingredient = state.uri.queryParameters['ingredient'] ?? 'Strawberries';
+          final fridgeId = state.uri.queryParameters['fridgeId'] ?? 'default_fridge';
+          return RecipeRecommendationPage(
+            fridgeId: fridgeId,
+            initialIngredient: ingredient,
+          );
+        },
       ),
       GoRoute(
         path: '/notifications',

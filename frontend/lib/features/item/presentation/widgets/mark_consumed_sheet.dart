@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 /// Screen #14 & #15: "Mark as Consumed" Bottom Sheet.
 /// Allows selecting consumed quantity with interactive stepper [-] N [+] or finishing all,
@@ -30,12 +31,8 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
     if (widget.onRecommendRecipe != null) {
       widget.onRecommendRecipe!();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ให้ Gemini AI แนะนำเมนูอาหารจาก ${widget.itemName}'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      Navigator.of(context).pop();
+      context.push('/recipes?ingredient=${Uri.encodeComponent(widget.itemName)}');
     }
   }
 
