@@ -67,33 +67,47 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           data: (notifications) {
             if (notifications.isEmpty) {
               return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEAEFE8),
-                        shape: BoxShape.circle,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(22),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFEAEFE8),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.notifications_none_outlined,
+                          size: 48,
+                          color: Color(0xFF717971),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.notifications_none_outlined,
-                        size: 48,
-                        color: Color(0xFF717971),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'No Notifications',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF181D18),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'No Notifications',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      "You're all caught up! Expiry alerts and family invites will appear here.",
-                      style: TextStyle(fontSize: 13, color: Color(0xFF717971)),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text(
+                          "You're all caught up! Expiry alerts and family invites will appear here.",
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: Color(0xFF717971),
+                            height: 1.45,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
@@ -178,6 +192,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                     foregroundColor: FreshnessColors.danger,
                     side: const BorderSide(color: FreshnessColors.danger),
                     shape: const StadiumBorder(),
+                    minimumSize: const Size(72, 36),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   onPressed: () => _handleInviteResponse(notif, false),
                   child: const Text('Decline'),
@@ -188,6 +204,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                     backgroundColor: theme.colorScheme.primary,
                     foregroundColor: Colors.white,
                     shape: const StadiumBorder(),
+                    minimumSize: const Size(72, 36),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    elevation: 0,
                   ),
                   onPressed: () => _handleInviteResponse(notif, true),
                   child: const Text('Accept'),

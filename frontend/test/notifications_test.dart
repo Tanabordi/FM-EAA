@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/core/notifications/notification_service.dart';
+import 'package:fm_eaa/core/theme/app_theme.dart';
 import 'package:fm_eaa/data/local/app_database.dart';
 import 'package:fm_eaa/data/models/notification_model.dart';
 import 'package:fm_eaa/data/remote/api_client.dart';
@@ -168,8 +169,9 @@ void main() {
             notificationRepositoryProvider.overrideWithValue(notificationRepo),
             defaultNotificationsStreamProvider.overrideWith((ref) => Stream.value(sampleNotifs)),
           ],
-          child: const MaterialApp(
-            home: NotificationsPage(),
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const NotificationsPage(),
           ),
         ),
       );
@@ -209,8 +211,9 @@ void main() {
             notificationRepositoryProvider.overrideWithValue(notificationRepo),
             defaultNotificationsStreamProvider.overrideWith((ref) => Stream.value(sampleNotifs)),
           ],
-          child: const MaterialApp(
-            home: NotificationsPage(),
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const NotificationsPage(),
           ),
         ),
       );
@@ -232,8 +235,9 @@ void main() {
             notificationRepositoryProvider.overrideWithValue(notificationRepo),
             defaultNotificationsStreamProvider.overrideWith((ref) => Stream.value([])),
           ],
-          child: const MaterialApp(
-            home: NotificationsPage(),
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const NotificationsPage(),
           ),
         ),
       );
