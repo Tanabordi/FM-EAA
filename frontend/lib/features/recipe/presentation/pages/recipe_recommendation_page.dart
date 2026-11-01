@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/app_top_bar.dart';
 import '../../data/models/recipe_model.dart';
 import 'recipe_detail_page.dart';
 
@@ -295,34 +295,16 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
-              child: Row(
-                children: [
-                  AppBackButton(
-                    onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/fridges/${widget.fridgeId}');
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'AI Suggested Recipes',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF181D17),
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            // Top App Bar matching other screens via unified AppTopBar
+            AppTopBar(
+              title: 'AI Suggested Recipes',
+              onBackPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/fridges/${widget.fridgeId}');
+                }
+              },
             ),
             // Scrollable Content
             Expanded(
