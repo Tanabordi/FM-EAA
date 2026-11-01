@@ -38,7 +38,7 @@ Figma [FM-EAA on Figma](https://www.figma.com/design/MB6XUkZz1GZqJpDqvfkHYc/FM-E
 4. Reset Password (Node 64:3) ข้อความ "Enter your email" ช่องกรอก Email และปุ่ม "Send Link"
 
 ### ตู้เย็น (ผู้ใช้สามารถสร้างได้หลายตู้)
-5. My Fridges (Node 223:69, 88:62) หัวข้อ "My Fridges" ไอคอนแจ้งเตือนและตั้งค่า ข้อความ "A fresh look at what's inside." แบนเนอร์สรุป "A little check, a lot less waste N items need your attention today" หัวข้อ "Your fridges" พร้อมจำนวนตู้ การ์ดตู้เย็น 2 คอลัมน์ (แสดงไอคอน เมนูสามจุด ชื่อตู้ คำอธิบาย จำนวนของ ป้าย Personal หรือจำนวนสมาชิก) และปุ่มลอยเพิ่มตู้
+5. My Fridges (Node 223:69, 88:62) หัวข้อ "My Fridges" ไอคอนแจ้งเตือนและตั้งค่า ข้อความ "A fresh look at what's inside." (ตัดแบนเนอร์สรุปออกตามข้อตกลงการปรับปรุง UI ของทีมให้กระชับสะอาดตา) หัวข้อ "Your fridges" พร้อมจำนวนตู้ การ์ดตู้เย็น 2 คอลัมน์ (แสดงไอคอน เมนูสามจุด ชื่อตู้ คำอธิบาย จำนวนของ ป้าย Personal หรือจำนวนสมาชิก) และปุ่มลอยเพิ่มตู้
 6. Add New Fridge (Node 88:225) ช่องกรอก Fridge Name, Description และปุ่ม Create Fridge
 7. Edit Fridge (Bottom Sheet Node 120:30) หัวข้อ "Edit Fridge" ช่องกรอก Fridge Name, Description (ไม่บังคับ) ปุ่ม Save และปุ่ม Delete Fridge (สีแดง)
 8. Delete Fridge Alert (Dialog Node 124:30) ไดอะล็อกยืนยันการลบตู้เย็น
