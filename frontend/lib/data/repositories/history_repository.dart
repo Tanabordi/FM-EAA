@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:drift/drift.dart';
 import '../local/app_database.dart';
 import '../models/history_model.dart';
@@ -55,7 +56,7 @@ class HistoryRepository {
     DateTime? createdAt,
   }) async {
     await database.itemDao.recordExpiredHistory(
-      id: 'hist_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'hist_${DateTime.now().millisecondsSinceEpoch}_${math.Random().nextInt(10000)}',
       fridgeId: fridgeId,
       itemId: itemId,
       itemName: itemName,
@@ -87,7 +88,7 @@ class HistoryRepository {
   }) async {
     await database.itemDao.into(database.itemDao.itemHistory).insert(
       ItemHistoryCompanion.insert(
-        id: 'hist_${DateTime.now().millisecondsSinceEpoch}',
+        id: 'hist_${DateTime.now().millisecondsSinceEpoch}_${math.Random().nextInt(10000)}',
         fridgeId: fridgeId,
         itemId: Value(itemId),
         itemName: itemName,

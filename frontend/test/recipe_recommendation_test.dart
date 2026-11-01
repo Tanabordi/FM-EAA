@@ -1,16 +1,31 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/features/recipe/data/models/recipe_model.dart';
-import 'package:frontend/features/recipe/presentation/pages/recipe_recommendation_page.dart';
-import 'package:frontend/features/recipe/presentation/pages/recipe_detail_page.dart';
+import 'package:fm_eaa/data/local/app_database.dart';
+import 'package:fm_eaa/features/recipe/data/models/recipe_model.dart';
+import 'package:fm_eaa/features/recipe/presentation/pages/recipe_recommendation_page.dart';
+import 'package:fm_eaa/features/recipe/presentation/pages/recipe_detail_page.dart';
 
 void main() {
+  late AppDatabase db;
+
+  setUp(() {
+    db = AppDatabase(NativeDatabase.memory());
+  });
+
+  tearDown(() async {
+    await db.close();
+  });
+
   group('Screen #25: AI Suggested Recipes Tests', () {
     testWidgets('renders top bar, orange highlight banner, 3 recipe cards, and regenerate button', (tester) async {
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
             home: RecipeRecommendationPage(
               fridgeId: 'fridge_1',
               initialIngredient: 'Strawberries',
@@ -47,8 +62,11 @@ void main() {
 
     testWidgets('renders recipes dynamically when ingredient is Baby spinach', (tester) async {
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
             home: RecipeRecommendationPage(
               fridgeId: 'fridge_1',
               initialIngredient: 'Baby spinach',
@@ -94,6 +112,9 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
           child: MaterialApp(
             home: RecipeDetailPage(
               recipe: smoothieRecipe,
@@ -135,7 +156,7 @@ void main() {
       // Bottom Button
       expect(find.text('Done! Mark as Consumed'), findsOneWidget);
       await tester.tap(find.text('Done! Mark as Consumed'));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(markedConsumed, true);
     });
   });

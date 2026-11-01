@@ -296,7 +296,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
   void _onViewRecipe(RecipeModel recipe) {
     Navigator.of(context).push(
-      MaterialRouteTransition(
+      MaterialPageRoute<void>(
         builder: (context) => RecipeDetailPage(
           recipe: recipe,
           fridgeId: widget.fridgeId,
@@ -316,10 +316,16 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
             AppTopBar(
               title: 'AI Suggested Recipes',
               onBackPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go('/fridges/${widget.fridgeId}');
+                try {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/fridges/${widget.fridgeId}');
+                  }
+                } catch (_) {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  }
                 }
               },
             ),
@@ -537,8 +543,4 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       ),
     );
   }
-}
-
-class MaterialRouteTransition<T> extends MaterialPageRoute<T> {
-  MaterialRouteTransition({required super.builder});
 }

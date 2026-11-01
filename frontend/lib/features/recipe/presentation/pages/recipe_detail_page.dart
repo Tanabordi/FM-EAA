@@ -93,9 +93,11 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     try {
       context.go('/fridges/${widget.fridgeId}');
     } catch (_) {
-      if (context.canPop()) {
-        context.pop();
-      }
+      try {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      } catch (_) {}
     }
   }
 
@@ -112,10 +114,16 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
             AppTopBar(
               title: 'Recipe',
               onBackPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go('/fridges/${widget.fridgeId}');
+                try {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/fridges/${widget.fridgeId}');
+                  }
+                } catch (_) {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  }
                 }
               },
             ),
