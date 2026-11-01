@@ -219,9 +219,12 @@ void main() {
 
       // Tap Accept
       await tester.tap(find.text('Accept'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Accepted invitation.'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Empty State renders when no notifications exist', (tester) async {
