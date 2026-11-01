@@ -124,6 +124,7 @@ void main() {
       expect(find.text('Avocados · 2 pieces in fridge'), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.text('of 2 pieces'), findsOneWidget);
+      expect(find.text('ให้ Gemini AI แนะนำเมนูอาหาร'), findsOneWidget);
 
       // Test Stepper [+]
       await tester.tap(find.byIcon(Icons.add));

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 /// Screen #14 & #15: "Mark as Consumed" Bottom Sheet.
-/// Allows selecting consumed quantity with interactive stepper [-] N [+] or finishing all.
+/// Allows selecting consumed quantity with interactive stepper [-] N [+] or finishing all,
+/// with shortcut to trigger Gemini AI recipe recommendations.
 class MarkConsumedSheet extends StatefulWidget {
   final String itemName;
   final double availablePieces;
   final String unit;
   final void Function(double amount, bool finishedAll) onConsumed;
+  final VoidCallback? onRecommendRecipe;
 
   const MarkConsumedSheet({
     super.key,
@@ -14,6 +17,7 @@ class MarkConsumedSheet extends StatefulWidget {
     required this.availablePieces,
     required this.unit,
     required this.onConsumed,
+    this.onRecommendRecipe,
   });
 
   @override
@@ -22,6 +26,15 @@ class MarkConsumedSheet extends StatefulWidget {
 
 class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
   double _consumeAmount = 1;
+
+  void _onGeminiRecipe() {
+    if (widget.onRecommendRecipe != null) {
+      widget.onRecommendRecipe!();
+    } else {
+      Navigator.of(context).pop();
+      context.push('/recipes?ingredient=${Uri.encodeComponent(widget.itemName)}');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +84,7 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                   color: Color(0xFF414941),
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               // Stepper section
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -150,7 +163,72 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
+              // Gemini AI Recipe Recommendation Button (Floating pill button with shadow)
+              InkWell(
+                borderRadius: BorderRadius.circular(28),
+                onTap: _onGeminiRecipe,
+                child: Container(
+                  height: 52,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAEFE8),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: const Color(0xFF717971),
+                      width: 1.0,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.16),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: ShaderMask(
+                            shaderCallback: (bounds) => const SweepGradient(
+                              colors: [
+                                Color(0xFF4285F4),
+                                Color(0xFF9B72CF),
+                                Color(0xFFEA4335),
+                                Color(0xFFFBBC04),
+                                Color(0xFF4285F4),
+                              ],
+                            ).createShader(bounds),
+                            child: const Icon(
+                              Icons.auto_awesome,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'ให้ Gemini AI แนะนำเมนูอาหาร',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF181D17),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               // Confirm Button
               SizedBox(
                 height: 52,

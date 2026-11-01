@@ -257,6 +257,10 @@ class ItemDetailsPage extends ConsumerWidget {
             : (item.unit.contains('bag')
                 ? 'bag'
                 : (item.unit.contains('bottle') ? 'bottle' : 'pieces')),
+        onRecommendRecipe: () {
+          Navigator.pop(sheetContext);
+          context.push('/fridges/$fridgeId/recipes?ingredient=${Uri.encodeComponent(item.name)}');
+        },
         onConsumed: (amount, finishedAll) {
           Navigator.pop(sheetContext); // Close sheet
           ref.read(fridgeItemsProvider(fridgeId).notifier).consumeItem(item.id, amount, finishedAll);
