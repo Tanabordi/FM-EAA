@@ -54,6 +54,15 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             : (item.unit.contains('bag')
                 ? 'bag'
                 : (item.unit.contains('bottle') ? 'bottle' : 'pieces')),
+        onRecommendRecipe: () {
+          Navigator.pop(sheetContext);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('ให้ Gemini AI แนะนำเมนูอาหารจาก ${item.name}'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        },
         onConsumed: (amount, finishedAll) {
           Navigator.pop(sheetContext);
           ref.read(fridgeItemsProvider(widget.fridgeId).notifier).consumeItem(item.id, amount, finishedAll);
