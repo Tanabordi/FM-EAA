@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/models/notification_model.dart';
@@ -13,14 +14,14 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 /// Reactive stream of notifications for a user (auto-seeds demo notifications if empty)
 final notificationsStreamProvider = StreamProvider.family<List<NotificationModel>, String>((ref, userId) {
   final repo = ref.watch(notificationRepositoryProvider);
-  repo.seedInitialNotificationsIfEmpty(userId);
+  unawaited(repo.seedInitialNotificationsIfEmpty(userId).catchError((_) {}));
   return repo.watchNotifications(userId);
 });
 
 /// Convenience provider for default user_1 notifications
 final defaultNotificationsStreamProvider = StreamProvider<List<NotificationModel>>((ref) {
   final repo = ref.watch(notificationRepositoryProvider);
-  repo.seedInitialNotificationsIfEmpty('user_1');
+  unawaited(repo.seedInitialNotificationsIfEmpty('user_1').catchError((_) {}));
   return repo.watchNotifications('user_1');
 });
 

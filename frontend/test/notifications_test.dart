@@ -164,6 +164,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            notificationRepositoryProvider.overrideWithValue(notificationRepo),
             defaultNotificationsStreamProvider.overrideWith((ref) => Stream.value(sampleNotifs)),
           ],
           child: const MaterialApp(
@@ -203,6 +205,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            notificationRepositoryProvider.overrideWithValue(notificationRepo),
             defaultNotificationsStreamProvider.overrideWith((ref) => Stream.value(sampleNotifs)),
           ],
           child: const MaterialApp(
@@ -224,6 +228,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            notificationRepositoryProvider.overrideWithValue(notificationRepo),
             defaultNotificationsStreamProvider.overrideWith((ref) => Stream.value([])),
           ],
           child: const MaterialApp(
