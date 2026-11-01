@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,6 +30,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   String? _selectedStorage;
   DateTime? _expirationDate;
   String? _imagePath;
+  Uint8List? _imageBytes;
 
   final _categories = ['Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'];
   final _units = ['pieces', 'bag', 'punnet', 'bottle', 'box', 'can', 'pack', 'g', 'kg'];
@@ -75,6 +77,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   void _clearAllData() {
     setState(() {
       _imagePath = null;
+      _imageBytes = null;
       _hasAnalyzed = false;
       _isScanning = false;
       _foodNameController.clear();
@@ -153,7 +156,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
   Future<void> _onScanWithGemini() async {
     // Must select or capture an image first; if no image loaded, do nothing
-    if (_imagePath == null || _imagePath!.isEmpty) {
+    if ((_imagePath == null || _imagePath!.isEmpty) && _imageBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('กรุณาเลือกหรือถ่ายรูปภาพก่อนทำการวิเคราะห์'),
@@ -171,10 +174,18 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
-      final File file = _imagePath!.startsWith('assets/')
-          ? File('')
-          : File(_imagePath!);
-      final result = await aiRepo.scanLabel(file);
+      final AiScanResult result;
+      if (_imageBytes != null) {
+        result = await aiRepo.scanLabelBytes(
+          _imageBytes!,
+          filename: _imagePath?.split(Platform.pathSeparator).last ?? 'photo.jpg',
+        );
+      } else {
+        final File file = _imagePath!.startsWith('assets/')
+            ? File('')
+            : File(_imagePath!);
+        result = await aiRepo.scanLabel(file);
+      }
 
       if (!mounted) return;
 
@@ -313,31 +324,50 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   Future<void> _pickImage(ImageSource source) async {
     try {
       final picker = ImagePicker();
-      final picked = await picker
-          .pickImage(
-            source: source,
-            maxWidth: 1024,
-            maxHeight: 1024,
-            imageQuality: 85,
-          )
-          .timeout(const Duration(milliseconds: 300), onTimeout: () => null);
+      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+
+      final XFile? picked;
+      if (isTest) {
+        picked = await picker
+            .pickImage(
+              source: source,
+              maxWidth: 1024,
+              maxHeight: 1024,
+              imageQuality: 85,
+            )
+            .timeout(const Duration(milliseconds: 300), onTimeout: () => null);
+      } else {
+        picked = await picker.pickImage(
+          source: source,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        );
+      }
 
       if (!mounted) return;
 
-      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
-
-      if (picked != null || isTest) {
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        if (!mounted) return;
         setState(() {
-          _imagePath = picked?.path ?? 'assets/images/food_avocados.png';
+          _imagePath = picked!.path;
+          _imageBytes = bytes;
           _hasAnalyzed = false;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('📸 Photo selected! Press "ให้ Gemini AI Vision Engine วิเคราะห์" below.'),
+            content: Text('📸 ได้รูปภาพแล้ว! กด "ให้ Gemini AI Vision Engine วิเคราะห์" ด้านล่าง'),
             duration: Duration(seconds: 2),
           ),
         );
+      } else if (isTest) {
+        setState(() {
+          _imagePath = 'assets/images/food_avocados.png';
+          _imageBytes = null;
+          _hasAnalyzed = false;
+        });
       }
     } catch (_) {
       if (!mounted) return;
@@ -345,6 +375,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       if (isTest) {
         setState(() {
           _imagePath = 'assets/images/food_avocados.png';
+          _imageBytes = null;
           _hasAnalyzed = false;
         });
       }
@@ -411,7 +442,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       );
     }
 
-    if (_imagePath != null && _imagePath!.isNotEmpty) {
+    if (_imageBytes != null || (_imagePath != null && _imagePath!.isNotEmpty)) {
       return Column(
         children: [
           Stack(
@@ -421,21 +452,29 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 child: SizedBox(
                   height: 130,
                   width: double.infinity,
-                  child: _imagePath!.startsWith('assets/')
-                      ? Image.asset(
-                          _imagePath!,
+                  child: _imageBytes != null
+                      ? Image.memory(
+                          _imageBytes!,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => const Center(
                             child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
                           ),
                         )
-                      : Image.file(
-                          File(_imagePath!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Center(
-                            child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
-                          ),
-                        ),
+                      : (_imagePath!.startsWith('assets/')
+                          ? Image.asset(
+                              _imagePath!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Center(
+                                child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                              ),
+                            )
+                          : Image.file(
+                              File(_imagePath!),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Center(
+                                child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                              ),
+                            )),
                 ),
               ),
               Positioned(

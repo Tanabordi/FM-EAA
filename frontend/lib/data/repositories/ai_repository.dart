@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../remote/api_client.dart';
@@ -27,6 +28,46 @@ class AiRepository {
   final ApiClient apiClient;
 
   AiRepository({required this.apiClient});
+
+  /// Scans food label from in-memory image bytes
+  Future<AiScanResult> scanLabelBytes(Uint8List bytes, {String? filename}) async {
+    try {
+      final name = filename ?? 'photo.jpg';
+      final formData = FormData.fromMap({
+        'image': MultipartFile.fromBytes(bytes, filename: name),
+      });
+
+      final response = await apiClient.dio.post(
+        '/ai/scan-label',
+        data: formData,
+        options: Options(
+          headers: {'Content-Type': 'multipart/form-data'},
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = response.data as Map<String, dynamic>;
+        final rawName = data['foodName'] as String?;
+        final foodName = (rawName != null && rawName.trim().isNotEmpty)
+            ? rawName.trim()
+            : 'Avocados';
+
+        DateTime? expiryDate;
+        if (data['expiryDate'] != null) {
+          expiryDate = DateTime.tryParse(data['expiryDate'].toString());
+        }
+
+        return _categorizeFood(
+          foodName,
+          expiryDate ?? DateTime.now().add(const Duration(days: 7)),
+          name,
+        );
+      }
+      return _smartFallback(name);
+    } catch (_) {
+      return _smartFallback(filename ?? '');
+    }
+  }
 
   /// Scans food label from image file and extracts food name, expiration date, and category
   Future<AiScanResult> scanLabel(File imageFile) async {
