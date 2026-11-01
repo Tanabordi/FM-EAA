@@ -245,11 +245,12 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Clear name
-      await tester.enterText(find.widgetWithText(TextField, 'Alex Lee'), '');
-      await tester.enterText(find.widgetWithText(TextField, 'alex.lee@example.com'), 'invalid_email');
+      // Clear name and enter invalid email
+      await tester.enterText(find.byType(TextField).at(0), '');
+      await tester.enterText(find.byType(TextField).at(1), 'invalid_email');
 
-      // Tap Save Changes
+      // Scroll to and tap Save Changes
+      await tester.ensureVisible(find.text('Save Changes'));
       await tester.tap(find.text('Save Changes'));
       await tester.pumpAndSettle();
 
@@ -272,11 +273,11 @@ void main() {
 
       // Enter short new password
       final textFields = find.byType(TextField);
-      // TextField 3 is Current Password, TextField 4 is New Password
       await tester.enterText(textFields.at(2), 'old_pass');
       await tester.enterText(textFields.at(3), '123');
 
-      // Tap Save Changes
+      // Scroll to and tap Save Changes
+      await tester.ensureVisible(find.text('Save Changes'));
       await tester.tap(find.text('Save Changes'));
       await tester.pumpAndSettle();
 
@@ -299,11 +300,12 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Update name
-      await tester.enterText(find.widgetWithText(TextField, 'Alex Lee'), 'Alexander Great');
-      await tester.enterText(find.widgetWithText(TextField, 'alex.lee@example.com'), 'alexander@test.com');
+      // Update name and email
+      await tester.enterText(find.byType(TextField).at(0), 'Alexander Great');
+      await tester.enterText(find.byType(TextField).at(1), 'alexander@test.com');
 
-      // Tap Save Changes
+      // Scroll to and tap Save Changes
+      await tester.ensureVisible(find.text('Save Changes'));
       await tester.tap(find.text('Save Changes'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
@@ -325,7 +327,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Change name to create unsaved changes
-      await tester.enterText(find.widgetWithText(TextField, 'Alex Lee'), 'Changed Name');
+      await tester.enterText(find.byType(TextField).at(0), 'Changed Name');
       await tester.pumpAndSettle();
 
       // Tap back button
@@ -346,19 +348,35 @@ void main() {
 
     testWidgets('Tapping Discard successfully exits EditProfilePage', (tester) async {
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
-            home: EditProfilePage(),
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: ElevatedButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const EditProfilePage()),
+                  ),
+                  child: const Text('Open Edit Profile'),
+                ),
+              ),
+            ),
           ),
         ),
       );
 
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.widgetWithText(TextField, 'Alex Lee'), 'Changed Name');
+      await tester.tap(find.text('Open Edit Profile'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(IconButton).first); // Back button
+      expect(find.byType(EditProfilePage), findsOneWidget);
+
+      // Change name to create unsaved changes
+      await tester.enterText(find.byType(TextField).at(0), 'Changed Name');
+      await tester.pumpAndSettle();
+
+      // Tap back button
+      await tester.tap(find.byType(IconButton).first);
       await tester.pumpAndSettle();
 
       expect(find.text('Discard changes?'), findsOneWidget);
@@ -367,6 +385,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(EditProfilePage), findsNothing);
+      expect(find.text('Open Edit Profile'), findsOneWidget);
     });
   });
 
