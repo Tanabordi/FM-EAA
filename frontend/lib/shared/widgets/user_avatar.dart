@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 
 /// Circular Avatar displaying user photo or 2-letter initials
@@ -23,9 +24,13 @@ class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (avatarUrl != null && avatarUrl!.isNotEmpty) {
+      final ImageProvider imageProvider = avatarUrl!.startsWith('http')
+          ? NetworkImage(avatarUrl!)
+          : FileImage(File(avatarUrl!)) as ImageProvider;
+
       return CircleAvatar(
         radius: radius,
-        backgroundImage: NetworkImage(avatarUrl!),
+        backgroundImage: imageProvider,
       );
     }
 

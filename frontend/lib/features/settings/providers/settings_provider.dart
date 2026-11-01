@@ -27,6 +27,7 @@ class UserProfileNotifier extends StateNotifier<UserModel> {
     required String name,
     required String email,
     String? avatarUrl,
+    bool clearAvatar = false,
     String? currentPassword,
     String? newPassword,
   }) async {
@@ -52,7 +53,8 @@ class UserProfileNotifier extends StateNotifier<UserModel> {
     state = state.copyWith(
       username: trimmedName,
       email: trimmedEmail,
-      avatarUrl: avatarUrl ?? state.avatarUrl,
+      avatarUrl: avatarUrl,
+      clearAvatar: clearAvatar,
       updatedAt: DateTime.now(),
     );
   }
