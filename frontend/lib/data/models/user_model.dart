@@ -32,5 +32,21 @@ class UserModel {
       'updated_at': updatedAt.toIso8601String(),
     };
   }
-}
 
+  UserModel copyWith({
+    String? id,
+    String? username,
+    String? email,
+    String? avatarUrl,
+    bool clearAvatar = false,
+    DateTime? updatedAt,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      email: email ?? this.email,
+      avatarUrl: clearAvatar ? null : (avatarUrl ?? this.avatarUrl),
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+}

@@ -26,15 +26,22 @@ class ConfirmDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
       content: Text(message),
+      actionsAlignment: MainAxisAlignment.end,
+      actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(cancelLabel),
         ),
+        const SizedBox(width: 8),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: isDestructive ? FreshnessColors.danger : Theme.of(context).colorScheme.primary,
             foregroundColor: Colors.white,
+            minimumSize: const Size(84, 40),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            shape: const StadiumBorder(),
+            elevation: 0,
           ),
           onPressed: () {
             Navigator.of(context).pop();
@@ -46,4 +53,3 @@ class ConfirmDialog extends StatelessWidget {
     );
   }
 }
-
