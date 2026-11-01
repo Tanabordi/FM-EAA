@@ -31,6 +31,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   DateTime? _expirationDate;
   String? _imagePath;
   Uint8List? _imageBytes;
+  String? _pickedFileName;
 
   final _categories = ['Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'];
   final _units = ['pieces', 'bag', 'punnet', 'bottle', 'box', 'can', 'pack', 'g', 'kg'];
@@ -78,6 +79,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     setState(() {
       _imagePath = null;
       _imageBytes = null;
+      _pickedFileName = null;
       _hasAnalyzed = false;
       _isScanning = false;
       _foodNameController.clear();
@@ -178,54 +180,60 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       if (_imageBytes != null) {
         result = await aiRepo.scanLabelBytes(
           _imageBytes!,
-          filename: _imagePath?.split(Platform.pathSeparator).last ?? 'photo.jpg',
+          filename: _pickedFileName ?? _imagePath?.split(Platform.pathSeparator).last ?? 'photo.jpg',
         );
       } else {
-        final File file = _imagePath!.startsWith('assets/')
-            ? File('')
-            : File(_imagePath!);
+        final File file = File(_imagePath!);
         result = await aiRepo.scanLabel(file);
       }
 
       if (!mounted) return;
 
-      setState(() {
-        _foodNameController.text = result.foodName;
-        _selectedCategory = result.category;
-        if (_quantityController.text.trim().isEmpty) {
-          _quantityController.text = '2';
-        }
-        _selectedUnit = result.unit;
-        _selectedStorage = result.storage;
-        if (result.expiryDate != null) {
-          _expirationDate = result.expiryDate;
-        }
-        _hasAnalyzed = true;
-        _isScanning = false;
-      });
+      if (result.isDetected && result.foodName != null && result.foodName!.trim().isNotEmpty) {
+        setState(() {
+          _foodNameController.text = result.foodName!;
+          _selectedCategory = result.category;
+          if (_quantityController.text.trim().isEmpty) {
+            _quantityController.text = '2';
+          }
+          _selectedUnit = result.unit;
+          _selectedStorage = result.storage;
+          if (result.expiryDate != null) {
+            _expirationDate = result.expiryDate;
+          }
+          _hasAnalyzed = true;
+          _isScanning = false;
+        });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✨ Gemini AI: ${result.foodName} detected! Form autofilled.'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✨ Gemini AI: ตรวจพบ ${result.foodName} เรียบร้อยแล้ว!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        setState(() {
+          _hasAnalyzed = true;
+          _isScanning = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('📸 โหลดรูปภาพแล้ว! กรุณากรอกชื่อและข้อมูลอาหารเพื่อบันทึก'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _foodNameController.text = 'Avocados';
-        _selectedCategory = 'Veggies';
-        _quantityController.text = '2';
-        _selectedUnit = 'pieces';
-        _selectedStorage = 'Fridge';
-        _expirationDate = DateTime.now().add(const Duration(days: 5));
         _hasAnalyzed = true;
         _isScanning = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Gemini Vision Engine: Avocados detected!'),
+          content: Text('📸 โหลดรูปภาพแล้ว! กรุณากรอกชื่อและข้อมูลอาหารเพื่อบันทึก'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -353,6 +361,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
         setState(() {
           _imagePath = picked!.path;
           _imageBytes = bytes;
+          _pickedFileName = picked.name;
           _hasAnalyzed = false;
         });
 
@@ -483,7 +492,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.92),
+                    color: Colors.white.withValues(alpha: 0.95),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -546,11 +555,12 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
           Text(
             _hasAnalyzed
                 ? 'Tap card to retake or change photo'
-                : 'Tap card to change photo, or analyze below',
+                : 'Tap card to change photo, or tap ✕ to remove',
             style: const TextStyle(
               fontSize: 13,
               color: Color(0xFF414941),
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       );
@@ -630,7 +640,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                             color: const Color(0xFFEAEFE8),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
-                              color: _imagePath != null
+                              color: (_imagePath != null || _imageBytes != null)
                                   ? const Color(0xFF2E6A44).withValues(alpha: 0.3)
                                   : Colors.transparent,
                               width: 1.5,

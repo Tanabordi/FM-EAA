@@ -1,9 +1,18 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Centralized Dio API Client for communicating with the Node.js backend.
 class ApiClient {
-  static const String baseUrl = 'http://localhost:5000/api';
+  static String get baseUrl {
+    if (kIsWeb) return 'http://localhost:5000/api';
+    try {
+      if (Platform.isAndroid) return 'http://10.0.2.2:5000/api';
+    } catch (_) {}
+    return 'http://localhost:5000/api';
+  }
+
   final Dio dio;
   final FlutterSecureStorage storage;
 
@@ -32,4 +41,3 @@ class ApiClient {
     );
   }
 }
-
