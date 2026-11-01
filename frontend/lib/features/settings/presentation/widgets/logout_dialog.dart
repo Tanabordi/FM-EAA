@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
+import 'package:fm_eaa/features/settings/providers/settings_provider.dart';
 
-// TODO(screen #24 Log Out alert): ยืนยันออกจากระบบ (dialog)
-class LogoutDialog extends StatelessWidget {
+/// Screen #24: Log Out Alert Dialog matching Figma Node 133:438
+class LogoutDialog extends ConsumerWidget {
   const LogoutDialog({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ConfirmDialog(
       title: 'Log out',
       message: 'Are you sure you want to log out of your account?',
       confirmLabel: 'Log out',
       isDestructive: true,
-      onConfirm: () {
-        // TODO(auth logout): Clear session and redirect to sign in
-        context.go('/sign-in');
+      onConfirm: () async {
+        try {
+          await ref.read(authRepositoryProvider).logout();
+        } catch (_) {}
+        if (context.mounted) {
+          context.go('/sign-in');
+        }
       },
     );
   }
 }
-
