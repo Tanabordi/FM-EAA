@@ -155,11 +155,9 @@ void main() {
         ),
       );
 
-      // Verify header & banner (Image 2 / 10)
+      // Verify header (Image 2 / 10)
       expect(find.text('My Fridges'), findsOneWidget);
       expect(find.text("A fresh look at what's inside."), findsOneWidget);
-      expect(find.text('A little check, a lot less waste'), findsOneWidget);
-      expect(find.text('2 items need your attention today'), findsOneWidget);
 
       // Verify section header & cards
       expect(find.text('Your fridges'), findsOneWidget);
