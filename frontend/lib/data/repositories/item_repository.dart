@@ -43,6 +43,9 @@ class ItemRepository {
     return entries.map(ItemModel.fromEntry).toList();
   }
 
+  /// Convenience alias for getItems by fridge
+  Future<List<ItemModel>> getItemsByFridge(String fridgeId) => getItems(fridgeId);
+
   /// Optimistic Add: Inserts into Drift SQLite with is_synced = false immediately
   Future<ItemModel> addItem(ItemModel item) async {
     await database.itemDao.insertItemOptimistic(

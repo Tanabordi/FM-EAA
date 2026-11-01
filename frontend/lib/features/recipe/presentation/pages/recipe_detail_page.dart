@@ -57,7 +57,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     // 2. Also deduct from fridge inventory if matching ingredient item exists
     try {
       final itemRepo = ref.read(itemRepositoryProvider);
-      final items = await itemRepo.getItemsByFridge(widget.fridgeId);
+      final items = await itemRepo.getItems(widget.fridgeId);
       final matching = items.cast<ItemModel?>().firstWhere(
             (i) =>
                 i != null &&
