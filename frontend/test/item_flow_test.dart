@@ -59,6 +59,36 @@ void main() {
       expect(find.text('Fridge'), findsOneWidget);
     });
 
+    testWidgets('Screen #11: Tapping Scan Label with AI card opens camera/gallery options and autofills form', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddItemPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+
+      // Verify Scan Label with AI card is visible and tappable
+      expect(find.text('Scan Label with AI'), findsOneWidget);
+      await tester.tap(find.text('Scan Label with AI'));
+      await tester.pumpAndSettle();
+
+      // Check bottom sheet options appear
+      expect(find.text('Take Photo with Camera'), findsOneWidget);
+      expect(find.text('Choose from Gallery'), findsOneWidget);
+      expect(find.text('Demo AI Scan (Sample Avocados)'), findsOneWidget);
+
+      // Tap demo scan in sheet
+      await tester.tap(find.text('Demo AI Scan (Sample Avocados)'));
+      await tester.pumpAndSettle();
+
+      // Form fields should be populated
+      expect(find.text('Avocados'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('pieces'), findsOneWidget);
+      expect(find.text('Fridge'), findsOneWidget);
+    });
+
     testWidgets('Screen #12: ItemDetailsPage renders title, badge, tags, and action buttons', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(

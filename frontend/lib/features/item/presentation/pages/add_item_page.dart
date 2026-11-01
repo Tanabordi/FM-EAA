@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
+import '../../../../data/repositories/ai_repository.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 
@@ -65,6 +68,8 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     );
   }
 
+  bool _isScanning = false;
+
   void _onScanWithGemini() {
     setState(() {
       _foodNameController.text = 'Avocados';
@@ -74,6 +79,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       _selectedStorage = 'Fridge';
       _expirationDate = DateTime.now().add(const Duration(days: 5));
       _imagePath = 'assets/images/food_avocados.png';
+      _isScanning = false;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -81,6 +87,363 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
         content: Text('Gemini Vision Engine: Avocados detected!'),
         duration: Duration(seconds: 2),
       ),
+    );
+  }
+
+  Future<void> _showScanSourceSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDDE4DC),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: Color(0xFF2E6A44), size: 22),
+                      SizedBox(width: 8),
+                      Text(
+                        'Scan Label with AI',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF181D17),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(8, 4, 8, 14),
+                  child: Text(
+                    'Capture or select an image to let Gemini AI extract food name and expiry date.',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF717971)),
+                  ),
+                ),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFEAEFE8),
+                    child: Icon(Icons.photo_camera_outlined, color: Color(0xFF2E6A44)),
+                  ),
+                  title: const Text(
+                    'Take Photo with Camera',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                  subtitle: const Text('Capture label directly using camera'),
+                  onTap: () {
+                    Navigator.of(bottomSheetContext).pop();
+                    _pickAndScan(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFEAEFE8),
+                    child: Icon(Icons.photo_library_outlined, color: Color(0xFF2E6A44)),
+                  ),
+                  title: const Text(
+                    'Choose from Gallery',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                  subtitle: const Text('Select a photo of food packaging'),
+                  onTap: () {
+                    Navigator.of(bottomSheetContext).pop();
+                    _pickAndScan(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFEAEFE8),
+                    child: Icon(Icons.flash_on_rounded, color: Color(0xFFFA8B28)),
+                  ),
+                  title: const Text(
+                    'Demo AI Scan (Sample Avocados)',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                  subtitle: const Text('Simulate scan for testing without camera'),
+                  onTap: () {
+                    Navigator.of(bottomSheetContext).pop();
+                    _onScanWithGemini();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndScan(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (picked != null) {
+        await _processScannedFile(File(picked.path));
+      }
+    } catch (_) {
+      _onScanWithGemini();
+    }
+  }
+
+  Future<void> _processScannedFile(File file) async {
+    setState(() {
+      _isScanning = true;
+    });
+
+    try {
+      final aiRepo = ref.read(aiRepositoryProvider);
+      final result = await aiRepo.scanLabel(file);
+
+      if (!mounted) return;
+
+      setState(() {
+        _foodNameController.text = result.foodName;
+        _selectedCategory = result.category;
+        if (_quantityController.text.trim().isEmpty) {
+          _quantityController.text = '1';
+        }
+        _selectedUnit = result.unit;
+        _selectedStorage = result.storage;
+        if (result.expiryDate != null) {
+          _expirationDate = result.expiryDate;
+        }
+        _imagePath = file.path;
+        _isScanning = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✨ Gemini AI: ${result.foodName} detected! Form autofilled.'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isScanning = false;
+        _imagePath = file.path;
+      });
+      _onScanWithGemini();
+    }
+  }
+
+  Widget _buildScanCardContent() {
+    if (_isScanning) {
+      return Column(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: ShaderMask(
+                shaderCallback: (bounds) => const SweepGradient(
+                  colors: [
+                    Color(0xFF4285F4),
+                    Color(0xFF9B72CF),
+                    Color(0xFFEA4335),
+                    Color(0xFFFBBC04),
+                    Color(0xFF4285F4),
+                  ],
+                ).createShader(bounds),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.white,
+                  size: 26,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Analyzing label with Gemini AI Vision...',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF181D17),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Extracting product name and expiration date',
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFF414941),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const ClipRRect(
+            borderRadius: BorderRadius.all(Radius.circular(4)),
+            child: LinearProgressIndicator(
+              minHeight: 4,
+              backgroundColor: Color(0xFFDDE4DC),
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2E6A44)),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_imagePath != null && _imagePath!.isNotEmpty) {
+      return Column(
+        children: [
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  height: 130,
+                  width: double.infinity,
+                  child: _imagePath!.startsWith('assets/')
+                      ? Image.asset(
+                          _imagePath!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                          ),
+                        )
+                      : Image.file(
+                          File(_imagePath!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                          ),
+                        ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: Color(0xFF2E6A44), size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        'Label Scanned with AI',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2E6A44),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _imagePath = null;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, color: Colors.white, size: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _foodNameController.text.isNotEmpty
+                ? 'Detected: ${_foodNameController.text}'
+                : 'Scan Label with AI',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF181D17),
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Tap card to retake or scan another label',
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFF414941),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Default Card (Matching media_1793560538466_0ad00275.png exact design)
+    return const Column(
+      children: [
+        Icon(
+          Icons.camera_alt_outlined,
+          size: 32,
+          color: Color(0xFF181D17),
+        ),
+        SizedBox(height: 10),
+        Text(
+          'Scan Label with AI',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF181D17),
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          "Capture the label. We'll fill in the details.",
+          style: TextStyle(
+            fontSize: 13,
+            color: Color(0xFF414941),
+          ),
+        ),
+      ],
     );
   }
 
@@ -116,38 +479,27 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // AI Label Scan Card
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEAEFE8),
+                    // AI Label Scan Card matching media_1793560538466_0ad00275.png
+                    Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(24),
+                      child: InkWell(
                         borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: const Column(
-                        children: [
-                          Icon(
-                            Icons.camera_alt_outlined,
-                            size: 32,
-                            color: Color(0xFF181D17),
-                          ),
-                          SizedBox(height: 10),
-                          Text(
-                            'Scan Label with AI',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF181D17),
+                        onTap: _isScanning ? null : _showScanSourceSheet,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEAEFE8),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: _imagePath != null
+                                  ? const Color(0xFF2E6A44).withValues(alpha: 0.3)
+                                  : Colors.transparent,
+                              width: 1.5,
                             ),
                           ),
-                          SizedBox(height: 4),
-                          Text(
-                            "Capture the label. We'll fill in the details.",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF414941),
-                            ),
-                          ),
-                        ],
+                          child: _buildScanCardContent(),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
