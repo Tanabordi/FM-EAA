@@ -280,7 +280,10 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
   void _onViewRecipe(RecipeModel recipe) {
     Navigator.of(context).push(
       MaterialRouteTransition(
-        builder: (context) => RecipeDetailPage(recipe: recipe),
+        builder: (context) => RecipeDetailPage(
+          recipe: recipe,
+          fridgeId: widget.fridgeId,
+        ),
       ),
     );
   }

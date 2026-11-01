@@ -71,6 +71,39 @@ class HistoryRepository {
     );
   }
 
+  /// Record a consumed item (e.g. from recipe preparation or mark consumed flow) into history audit log
+  Future<void> recordConsumedItem({
+    required String fridgeId,
+    String? itemId,
+    required String itemName,
+    String? category,
+    String? zone,
+    String? imagePath,
+    double quantity = 1.0,
+    double quantityLeft = 0.0,
+    String unit = 'portion',
+    String byUsername = 'alex.lee',
+    DateTime? createdAt,
+  }) async {
+    await database.itemDao.into(database.itemDao.itemHistory).insert(
+      ItemHistoryCompanion.insert(
+        id: 'hist_${DateTime.now().millisecondsSinceEpoch}',
+        fridgeId: fridgeId,
+        itemId: Value(itemId),
+        itemName: itemName,
+        category: Value(category ?? 'meals'),
+        zone: Value(zone ?? 'fridge'),
+        imagePath: Value(imagePath),
+        kind: 'consumed',
+        quantityChanged: quantity,
+        quantityLeft: Value(quantityLeft),
+        unit: Value(unit),
+        byUserId: byUsername,
+        createdAt: Value(createdAt ?? DateTime.now()),
+      ),
+    );
+  }
+
   /// Seed initial demo history records matching Figma prototype if empty
   Future<void> seedInitialDataIfEmpty(String fridgeId) async {
     final existing = await database.itemDao.getHistoryByFridge(fridgeId);

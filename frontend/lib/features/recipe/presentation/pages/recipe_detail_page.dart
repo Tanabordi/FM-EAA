@@ -1,25 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../data/models/recipe_model.dart';
+import '../../../history/providers/history_provider.dart';
+import '../../../../data/repositories/item_repository.dart';
+import '../../../../data/models/item_model.dart';
 
 /// Screen #26: Recipe Details
 /// Matches exact layout and design from uploaded Figma screenshot (media_1793552844285_7860fd5e.png)
-class RecipeDetailPage extends StatefulWidget {
+class RecipeDetailPage extends ConsumerStatefulWidget {
   final RecipeModel recipe;
+  final String fridgeId;
   final VoidCallback? onMarkConsumed;
 
   const RecipeDetailPage({
     super.key,
     required this.recipe,
+    this.fridgeId = 'fridge_1',
     this.onMarkConsumed,
   });
 
   @override
-  State<RecipeDetailPage> createState() => _RecipeDetailPageState();
+  ConsumerState<RecipeDetailPage> createState() => _RecipeDetailPageState();
 }
 
-class _RecipeDetailPageState extends State<RecipeDetailPage> {
+class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
   final Set<int> _checkedIngredients = {};
 
   void _toggleIngredient(int index) {
@@ -32,20 +38,64 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     });
   }
 
-  void _onDoneMarkAsConsumed() {
+  Future<void> _onDoneMarkAsConsumed() async {
+    // 1. Record consumed entry into History database for HistoryPage
+    try {
+      await ref.read(historyRepositoryProvider).recordConsumedItem(
+            fridgeId: widget.fridgeId,
+            itemName: widget.recipe.title,
+            category: 'meals',
+            zone: 'fridge',
+            imagePath: widget.recipe.imageUrl,
+            quantity: 1.0,
+            quantityLeft: 0.0,
+            unit: 'portion',
+            byUsername: 'alex.lee',
+          );
+    } catch (_) {}
+
+    // 2. Also deduct from fridge inventory if matching ingredient item exists
+    try {
+      final itemRepo = ref.read(itemRepositoryProvider);
+      final items = await itemRepo.getItemsByFridge(widget.fridgeId);
+      final matching = items.cast<ItemModel?>().firstWhere(
+            (i) =>
+                i != null &&
+                i.name.toLowerCase().contains(
+                      widget.recipe.expiringIngredient.toLowerCase(),
+                    ),
+            orElse: () => null,
+          );
+      if (matching != null) {
+        await itemRepo.consumeItem(
+          matching.id,
+          1.0,
+          finishedAll: matching.quantity <= 1.0,
+        );
+      }
+    } catch (_) {}
+
     if (widget.onMarkConsumed != null) {
       widget.onMarkConsumed!();
     }
 
+    if (!mounted) return;
+
+    // 3. Show feedback SnackBar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('✨ ${widget.recipe.title} marked as consumed!'),
-        duration: const Duration(seconds: 2),
+        content: Text('✨ ${widget.recipe.title} marked as consumed! Recorded to History.'),
+        duration: const Duration(seconds: 3),
       ),
     );
 
-    if (context.canPop()) {
-      context.pop();
+    // 4. Navigate to All Fridge page (/fridges)
+    try {
+      context.go('/fridges');
+    } catch (_) {
+      if (context.canPop()) {
+        context.pop();
+      }
     }
   }
 
@@ -67,6 +117,8 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                     onPressed: () {
                       if (context.canPop()) {
                         context.pop();
+                      } else {
+                        context.go('/fridges/${widget.fridgeId}');
                       }
                     },
                   ),

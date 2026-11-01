@@ -93,12 +93,14 @@ void main() {
       bool markedConsumed = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: RecipeDetailPage(
-            recipe: smoothieRecipe,
-            onMarkConsumed: () {
-              markedConsumed = true;
-            },
+        ProviderScope(
+          child: MaterialApp(
+            home: RecipeDetailPage(
+              recipe: smoothieRecipe,
+              onMarkConsumed: () {
+                markedConsumed = true;
+              },
+            ),
           ),
         ),
       );
