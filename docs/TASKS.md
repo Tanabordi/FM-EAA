@@ -33,8 +33,6 @@ flowchart TD
 
 ---
 
----
-
 ## 🚦 ลำดับขั้นตอนการพัฒนาและความสัมพันธ์ระหว่างโมดูล (Module Dependencies & Integration Roadmap)
 
 > 💡 **หลักการพัฒนาและการเชื่อมต่อระบบ (Integration Principles):**
@@ -79,7 +77,7 @@ flowchart TD
 ### 📊 ตารางลำดับการผสานระบบ (Module Integration Sequence)
 
 | ลำดับ | โมดูลงาน (Module Component) | ผู้รับผิดชอบหลัก | ความสัมพันธ์กับระบบอื่น (Prerequisites) | ความสำคัญ |
-| :---: | :--- | :--- :--- | :--- | :---: |
+| :---: | :--- | :--- | :--- | :---: |
 | 1 | ระบบฐานข้อมูลภายในเครื่อง (Local SQLite Database) | นางสาวอาทิตยา | เป็นรากฐานของแอปทั้งหมด จัดเตรียมตาราง FridgesTable, ItemsTable | 🔴 ชั้นรากฐาน (Foundation) |
 | 2 | ระบบยืนยันตัวตนฝั่งผู้ใช้ (Client-Side Authentication) | นายธนบดี | วางโครงสร้างฟอร์มเข้าสู่ระบบ, สมัครสมาชิก และการตรวจสอบความถูกต้องของข้อมูล | 🔴 ชั้นรากฐาน (Foundation) |
 | 3 | ระบบเซิร์ฟเวอร์และฐานข้อมูลกลาง (Cloud Database & Auth Core) | นายธีธัช | ติดตั้ง Oracle Cloud DB, ตารางหลัก 7 ตาราง และ authenticateToken middleware | 🔴 ชั้นรากฐาน (Foundation) |
