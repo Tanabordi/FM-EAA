@@ -89,9 +89,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
       ),
     );
 
-    // 4. Navigate to All Fridge page (/fridges)
+    // 4. Navigate back to Fridge Detail page (/fridges/${widget.fridgeId}) e.g. "Kitchen"
     try {
-      context.go('/fridges');
+      context.go('/fridges/${widget.fridgeId}');
     } catch (_) {
       if (context.canPop()) {
         context.pop();
