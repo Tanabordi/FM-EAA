@@ -55,6 +55,12 @@ void main() {
 
       expect(find.text('Avocados'), findsNothing);
       expect(find.text('Scan Label with AI'), findsOneWidget);
+
+      // Tapping Save before analyzing or inputting data does NOT save ("ถ้ายังไม่วิเคราะห์หรือยังไม่ได้ใส่อะไรลงไปไม่สามารถsaveได้ หรือกดไม่ไปนั่นเอง")
+      await tester.ensureVisible(find.text('Save'));
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      expect(find.text('Add items'), findsOneWidget); // still on Add items page, does not pop
     });
 
     testWidgets('Screen #11: Tapping Scan Label with AI card opens 2 options (Camera/Gallery), loads image, analyzes on button tap, and X clears all data', (tester) async {
@@ -121,6 +127,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('Avocados'), findsOneWidget);
+
+      // Now tap Save to add the analyzed item to the fridge
+      await tester.ensureVisible(find.text('Save'));
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Screen #12: ItemDetailsPage renders title, badge, tags, and action buttons', (tester) async {

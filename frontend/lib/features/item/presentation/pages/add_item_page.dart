@@ -7,6 +7,7 @@ import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
+import '../../../fridges/providers/fridges_provider.dart';
 
 /// Screen #11: Add items
 /// AI Label Scan Card with Gemini button, form fields: Food Name, Category dropdown,
@@ -90,6 +91,64 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
         duration: Duration(seconds: 1),
       ),
     );
+  }
+
+  void _onSave() {
+    final name = _foodNameController.text.trim();
+    if (!_hasAnalyzed && name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('กรุณาวิเคราะห์ด้วย AI หรือกรอกข้อมูลอาหารก่อนบันทึก'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('กรุณากรอกชื่ออาหารก่อนบันทึก'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final parsedQty = double.tryParse(_quantityController.text) ?? 1.0;
+    final newItem = ItemModel(
+      id: 'item_${DateTime.now().millisecondsSinceEpoch}',
+      fridgeId: widget.fridgeId,
+      name: name,
+      category: (_selectedCategory ?? 'Veggies').toLowerCase(),
+      zone: (_selectedStorage ?? 'Fridge').toLowerCase(),
+      quantity: parsedQty,
+      unit: _selectedUnit ?? 'pieces',
+      expiryDate: _expirationDate ?? DateTime.now().add(const Duration(days: 7)),
+      imagePath: _imagePath ?? 'assets/images/food_avocados.png',
+      updatedAt: DateTime.now(),
+    );
+
+    ref.read(fridgeItemsProvider(widget.fridgeId).notifier).addItem(newItem);
+    final currentItems = ref.read(fridgeItemsProvider(widget.fridgeId));
+    ref.read(fridgesProvider.notifier).updateItemCount(widget.fridgeId, currentItems.length);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('เพิ่ม "${newItem.name}" เรียบร้อยแล้ว'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    if (context.mounted) {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      } else {
+        try {
+          context.pop();
+        } catch (_) {}
+      }
+    }
   }
 
   Future<void> _onScanWithGemini() async {
@@ -803,25 +862,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        onPressed: () {
-                          final parsedQty = double.tryParse(_quantityController.text) ?? 1.0;
-                          final newItem = ItemModel(
-                            id: 'item_${DateTime.now().millisecondsSinceEpoch}',
-                            fridgeId: widget.fridgeId,
-                            name: _foodNameController.text.trim().isEmpty
-                                ? 'Food Item'
-                                : _foodNameController.text.trim(),
-                            category: (_selectedCategory ?? 'Veggies').toLowerCase(),
-                            zone: (_selectedStorage ?? 'Fridge').toLowerCase(),
-                            quantity: parsedQty,
-                            unit: _selectedUnit ?? 'pieces',
-                            expiryDate: _expirationDate ?? DateTime.now().add(const Duration(days: 7)),
-                            imagePath: _imagePath ?? 'assets/images/food_avocados.png',
-                            updatedAt: DateTime.now(),
-                          );
-                          ref.read(fridgeItemsProvider(widget.fridgeId).notifier).addItem(newItem);
-                          context.pop();
-                        },
+                        onPressed: _onSave,
                         child: const Text('Save'),
                       ),
                     ),
