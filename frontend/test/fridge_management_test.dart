@@ -138,7 +138,12 @@ void main() {
     });
 
     testWidgets('Screen #5 Populated State (Image 2 / 10): renders banner, header, and 2-column grid cards', (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          fridgesProvider.overrideWith((ref) => FridgesNotifier(null, false)),
+        ],
+      );
+      addTearDown(container.dispose);
       container.read(fridgesProvider.notifier).loadMockData();
 
       await tester.pumpWidget(
@@ -195,7 +200,12 @@ void main() {
     });
 
     testWidgets('Screen #7: EditFridgeSheet pre-fills fields and updates fridge', (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          fridgesProvider.overrideWith((ref) => FridgesNotifier(null, false)),
+        ],
+      );
+      addTearDown(container.dispose);
       container.read(fridgesProvider.notifier).loadMockData();
       final targetFridge = container.read(fridgesProvider).first;
 
@@ -228,7 +238,12 @@ void main() {
     });
 
     testWidgets('Screen #8: DeleteFridgeDialog confirms deletion and removes fridge', (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          fridgesProvider.overrideWith((ref) => FridgesNotifier(null, false)),
+        ],
+      );
+      addTearDown(container.dispose);
       container.read(fridgesProvider.notifier).loadMockData();
       final targetFridge = container.read(fridgesProvider).first;
 
@@ -260,7 +275,12 @@ void main() {
     });
 
     testWidgets('Full flow: MyFridgesPage -> EditFridgeSheet -> DeleteFridgeDialog opens successfully', (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          fridgesProvider.overrideWith((ref) => FridgesNotifier(null, false)),
+        ],
+      );
+      addTearDown(container.dispose);
       container.read(fridgesProvider.notifier).loadMockData();
       final targetFridge = container.read(fridgesProvider).first;
 

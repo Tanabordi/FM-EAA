@@ -637,6 +637,61 @@ class AppDatabase extends _$AppDatabase implements AppDatabaseSkeleton {
           ..where((t) => t.kind.equals('consumed') & t.createdAt.isSmallerThanValue(cutoff)))
         .go();
   }
+
+  /// Watch all notifications for a user (reactive stream)
+  Stream<List<Notification>> watchNotifications(String userId) {
+    return (select(notifications)
+          ..where((t) => t.userId.equals(userId))
+          ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]))
+        .watch();
+  }
+
+  /// Get all notifications for a user
+  Future<List<Notification>> getNotifications(String userId) {
+    return (select(notifications)
+          ..where((t) => t.userId.equals(userId))
+          ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]))
+        .get();
+  }
+
+  /// Insert or replace a notification
+  Future<int> insertNotification({
+    required String id,
+    required String userId,
+    required String type,
+    String? payloadJson,
+    bool isRead = false,
+    DateTime? createdAt,
+  }) {
+    return into(notifications).insert(
+      NotificationsCompanion.insert(
+        id: id,
+        userId: userId,
+        type: type,
+        payloadJson: Value(payloadJson),
+        isRead: Value(isRead),
+        createdAt: Value(createdAt ?? DateTime.now()),
+      ),
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  /// Mark notification as read
+  Future<int> markNotificationAsRead(String id) {
+    return (update(notifications)..where((t) => t.id.equals(id))).write(
+      const NotificationsCompanion(isRead: Value(true)),
+    );
+  }
+
+  /// Delete a single notification
+  Future<int> deleteNotification(String id) {
+    return (delete(notifications)..where((t) => t.id.equals(id))).go();
+  }
+
+  /// Clear all notifications for a user
+  Future<int> clearNotifications(String userId) {
+    return (delete(notifications)..where((t) => t.userId.equals(userId))).go();
+  }
 }
 
 LazyDatabase _openConnection() {
