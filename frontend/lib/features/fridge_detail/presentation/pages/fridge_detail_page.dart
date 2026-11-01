@@ -9,6 +9,7 @@ import '../../../item/presentation/widgets/finish_all_snackbar.dart';
 import '../../../item/presentation/widgets/mark_consumed_sheet.dart';
 import '../../providers/fridge_detail_provider.dart';
 import '../../../search/providers/search_provider.dart';
+import '../../../fridges/providers/fridges_provider.dart';
 
 class FridgeDetailPage extends ConsumerStatefulWidget {
   final String fridgeId;
@@ -187,12 +188,16 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
   }
 
   Widget _buildAppBar(BuildContext context) {
+    final fridges = ref.watch(fridgesProvider);
+    final match = fridges.where((f) => f.id == widget.fridgeId);
+    final fridgeTitle = match.isNotEmpty ? match.first.name : 'Kitchen';
+
     return AppTopBar(
-      title: 'Kitchen',
+      title: fridgeTitle,
       actions: [
         AppTopBarAction(
           icon: Icons.people_outline_rounded,
-          onTap: () => context.push('/fridges/${widget.fridgeId}/family'),
+          onTap: () => context.push('/fridges/${widget.fridgeId}/family?name=${Uri.encodeComponent(fridgeTitle)}'),
         ),
         AppTopBarAction(
           icon: Icons.history_rounded,

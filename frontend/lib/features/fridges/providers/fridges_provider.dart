@@ -12,7 +12,7 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
       description: '2nd floor',
       ownerId: 'user_1',
       memberCount: 1,
-      itemCount: 0,
+      itemCount: 35,
       updatedAt: DateTime.now(),
     ),
     FridgeModel(
