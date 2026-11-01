@@ -5,8 +5,8 @@ class RecipeModel {
   final String assetFallback;
   final String cookingTime;
   final String difficulty;
-  final List<String> ingredientsFromFridge;
-  final List<String> extraPantryIngredients;
+  final String expiringIngredient;
+  final List<String> ingredients;
   final List<String> steps;
 
   const RecipeModel({
@@ -16,8 +16,8 @@ class RecipeModel {
     required this.assetFallback,
     required this.cookingTime,
     required this.difficulty,
-    this.ingredientsFromFridge = const [],
-    this.extraPantryIngredients = const [],
+    this.expiringIngredient = 'Strawberries',
+    this.ingredients = const [],
     this.steps = const [],
   });
 }

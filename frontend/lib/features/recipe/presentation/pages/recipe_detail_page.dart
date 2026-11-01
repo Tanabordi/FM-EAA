@@ -4,19 +4,61 @@ import '../../../../shared/widgets/app_back_button.dart';
 import '../../data/models/recipe_model.dart';
 
 /// Screen #26: Recipe Details
-class RecipeDetailPage extends StatelessWidget {
+/// Matches exact layout and design from uploaded Figma screenshot (media_1793552844285_7860fd5e.png)
+class RecipeDetailPage extends StatefulWidget {
   final RecipeModel recipe;
+  final VoidCallback? onMarkConsumed;
 
-  const RecipeDetailPage({super.key, required this.recipe});
+  const RecipeDetailPage({
+    super.key,
+    required this.recipe,
+    this.onMarkConsumed,
+  });
+
+  @override
+  State<RecipeDetailPage> createState() => _RecipeDetailPageState();
+}
+
+class _RecipeDetailPageState extends State<RecipeDetailPage> {
+  final Set<int> _checkedIngredients = {};
+
+  void _toggleIngredient(int index) {
+    setState(() {
+      if (_checkedIngredients.contains(index)) {
+        _checkedIngredients.remove(index);
+      } else {
+        _checkedIngredients.add(index);
+      }
+    });
+  }
+
+  void _onDoneMarkAsConsumed() {
+    if (widget.onMarkConsumed != null) {
+      widget.onMarkConsumed!();
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✨ ${widget.recipe.title} marked as consumed!'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    if (context.canPop()) {
+      context.pop();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final recipe = widget.recipe;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF6FBF3),
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar
+            // Top App Bar: Back button on left, Centered "Recipe" title
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
               child: Row(
@@ -28,22 +70,25 @@ class RecipeDetailPage extends StatelessWidget {
                       }
                     },
                   ),
-                  const SizedBox(width: 12),
                   const Expanded(
-                    child: Text(
-                      'Recipe Details',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF181D17),
-                        letterSpacing: -0.5,
+                    child: Center(
+                      child: Text(
+                        'Recipe',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF181D17),
+                          letterSpacing: -0.5,
+                        ),
                       ),
                     ),
                   ),
+                  // Spacer to balance the AppBackButton width (42px) and keep title centered
+                  const SizedBox(width: 42),
                 ],
               ),
             ),
-            // Content
+            // Scrollable Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -52,16 +97,16 @@ class RecipeDetailPage extends StatelessWidget {
                   children: [
                     // Hero Image
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(18),
                       child: Image.network(
                         recipe.imageUrl,
-                        height: 220,
+                        height: 190,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Image.asset(
                             recipe.assetFallback,
-                            height: 220,
+                            height: 190,
                             width: double.infinity,
                             fit: BoxFit.cover,
                           );
@@ -69,34 +114,57 @@ class RecipeDetailPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Title
+                    // Recipe Title
                     Text(
                       recipe.title,
                       style: const TextStyle(
-                        fontSize: 22,
+                        fontSize: 26,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181D17),
+                        height: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    // Badges (Cooking time & Difficulty)
+                    const SizedBox(height: 12),
+                    // Badges Row
                     Row(
                       children: [
+                        // Orange Badge: Uses expiring
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF0F4ED),
+                            color: const Color(0xFFFA8B28),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Uses expiring: ${recipe.expiringIngredient}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Time Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEAEFE8),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.access_time, size: 15, color: Color(0xFF414942)),
-                              const SizedBox(width: 5),
+                              const Icon(
+                                Icons.access_time,
+                                size: 14,
+                                color: Color(0xFF414942),
+                              ),
+                              const SizedBox(width: 4),
                               Text(
                                 recipe.cookingTime,
                                 style: const TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 12.5,
                                   color: Color(0xFF414942),
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -105,16 +173,17 @@ class RecipeDetailPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
+                        // Difficulty Badge
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF0F4ED),
+                            color: const Color(0xFFEAEFE8),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             recipe.difficulty,
                             style: const TextStyle(
-                              fontSize: 13,
+                              fontSize: 12.5,
                               color: Color(0xFF414942),
                               fontWeight: FontWeight.w500,
                             ),
@@ -122,87 +191,105 @@ class RecipeDetailPage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    // Ingredients from Fridge Section
+                    const SizedBox(height: 22),
+                    // Ingredients Section
                     const Text(
-                      'Ingredients from Fridge',
+                      'Ingredients',
                       style: TextStyle(
-                        fontSize: 17,
+                        fontSize: 19,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181D17),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    ...recipe.ingredientsFromFridge.map((ing) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
+                    const SizedBox(height: 10),
+                    ...recipe.ingredients.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final ing = entry.value;
+                      final isChecked = _checkedIngredients.contains(idx);
+
+                      return InkWell(
+                        onTap: () => _toggleIngredient(idx),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5.0),
                           child: Row(
                             children: [
-                              const Icon(Icons.check_circle, size: 18, color: Color(0xFF2E6A44)),
-                              const SizedBox(width: 8),
-                              Text(
-                                ing,
-                                style: const TextStyle(fontSize: 15, color: Color(0xFF181D17)),
+                              Container(
+                                width: 19,
+                                height: 19,
+                                decoration: BoxDecoration(
+                                  color: isChecked
+                                      ? const Color(0xFF2E6A44)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: isChecked
+                                        ? const Color(0xFF2E6A44)
+                                        : const Color(0xFF717971),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: isChecked
+                                    ? const Icon(
+                                        Icons.check,
+                                        size: 14,
+                                        color: Colors.white,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  ing,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: const Color(0xFF181D17),
+                                    fontWeight: FontWeight.w400,
+                                    decoration: isChecked
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                    decorationColor: const Color(0xFF717971),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                        )),
-                    if (recipe.extraPantryIngredients.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Pantry Staples Needed',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF181D17),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      ...recipe.extraPantryIngredients.map((ing) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.circle_outlined, size: 16, color: Color(0xFF717971)),
-                                const SizedBox(width: 8),
-                                Text(
-                                  ing,
-                                  style: const TextStyle(fontSize: 15, color: Color(0xFF414942)),
-                                ),
-                              ],
-                            ),
-                          )),
-                    ],
-                    const SizedBox(height: 20),
-                    // Instructions
+                      );
+                    }),
+                    const SizedBox(height: 22),
+                    // Instructions Section
                     const Text(
                       'Instructions',
                       style: TextStyle(
-                        fontSize: 17,
+                        fontSize: 19,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181D17),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     ...recipe.steps.asMap().entries.map((entry) {
-                      final idx = entry.key + 1;
-                      final step = entry.value;
+                      final stepNum = entry.key + 1;
+                      final stepText = entry.value;
+
                       return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.symmetric(vertical: 6.0),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              width: 24,
-                              height: 24,
+                              width: 26,
+                              height: 26,
                               decoration: const BoxDecoration(
-                                color: Color(0xFF2E6A44),
+                                color: Color(0xFFEAEFE8),
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
                                 child: Text(
-                                  '$idx',
+                                  '$stepNum',
                                   style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
+                                    color: Color(0xFF414942),
+                                    fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -211,39 +298,62 @@ class RecipeDetailPage extends StatelessWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                step,
-                                style: const TextStyle(fontSize: 14.5, height: 1.4, color: Color(0xFF181D17)),
+                                stepText,
+                                style: const TextStyle(
+                                  fontSize: 14.5,
+                                  height: 1.4,
+                                  color: Color(0xFF414942),
+                                  fontWeight: FontWeight.w400,
+                                ),
                               ),
                             ),
                           ],
                         ),
                       );
                     }),
-                    const SizedBox(height: 28),
-                    // Cook This Recipe Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF2E6A44),
-                          foregroundColor: Colors.white,
-                          shape: const StadiumBorder(),
-                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Starting recipe: ${recipe.title}!'),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        child: const Text('Cook This Recipe'),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                   ],
+                ),
+              ),
+            ),
+            // Bottom Action Dock
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF6FBF3),
+                border: Border(
+                  top: BorderSide(
+                    color: Color(0xFFE0E5DF),
+                    width: 1.0,
+                  ),
+                ),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E6A44),
+                    foregroundColor: Colors.white,
+                    shape: const StadiumBorder(),
+                    elevation: 0,
+                  ),
+                  onPressed: _onDoneMarkAsConsumed,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check, size: 22, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text(
+                        'Done! Mark as Consumed',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

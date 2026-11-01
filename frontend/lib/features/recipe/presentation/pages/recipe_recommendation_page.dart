@@ -46,8 +46,15 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
           assetFallback: 'assets/images/food_spinach.png',
           cookingTime: '15 min',
           difficulty: 'Easy',
-          ingredientsFromFridge: ['Baby spinach', 'Garlic', 'Heavy cream'],
-          extraPantryIngredients: ['Penne pasta', 'Parmesan', 'Olive oil'],
+          expiringIngredient: 'Baby spinach',
+          ingredients: [
+            '2 cups baby spinach, rinsed',
+            '200g penne pasta',
+            '3 cloves garlic, minced',
+            '1/2 cup heavy cream',
+            '2 tbsp olive oil',
+            'Grated parmesan cheese',
+          ],
           steps: [
             'Boil penne pasta in salted water until al dente.',
             'Sauté minced garlic in olive oil until fragrant, then add baby spinach until wilted.',
@@ -62,8 +69,14 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
           assetFallback: 'assets/images/food_spinach.png',
           cookingTime: '10 min',
           difficulty: 'Very easy',
-          ingredientsFromFridge: ['Baby spinach', 'Fresh strawberries', 'Avocado'],
-          extraPantryIngredients: ['Balsamic glaze', 'Toasted walnuts'],
+          expiringIngredient: 'Baby spinach',
+          ingredients: [
+            '2 cups fresh baby spinach',
+            '1 cup fresh strawberries, sliced',
+            '1/2 ripe avocado, diced',
+            '2 tbsp balsamic glaze',
+            '2 tbsp toasted walnuts',
+          ],
           steps: [
             'Rinse baby spinach leaves and dry gently.',
             'Slice fresh strawberries and avocado.',
@@ -78,8 +91,14 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
           assetFallback: 'assets/images/food_spinach.png',
           cookingTime: '5 min',
           difficulty: 'Very easy',
-          ingredientsFromFridge: ['Baby spinach', 'Banana', 'Almond milk'],
-          extraPantryIngredients: ['Chia seeds', 'Honey'],
+          expiringIngredient: 'Baby spinach',
+          ingredients: [
+            '2 cups fresh baby spinach',
+            '1 peeled banana',
+            '1 cup almond milk or oat milk',
+            '1 tbsp chia seeds',
+            '1 tbsp honey',
+          ],
           steps: [
             'Add 2 cups of fresh baby spinach into the blender.',
             'Add peeled banana and 1 cup of almond milk.',
@@ -99,8 +118,14 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
           assetFallback: 'assets/images/food_avocados.png',
           cookingTime: '12 min',
           difficulty: 'Easy',
-          ingredientsFromFridge: ['Avocados', 'Eggs'],
-          extraPantryIngredients: ['Sourdough bread', 'Chili flakes', 'Lemon juice'],
+          expiringIngredient: 'Avocados',
+          ingredients: [
+            '1 ripe avocado',
+            '2 slices sourdough bread',
+            '2 fresh eggs',
+            '1 tbsp fresh lemon juice',
+            'Red chili flakes and sea salt',
+          ],
           steps: [
             'Toast sourdough bread slices until golden crisp.',
             'Mash ripe avocados with lemon juice, salt, and pepper.',
@@ -115,8 +140,14 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
           assetFallback: 'assets/images/food_avocados.png',
           cookingTime: '10 min',
           difficulty: 'Very easy',
-          ingredientsFromFridge: ['Avocados', 'Strawberries', 'Spinach'],
-          extraPantryIngredients: ['Olive oil', 'Balsamic vinegar'],
+          expiringIngredient: 'Avocados',
+          ingredients: [
+            '1 large avocado, cubed',
+            '1 cup fresh strawberries, sliced',
+            '2 cups baby greens',
+            '2 tbsp extra virgin olive oil',
+            '1 tbsp balsamic vinegar',
+          ],
           steps: [
             'Slice avocados and fresh strawberries evenly.',
             'Arrange washed spinach leaves in a salad serving bowl.',
@@ -131,8 +162,14 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
           assetFallback: 'assets/images/food_avocados.png',
           cookingTime: '8 min',
           difficulty: 'Very easy',
-          ingredientsFromFridge: ['Avocados', 'Lime', 'Cherry tomatoes'],
-          extraPantryIngredients: ['Cilantro', 'Tortilla chips'],
+          expiringIngredient: 'Avocados',
+          ingredients: [
+            '2 ripe avocados',
+            '1 lime, juiced',
+            '1/2 cup cherry tomatoes, diced',
+            '2 tbsp chopped fresh cilantro',
+            'Tortilla chips for serving',
+          ],
           steps: [
             'Cut avocados in half, remove pit, and scoop flesh into a bowl.',
             'Mash coarsely with a fork, retaining some texture.',
@@ -152,8 +189,15 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
         assetFallback: 'assets/images/food_strawberries.png',
         cookingTime: '20 min',
         difficulty: 'Easy',
-        ingredientsFromFridge: ['Strawberries', 'Milk', 'Eggs', 'Butter'],
-        extraPantryIngredients: ['Flour', 'Baking powder', 'Maple syrup', 'Sugar'],
+        expiringIngredient: 'Strawberries',
+        ingredients: [
+          '1 cup fresh strawberries, sliced',
+          '1 1/2 cups all-purpose flour',
+          '1 cup milk',
+          '1 large egg',
+          '2 tbsp melted butter',
+          'Maple syrup for topping',
+        ],
         steps: [
           'Whisk flour, sugar, baking powder, and salt together in a bowl.',
           'In a separate bowl, beat milk, melted butter, and eggs.',
@@ -165,19 +209,24 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
       ),
       const RecipeModel(
         id: 'strawberry_smoothie',
-        title: 'Strawberry & Banana Smoothie',
+        title: 'Strawberry Yogurt Smoothie',
         imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_strawberries.png',
-        cookingTime: '5 min',
+        cookingTime: '10 mins',
         difficulty: 'Very easy',
-        ingredientsFromFridge: ['Strawberries', 'Whole milk', 'Yogurt'],
-        extraPantryIngredients: ['Banana', 'Honey', 'Ice cubes'],
+        expiringIngredient: 'Strawberries',
+        ingredients: [
+          '1 cup strawberries, hulled',
+          '1/2 cup plain yogurt',
+          '1/2 cup milk',
+          '1 tsp honey',
+          'Ice cubes (optional)',
+        ],
         steps: [
-          'Hull and wash 1 cup of fresh strawberries.',
-          'Slice banana into rounds.',
-          'Add strawberries, banana, milk, yogurt, honey, and ice into a blender.',
-          'Blend on high for 60 seconds until creamy and frothy.',
-          'Pour into chilled tall glasses and garnish with strawberry slice.',
+          'Add strawberries, yogurt, milk, and honey to a blender.',
+          'Blend until smooth and creamy.',
+          'Add ice cubes if you want a thicker, colder smoothie.',
+          'Blend again until the ice is fully crushed, then pour and serve.',
         ],
       ),
       const RecipeModel(
@@ -187,8 +236,14 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
         assetFallback: 'assets/images/food_avocados.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        ingredientsFromFridge: ['Strawberries', 'Avocados', 'Baby spinach'],
-        extraPantryIngredients: ['Feta cheese', 'Balsamic reduction', 'Pecans'],
+        expiringIngredient: 'Strawberries',
+        ingredients: [
+          '1 cup strawberries, sliced',
+          '1 ripe avocado, diced',
+          '2 cups fresh baby spinach',
+          '1/4 cup crumbled feta cheese',
+          '2 tbsp balsamic reduction',
+        ],
         steps: [
           'Wash baby spinach leaves and spin dry.',
           'Quarter ripe strawberries and dice avocado into bite-sized cubes.',
@@ -210,7 +265,6 @@ class _RecipeRecommendationPageState extends State<RecipeRecommendationPage> {
     if (!mounted) return;
 
     setState(() {
-      // Re-shuffle or reload recipes
       _recipes = List.from(_recipes.reversed);
       _isRegenerating = false;
     });
