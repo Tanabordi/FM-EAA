@@ -191,53 +191,7 @@ class MyFridgesPage extends ConsumerWidget {
               fontWeight: FontWeight.w400,
             ),
           ),
-          const SizedBox(height: 20),
-          // Summary Banner Card
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAEFE8),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              children: [
-                Icon(
-                  Icons.energy_savings_leaf_outlined,
-                  color: Color(0xFF2E6A44),
-                  size: 26,
-                ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'A little check, a lot less waste',
-                        style: TextStyle(
-                          color: Color(0xFF181D18),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14.5,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      SizedBox(height: 3),
-                      // TODO: Connect with ItemDao.getExpiringSoonItems() to display dynamic count
-                      Text(
-                        '2 items need your attention today',
-                        style: TextStyle(
-                          color: Color(0xFF414942),
-                          fontSize: 12.5,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 24),
           // Section header: "Your fridges" + "N fridges"
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
