@@ -119,7 +119,7 @@ flowchart TD
 - ✅ **ขั้นที่ 3** พัฒนาระบบจัดการสมาชิกตู้เย็นและแชร์ครอบครัว (Screens #18–20: `FamilySharePage`, `InviteMemberPage`, `RemoveMemberDialog`)
 - ✅ **ขั้นที่ 4** พัฒนาระบบประวัติการใช้งานตู้เย็น (Screen #17: `HistoryPage` แยกแท็บ Consumed/Expired พร้อมปุ่มล้างประวัติเดี่ยวและ Clear All)
 - ✅ **ขั้นที่ 5** พัฒนาระบบแจ้งเตือนบนอุปกรณ์ (Screen #21: `NotificationsPage` และ Local Notifications เตือนของใกล้หมดอายุล่วงหน้า)
-- ⏳ **ขั้นที่ 6** พัฒนาหน้าจอการตั้งค่าและโปรไฟล์ (Screens #22–24: `SettingsPage`, `EditProfilePage` รองรับการสลับธีม/ภาษา และการออกจากระบบ)
+- ✅ **ขั้นที่ 6** พัฒนาหน้าจอการตั้งค่าและโปรไฟล์ (Screens #22–24: `SettingsPage`, `EditProfilePage` รองรับการสลับธีม/ภาษา และการออกจากระบบ)
 
 ---
 
