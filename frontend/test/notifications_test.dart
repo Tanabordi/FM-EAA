@@ -197,7 +197,7 @@ void main() {
           type: 'invite',
           title: 'Fridge Invitation',
           message: "Sarah invited you to join 'Kitchen Fridge'",
-          inviteId: 'inv_2',
+          inviteId: null,
           createdAt: DateTime.now(),
         ),
       ];
@@ -219,12 +219,9 @@ void main() {
 
       // Tap Accept
       await tester.tap(find.text('Accept'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
 
       expect(find.text('Accepted invitation.'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 4));
-      await tester.pumpAndSettle();
     });
 
     testWidgets('Empty State renders when no notifications exist', (tester) async {
