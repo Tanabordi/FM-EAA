@@ -128,4 +128,18 @@ describe('Auth API Integration Tests', () => {
       expect(res.body.user.username).toBe(testUser.username);
     });
   });
+
+  describe('POST /api/auth/google', () => {
+    it('returns 400 when idToken is missing', async () => {
+      const res = await request(app).post('/api/auth/google').send({});
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toMatch(/idToken.*required/i);
+    });
+
+    it('returns 401 when idToken is invalid', async () => {
+      const res = await request(app).post('/api/auth/google').send({ idToken: 'invalid_mock_token' });
+      expect(res.statusCode).toBe(401);
+      expect(res.body.error).toMatch(/Invalid Google token/i);
+    });
+  });
 });

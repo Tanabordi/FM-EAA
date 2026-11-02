@@ -24,7 +24,12 @@ import '../../features/recipe/presentation/pages/recipe_recommendation_page.dart
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/sign-in',
+    errorBuilder: (context, state) => const SignInPage(),
     routes: [
+      GoRoute(
+        path: '/',
+        redirect: (context, state) => '/sign-in',
+      ),
       GoRoute(
         path: '/sign-in',
         builder: (context, state) => const SignInPage(),

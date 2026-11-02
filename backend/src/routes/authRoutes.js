@@ -45,9 +45,18 @@ router.get('/me', authenticateToken, async (req, res, next) => {
   }
 });
 
-// Stubs for future extensions
-router.post('/google', (req, res) => {
-  res.status(501).json({ error: 'Google OAuth not yet enabled', route: 'POST /api/auth/google' });
+/**
+ * POST /api/auth/google
+ * Body: { idToken }
+ */
+router.post('/google', async (req, res, next) => {
+  try {
+    const { idToken, accessToken, displayName, photoUrl } = req.body;
+    const result = await authService.loginWithGoogle(idToken, { accessToken, displayName, photoUrl });
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.post('/forgot-password', (req, res) => {

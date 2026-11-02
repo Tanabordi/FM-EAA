@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 /// Service managing offline local notifications for item expiry alerts.
@@ -12,7 +13,7 @@ class NotificationService {
   bool get isInitialized => _isInitialized;
 
   Future<void> init() async {
-    if (_isInitialized) return;
+    if (kIsWeb || _isInitialized) return;
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
@@ -22,11 +23,16 @@ class NotificationService {
     );
     const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
 
-    await _plugin.initialize(settings);
-    _isInitialized = true;
+    try {
+      await _plugin.initialize(settings);
+      _isInitialized = true;
+    } catch (e) {
+      debugPrint('NotificationService init error: $e');
+    }
   }
 
   Future<bool?> requestPermissions() async {
+    if (kIsWeb) return true;
     final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     if (android != null) {
       return await android.requestNotificationsPermission();
@@ -45,6 +51,7 @@ class NotificationService {
     required String body,
     String? payload,
   }) async {
+    if (kIsWeb) return;
     const androidDetails = AndroidNotificationDetails(
       'expiry_alerts',
       'Expiry Alerts',
@@ -67,6 +74,7 @@ class NotificationService {
     required DateTime scheduledDate,
     String? payload,
   }) async {
+    if (kIsWeb) return;
     const androidDetails = AndroidNotificationDetails(
       'expiry_alerts',
       'Expiry Alerts',
@@ -91,10 +99,12 @@ class NotificationService {
   }
 
   Future<void> cancelAlert(int id) async {
+    if (kIsWeb) return;
     await _plugin.cancel(id);
   }
 
   Future<void> cancelAll() async {
+    if (kIsWeb) return;
     await _plugin.cancelAll();
   }
 

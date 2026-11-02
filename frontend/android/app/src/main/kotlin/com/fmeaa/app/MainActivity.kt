@@ -1,4 +1,4 @@
-package com.example.fm_eaa
+package com.fmeaa.app
 
 import io.flutter.embedding.android.FlutterActivity
 
