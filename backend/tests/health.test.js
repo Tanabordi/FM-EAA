@@ -8,10 +8,9 @@ describe('Backend Skeleton Tests', () => {
     expect(res.body).toHaveProperty('status', 'ok');
   });
 
-  it('POST /api/auth/login returns 501 Not implemented', async () => {
-    const res = await request(app).post('/api/auth/login').send({ username: 'test', password: 'password' });
-    expect(res.statusCode).toBe(501);
-    expect(res.body).toHaveProperty('error', 'Not implemented');
+  it('POST /api/auth/register with empty body returns 400', async () => {
+    const res = await request(app).post('/api/auth/register').send({});
+    expect(res.statusCode).toBe(400);
   });
 
   it('GET /api/fridges returns 501 Not implemented', async () => {

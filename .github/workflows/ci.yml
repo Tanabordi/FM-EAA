@@ -27,7 +27,24 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Tests (Automated Testing)
+      - name: Run Backend Tests
+        env:
+          PORT: ${{ secrets.PORT }}
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          # ส่งครอบคลุมทั้ง 2 รูปแบบชื่อตัวแปร
+          ORACLE_USER: ${{ secrets.ORACLE_DB_USER }}
+          ORACLE_PASSWORD: ${{ secrets.ORACLE_DB_PASSWORD }}
+          ORACLE_CONNECT_STRING: ${{ secrets.ORACLE_DB_CONNECT_STRING }}
+          ORACLE_DB_USER: ${{ secrets.ORACLE_DB_USER }}
+          ORACLE_DB_PASSWORD: ${{ secrets.ORACLE_DB_PASSWORD }}
+          ORACLE_DB_CONNECT_STRING: ${{ secrets.ORACLE_DB_CONNECT_STRING }}
+          ORACLE_DB_SCHEMA: ${{ secrets.ORACLE_DB_SCHEMA }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OCI_PAR_URL: ${{ secrets.OCI_PAR_URL }}
         run: npm test
 
   frontend:
