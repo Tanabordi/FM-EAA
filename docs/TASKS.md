@@ -94,9 +94,9 @@ flowchart TD
 ### 📋 ลำดับขั้นตอนการพัฒนาเจาะจงตามขอบเขตงาน (Role-Based Implementation Steps)
 
 #### 👤 ส่วนที่ 1 นายธีธัช รัตนโสภา (Backend & Cloud DB)
-- ⏳ **ขั้นที่ 1** กำหนดค่าการเชื่อมต่อ Oracle Cloud DB ใน `backend/src/config/db.js` และประมวลผลสคริปต์ `backend/src/db/migrations/001_init.sql` เพื่อสร้างตารางข้อมูลทั้ง 7 ตารางบนระบบคลาวด์
-- ⏳ **ขั้นที่ 2** พัฒนาระบบยืนยันตัวตนใน `authService.js` และ `authRoutes.js` (Register, Login, Password Hashing ด้วย `bcrypt`, และการออก JWT Token)
-- ⏳ **ขั้นที่ 3** จัดทำ `authenticateToken` ใน `middleware/auth.js` สำหรับตรวจสอบสิทธิ์การเข้าถึง API ทุกเส้นทาง
+- ✅ **ขั้นที่ 1** กำหนดค่าการเชื่อมต่อ Oracle Cloud DB ใน `backend/src/config/db.js` และประมวลผลสคริปต์ `backend/src/db/migrations/001_init.sql` เพื่อสร้างตารางข้อมูลทั้ง 7 ตารางบนระบบคลาวด์
+- ✅ **ขั้นที่ 2** พัฒนาระบบยืนยันตัวตนใน `authService.js` และ `authRoutes.js` (Register, Login, Password Hashing ด้วย `bcrypt`, และการออก JWT Token)
+- ✅ **ขั้นที่ 3** จัดทำ `authenticateToken` ใน `middleware/auth.js` สำหรับตรวจสอบสิทธิ์การเข้าถึง API ทุกเส้นทาง
 - ⏳ **ขั้นที่ 4** พัฒนา REST API และ Service จัดการตู้เย็นและสมาชิก (`fridgeRoutes.js`, `fridgeService.js`) รองรับ CRUD ตู้เย็นและการเช็คสิทธิ์ Owner/Member
 - ⏳ **ขั้นที่ 5** พัฒนา REST API และ Service จัดการสต็อกวัตถุดิบและประวัติ (`itemRoutes.js`, `historyRoutes.js`)
 - ⏳ **ขั้นที่ 6** พัฒนาชุดทดสอบอัตโนมัติ (Automated Tests) ด้วย Jest/Supertest ใน `backend/tests/` เพื่อทดสอบ Route, Auth, และ Error Handling
