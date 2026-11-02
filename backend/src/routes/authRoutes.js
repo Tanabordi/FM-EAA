@@ -1,29 +1,61 @@
 const express = require('express');
 const router = express.Router();
+const authService = require('../services/authService');
+const authenticateToken = require('../middleware/auth');
 
-// TODO(route auth): POST /api/auth/register
-router.post('/register', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: 'POST /api/auth/register' });
+/**
+ * POST /api/auth/register
+ * Body: { username, email, password }
+ */
+router.post('/register', async (req, res, next) => {
+  try {
+    const { username, email, password } = req.body;
+    const result = await authService.register(username, email, password);
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
 });
 
-// TODO(route auth): POST /api/auth/login (supports username or email + password)
-router.post('/login', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: 'POST /api/auth/login' });
+/**
+ * POST /api/auth/login
+ * Body: { identifier, password } OR { email/username, password }
+ */
+router.post('/login', async (req, res, next) => {
+  try {
+    const identifier = req.body.identifier || req.body.username || req.body.email;
+    const { password } = req.body;
+    const result = await authService.login(identifier, password);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
 });
 
-// TODO(route auth): POST /api/auth/google
+/**
+ * GET /api/auth/me
+ * Headers: Authorization: Bearer <token>
+ */
+router.get('/me', authenticateToken, async (req, res, next) => {
+  try {
+    const user = await authService.getProfile(req.user.id);
+    res.status(200).json({ user });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Stubs for future extensions
 router.post('/google', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: 'POST /api/auth/google' });
+  res.status(501).json({ error: 'Google OAuth not yet enabled', route: 'POST /api/auth/google' });
 });
 
-// TODO(route auth): POST /api/auth/forgot-password
 router.post('/forgot-password', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: 'POST /api/auth/forgot-password' });
+  res.status(501).json({ error: 'Password reset not yet enabled', route: 'POST /api/auth/forgot-password' });
 });
 
-// TODO(route auth): POST /api/auth/reset-password
 router.post('/reset-password', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: 'POST /api/auth/reset-password' });
+  res.status(501).json({ error: 'Password reset not yet enabled', route: 'POST /api/auth/reset-password' });
 });
 
 module.exports = router;
