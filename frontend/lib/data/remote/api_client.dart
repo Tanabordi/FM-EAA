@@ -1,18 +1,13 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Centralized Dio API Client for communicating with the Node.js backend.
 class ApiClient {
+  /// Centralized API Base URL. Defaults to Render Cloud Production Backend.
   static String get baseUrl {
     const envUrl = String.fromEnvironment('API_BASE_URL');
     if (envUrl.isNotEmpty) return envUrl;
-    if (kIsWeb) return 'http://localhost:5001/api';
-    try {
-      if (Platform.isAndroid) return 'http://10.0.2.2:5001/api';
-    } catch (_) {}
-    return 'http://localhost:5001/api';
+    return 'https://fm-eaa-backend.onrender.com/api';
   }
 
   final Dio dio;
