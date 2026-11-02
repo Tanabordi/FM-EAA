@@ -87,20 +87,32 @@ void main() {
 
     // Launch scanner
     await tester.tap(find.text('Launch Scanner'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('AI Label Scanner'), findsOneWidget);
 
-    // Pick photo from gallery (in test environment image_picker uses test fake or mock)
+    // Pick photo from gallery
     await tester.tap(find.byKey(const Key('scan_label_gallery_btn')));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
-    // Analyze button should be enabled if image picked, tap analyze if available
+    // Tap analyze button
     final analyzeBtn = find.byKey(const Key('scan_label_analyze_btn'));
-    if (analyzeBtn.evaluate().isNotEmpty) {
-      await tester.tap(analyzeBtn);
-      await tester.pumpAndSettle();
-    }
+    expect(analyzeBtn, findsOneWidget);
+    await tester.tap(analyzeBtn);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Result card appears with Almond Milk
+    expect(find.text('Almond Milk'), findsOneWidget);
+
+    // Tap autofill button
+    final autofillBtn = find.byKey(const Key('scan_label_autofill_btn'));
+    expect(autofillBtn, findsOneWidget);
+    await tester.tap(autofillBtn);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
   });
 
   testWidgets('AddItemPage with initialScanResult properly autofills fields and image', (tester) async {
