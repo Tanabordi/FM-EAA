@@ -2,8 +2,11 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const oracledb = require('oracledb');
+const { OAuth2Client } = require('google-auth-library');
 const config = require('../config/env');
 const { getDbConnection } = require('../config/db');
+
+const googleClient = new OAuth2Client(config.google.clientId);
 
 class AuthService {
   /**
@@ -358,6 +361,144 @@ class AuthService {
         username: cleanUsername,
         email: cleanEmail,
         avatarUrl: newAvatarUrl,
+      };
+    } finally {
+      if (conn) {
+        try {
+          await conn.close();
+        } catch (_) {}
+      }
+    }
+  }
+
+  /**
+   * Google OAuth 2.0 login / registration
+   * Verifies Google idToken, retrieves user info, and creates/returns user in Oracle DB
+   */
+  async loginWithGoogle(idToken) {
+    if (!idToken || typeof idToken !== 'string') {
+      const err = new Error('Google idToken is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: config.google.clientId,
+      });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      const err = new Error(`Invalid Google token: ${verifyErr.message}`);
+      err.statusCode = 401;
+      throw err;
+    }
+
+    if (!payload || !payload.sub || !payload.email) {
+      const err = new Error('Invalid Google payload: missing email or sub');
+      err.statusCode = 401;
+      throw err;
+    }
+
+    const googleId = payload.sub;
+    const email = payload.email.trim().toLowerCase();
+    const name = payload.name || payload.given_name || email.split('@')[0];
+    const picture = payload.picture || null;
+
+    let conn;
+    try {
+      conn = await getDbConnection();
+
+      // Check if user exists by google_id or email
+      const findSql = `
+        SELECT id, username, email, avatar_url, google_id
+        FROM users
+        WHERE google_id = :googleId OR LOWER(email) = LOWER(:email)
+      `;
+      const result = await conn.execute(
+        findSql,
+        { googleId, email },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      let user;
+      if (result.rows && result.rows.length > 0) {
+        user = result.rows[0];
+        // If user existed by email but didn't have google_id linked yet, link it
+        if (!user.GOOGLE_ID || (!user.AVATAR_URL && picture)) {
+          const updateSql = `
+            UPDATE users
+            SET google_id = COALESCE(google_id, :googleId),
+                avatar_url = COALESCE(avatar_url, :picture),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id
+          `;
+          await conn.execute(
+            updateSql,
+            { googleId, picture, id: user.ID },
+            { autoCommit: true }
+          );
+        }
+      } else {
+        // Create new user
+        // Ensure unique username
+        let baseUsername = name.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30) || 'user';
+        if (baseUsername.length < 3) baseUsername = `user_${baseUsername}`;
+        let username = baseUsername;
+        let counter = 1;
+
+        while (true) {
+          const checkUserSql = `SELECT id FROM users WHERE LOWER(username) = LOWER(:u)`;
+          const checkRes = await conn.execute(
+            checkUserSql,
+            { u: username },
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+          );
+          if (!checkRes.rows || checkRes.rows.length === 0) break;
+          username = `${baseUsername}${counter++}`;
+        }
+
+        const insertSql = `
+          INSERT INTO users (id, username, email, google_id, avatar_url, created_at, updated_at)
+          VALUES (SYS_GUID(), :username, :email, :googleId, :avatarUrl, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          RETURNING id INTO :newId
+        `;
+        const insertRes = await conn.execute(
+          insertSql,
+          {
+            username,
+            email,
+            googleId,
+            avatarUrl: picture,
+            newId: { type: oracledb.STRING, dir: oracledb.BIND_OUT },
+          },
+          { autoCommit: true }
+        );
+
+        const newId = insertRes.outBinds.newId[0];
+        user = {
+          ID: newId,
+          USERNAME: username,
+          EMAIL: email,
+          AVATAR_URL: picture,
+        };
+      }
+
+      const token = this.generateToken({
+        id: user.ID,
+        username: user.USERNAME,
+        email: user.EMAIL,
+      });
+
+      return {
+        user: {
+          id: user.ID,
+          username: user.USERNAME,
+          email: user.EMAIL,
+          avatarUrl: user.AVATAR_URL || picture,
+        },
+        token,
       };
     } finally {
       if (conn) {

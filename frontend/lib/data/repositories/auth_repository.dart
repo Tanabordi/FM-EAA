@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../remote/api_client.dart';
 
@@ -79,9 +80,46 @@ class AuthRepository {
     }
   }
 
-  Future<UserModel> signInWithGoogle() async {
-    // Stubs for future extensions
-    throw UnimplementedError('Google sign in is not yet enabled');
+  Future<UserModel> signInWithGoogle({GoogleSignIn? googleSignInOverride}) async {
+    try {
+      final googleSignIn = googleSignInOverride ??
+          GoogleSignIn(
+            serverClientId: '516658327353-do6p38rdv13tc6k5o83g5r3va0u1be2n.apps.googleusercontent.com',
+            scopes: ['email', 'profile'],
+          );
+
+      final account = await googleSignIn.signIn();
+      if (account == null) {
+        throw Exception('Google sign-in was cancelled');
+      }
+
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw Exception('Failed to retrieve Google ID token. Please try again.');
+      }
+
+      final response = await apiClient.dio.post(
+        '/auth/google',
+        data: {'idToken': idToken},
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      final token = data['token'] as String?;
+      if (token != null) {
+        await apiClient.storage.write(key: 'jwt_token', value: token);
+      }
+
+      final userJson = data['user'] as Map<String, dynamic>;
+      final user = UserModel.fromJson(userJson);
+      await apiClient.storage.write(key: 'user_id', value: user.id);
+      await apiClient.storage.write(key: 'user_username', value: user.username);
+      await apiClient.storage.write(key: 'user_email', value: user.email);
+
+      return user;
+    } on DioException catch (e) {
+      throw _parseDioError(e);
+    }
   }
 
   Future<void> sendPasswordReset(String email) async {

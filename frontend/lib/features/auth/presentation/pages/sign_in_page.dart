@@ -79,6 +79,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
     try {
+      await ref.read(authProvider.notifier).signInWithGoogle();
+
       final prefs = await SharedPreferences.getInstance();
       final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
 
@@ -89,6 +91,15 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       } else {
         context.go('/fridges');
       }
+    } catch (e) {
+      if (!mounted) return;
+      final errorMsg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
