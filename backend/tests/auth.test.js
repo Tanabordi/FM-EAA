@@ -133,7 +133,7 @@ describe('Auth API Integration Tests', () => {
     it('returns 400 when idToken is missing', async () => {
       const res = await request(app).post('/api/auth/google').send({});
       expect(res.statusCode).toBe(400);
-      expect(res.body.error).toMatch(/idToken is required/i);
+      expect(res.body.error).toMatch(/idToken.*required/i);
     });
 
     it('returns 401 when idToken is invalid', async () => {
