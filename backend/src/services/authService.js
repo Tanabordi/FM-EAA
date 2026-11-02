@@ -475,7 +475,6 @@ class AuthService {
         { outFormat: oracledb.OUT_FORMAT_OBJECT }
       );
 
-      let user;
       if (result.rows && result.rows.length > 0) {
         user = result.rows[0];
 
@@ -513,51 +512,33 @@ class AuthService {
 
         user.USERNAME = targetUsername;
         user.AVATAR_URL = newAvatar;
-      } else {
-        // Create new user
-        const username = await this._getUniqueUsername(conn, name);
 
-        const insertSql = `
-          INSERT INTO users (id, username, email, google_id, avatar_url, created_at, updated_at)
-          VALUES (SYS_GUID(), :username, :email, :googleId, :avatarUrl, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-          RETURNING id INTO :newId
-        `;
-        const insertRes = await conn.execute(
-          insertSql,
-          {
-            username,
-            email,
-            googleId,
-            avatarUrl: picture,
-            newId: { type: oracledb.STRING, dir: oracledb.BIND_OUT },
-          },
-          { autoCommit: true }
-        );
-
-        const newId = insertRes.outBinds.newId[0];
-        user = {
-          ID: newId,
-          USERNAME: username,
-          EMAIL: email,
-          AVATAR_URL: picture,
-        };
-      }
-
-      const token = this.generateToken({
-        id: user.ID,
-        username: user.USERNAME,
-        email: user.EMAIL,
-      });
-
-      return {
-        user: {
+        const token = this.generateToken({
           id: user.ID,
           username: user.USERNAME,
           email: user.EMAIL,
-          avatarUrl: user.AVATAR_URL || picture,
-        },
-        token,
-      };
+        });
+
+        return {
+          isNewUser: false,
+          user: {
+            id: user.ID,
+            username: user.USERNAME,
+            email: user.EMAIL,
+            avatarUrl: user.AVATAR_URL || picture,
+          },
+          token,
+        };
+      } else {
+        // User does not exist in DB yet: prompt registration with locked Google email
+        return {
+          isNewUser: true,
+          email,
+          displayName: name,
+          photoUrl: picture,
+          googleId,
+        };
+      }
     } finally {
       if (conn) {
         try {

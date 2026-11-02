@@ -4,6 +4,22 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../remote/api_client.dart';
 
+class GoogleAuthResult {
+  final bool isNewUser;
+  final UserModel? user;
+  final String? email;
+  final String? displayName;
+  final String? photoUrl;
+
+  const GoogleAuthResult({
+    required this.isNewUser,
+    this.user,
+    this.email,
+    this.displayName,
+    this.photoUrl,
+  });
+}
+
 class AuthRepository {
   final ApiClient apiClient;
 
@@ -93,7 +109,7 @@ class AuthRepository {
     );
   }
 
-  Future<UserModel> signInWithGoogle({GoogleSignIn? googleSignInOverride}) async {
+  Future<GoogleAuthResult> signInWithGoogle({GoogleSignIn? googleSignInOverride}) async {
     try {
       final googleSignIn = googleSignInOverride ?? _buildGoogleSignIn();
 
@@ -130,6 +146,17 @@ class AuthRepository {
       );
 
       final data = response.data as Map<String, dynamic>;
+      final isNewUser = data['isNewUser'] == true || data['user'] == null;
+
+      if (isNewUser) {
+        return GoogleAuthResult(
+          isNewUser: true,
+          email: (data['email'] as String?) ?? account.email,
+          displayName: (data['displayName'] as String?) ?? account.displayName,
+          photoUrl: (data['photoUrl'] as String?) ?? account.photoUrl,
+        );
+      }
+
       final token = data['token'] as String?;
       if (token != null) {
         await apiClient.storage.write(key: 'jwt_token', value: token);
@@ -144,9 +171,28 @@ class AuthRepository {
         await apiClient.storage.write(key: 'user_avatar_url', value: user.avatarUrl);
       }
 
-      return user;
+      return GoogleAuthResult(
+        isNewUser: false,
+        user: user,
+        email: user.email,
+        displayName: user.username,
+        photoUrl: user.avatarUrl,
+      );
     } on DioException catch (e) {
       throw _parseDioError(e);
+    }
+  }
+
+  Future<String?> pickGoogleEmail({GoogleSignIn? googleSignInOverride}) async {
+    try {
+      final googleSignIn = googleSignInOverride ?? _buildGoogleSignIn();
+      try {
+        await googleSignIn.signOut();
+      } catch (_) {}
+      final account = await googleSignIn.signIn();
+      return account?.email.trim();
+    } catch (_) {
+      return null;
     }
   }
 

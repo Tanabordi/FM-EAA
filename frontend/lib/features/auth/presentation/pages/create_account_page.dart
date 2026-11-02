@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
@@ -27,6 +28,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  late bool _isGoogleLocked;
 
   String? _usernameError;
   String? _emailError;
@@ -37,6 +39,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.prefilledEmail ?? '');
+    _isGoogleLocked = widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty;
   }
 
   @override
@@ -44,6 +47,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
     super.didUpdateWidget(oldWidget);
     if (widget.prefilledEmail != oldWidget.prefilledEmail && widget.prefilledEmail != null) {
       _emailController.text = widget.prefilledEmail!;
+      _isGoogleLocked = widget.prefilledEmail!.isNotEmpty;
     }
   }
 
@@ -128,12 +132,47 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   Future<void> _handleGoogleSignUp() async {
     setState(() => _isLoading = true);
     try {
-      if (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty) {
+      final result = await ref.read(authProvider.notifier).signInWithGoogle();
+      if (!mounted) return;
+
+      if (!result.isNewUser) {
+        // User already has an account in DB and is now authenticated!
+        final prefs = await SharedPreferences.getInstance();
+        final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
         if (!mounted) return;
-        context.go('/onboarding');
-      } else {
-        if (!mounted) return;
-        context.go('/create-account?email=user@gmail.com');
+        if (!hasEnabled) {
+          context.go('/onboarding');
+        } else {
+          context.go('/fridges');
+        }
+        return;
+      }
+
+      // User does not exist in DB yet: populate Google email, lock it, and show Image 2
+      setState(() {
+        _isGoogleLocked = true;
+        if (result.email != null && result.email!.isNotEmpty) {
+          _emailController.text = result.email!;
+        }
+        if (_usernameController.text.trim().isEmpty) {
+          if (result.displayName != null && result.displayName!.isNotEmpty) {
+            _usernameController.text = result.displayName!;
+          } else if (result.email != null) {
+            _usernameController.text = result.email!.split('@')[0];
+          }
+        }
+        _emailError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      final errorMsg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      if (errorMsg != 'Google sign-in was cancelled') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -144,7 +183,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isEmailLocked = widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty;
+    final isEmailLocked = _isGoogleLocked || (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty);
 
     return Scaffold(
       backgroundColor: colorScheme.surface,

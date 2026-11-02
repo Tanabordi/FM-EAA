@@ -67,18 +67,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState(isAuthenticated: false);
   }
 
-  Future<void> signInWithGoogle() async {
+  Future<GoogleAuthResult> signInWithGoogle() async {
     state = const AuthState(isLoading: true);
     try {
-      final user = await _repo.signInWithGoogle();
-      state = AuthState(
-        isAuthenticated: true,
-        user: user,
-      );
+      final result = await _repo.signInWithGoogle();
+      if (!result.isNewUser && result.user != null) {
+        state = AuthState(
+          isAuthenticated: true,
+          user: result.user,
+        );
+      } else {
+        state = const AuthState(isAuthenticated: false);
+      }
+      return result;
     } catch (e) {
       state = const AuthState(isAuthenticated: false);
       rethrow;
     }
+  }
+
+  Future<String?> pickGoogleEmail() async {
+    return _repo.pickGoogleEmail();
   }
 
   void updateUser(UserModel user) {

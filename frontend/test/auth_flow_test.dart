@@ -250,5 +250,39 @@ void main() {
 
       expect(find.text('Please check your input fields'), findsOneWidget);
     });
+
+    testWidgets('CreateAccountPage locks email and hides Google Sign Up button when prefilledEmail is provided', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(body: CreateAccountPage(prefilledEmail: 'user@gmail.com')),
+          ),
+        ),
+      );
+
+      // Email field should be prefilled with user@gmail.com
+      expect(find.text('user@gmail.com'), findsOneWidget);
+      // Lock icon should be visible
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      // "Sign up with Google" button should be hidden
+      expect(find.text('Sign up with Google'), findsNothing);
+      expect(find.text('Or'), findsNothing);
+    });
+
+    testWidgets('CreateAccountPage shows editable email and Google Sign Up button when prefilledEmail is not provided', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(body: CreateAccountPage()),
+          ),
+        ),
+      );
+
+      // Lock icon should NOT be visible
+      expect(find.byIcon(Icons.lock_outline), findsNothing);
+      // "Sign up with Google" button and "Or" divider should be visible
+      expect(find.text('Sign up with Google'), findsOneWidget);
+      expect(find.text('Or'), findsOneWidget);
+    });
   });
 }
