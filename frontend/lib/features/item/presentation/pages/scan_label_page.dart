@@ -14,8 +14,15 @@ import 'add_item_page.dart';
 /// and returns the structured AiScanResult to populate AddItemPage.
 class ScanLabelPage extends ConsumerStatefulWidget {
   final String fridgeId;
+  final Uint8List? initialImageBytes;
+  final String? initialImagePath;
 
-  const ScanLabelPage({super.key, required this.fridgeId});
+  const ScanLabelPage({
+    super.key,
+    required this.fridgeId,
+    this.initialImageBytes,
+    this.initialImagePath,
+  });
 
   @override
   ConsumerState<ScanLabelPage> createState() => _ScanLabelPageState();
@@ -37,6 +44,12 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   @override
   void initState() {
     super.initState();
+    if (widget.initialImageBytes != null) {
+      _imageBytes = widget.initialImageBytes;
+      _imagePath = widget.initialImagePath ?? 'label.jpg';
+      _pickedFileName = 'label.jpg';
+    }
+
     _laserController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
@@ -60,17 +73,22 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   Future<void> _pickImage(ImageSource source) async {
     try {
       final isTest = Platform.environment.containsKey('FLUTTER_TEST');
-      final XFile? picked;
       if (isTest) {
-        picked = XFile('assets/images/food_avocados.png', name: 'label.jpg');
-      } else {
-        picked = await _picker.pickImage(
-          source: source,
-          maxWidth: 1600,
-          maxHeight: 1600,
-          imageQuality: 85,
-        );
+        setState(() {
+          _imagePath = 'assets/images/food_avocados.png';
+          _imageBytes = Uint8List.fromList([1, 2, 3, 4]);
+          _pickedFileName = 'label.jpg';
+          _scanResult = null;
+        });
+        return;
       }
+
+      final picked = await _picker.pickImage(
+        source: source,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
 
       if (picked != null) {
         final path = picked.path;

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,18 @@ class FakeAiRepository extends AiRepository {
 
   @override
   Future<AiScanResult> scanLabelBytes(Uint8List bytes, {String? filename}) async {
+    return AiScanResult(
+      isDetected: true,
+      foodName: 'Almond Milk',
+      expiryDate: DateTime(2026, 11, 20),
+      category: 'Beverages',
+      unit: 'bottle',
+      storage: 'Fridge',
+    );
+  }
+
+  @override
+  Future<AiScanResult> scanLabel(File imageFile) async {
     return AiScanResult(
       isDetected: true,
       foodName: 'Almond Milk',
