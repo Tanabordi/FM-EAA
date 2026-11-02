@@ -19,8 +19,15 @@ async function initDbPool() {
       poolMin: 2,
       poolMax: 10,
       poolIncrement: 2,
+      sessionCallback: (connection, requestedTag, cb) => {
+        if (config.oracle.schema) {
+          connection.execute(`ALTER SESSION SET CURRENT_SCHEMA = ${config.oracle.schema}`, cb);
+        } else {
+          cb();
+        }
+      },
     });
-    console.log('[DB] Oracle Cloud connection pool initialized.');
+    console.log(`[DB] Oracle Cloud connection pool initialized (Schema: ${config.oracle.schema || config.oracle.user}).`);
     return pool;
   } catch (err) {
     console.error('[DB] Failed to initialize Oracle connection pool:', err.message);
