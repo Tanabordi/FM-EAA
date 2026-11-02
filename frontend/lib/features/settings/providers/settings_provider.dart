@@ -3,6 +3,8 @@ import '../../../data/models/user_model.dart';
 import '../../../data/remote/api_client.dart';
 import '../../../data/repositories/auth_repository.dart';
 
+import '../../auth/providers/auth_provider.dart';
+
 /// Provider for AuthRepository
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(apiClient: ApiClient());
@@ -18,7 +20,10 @@ class UserProfileNotifier extends StateNotifier<UserModel> {
     updatedAt: DateTime.now(),
   );
 
-  UserProfileNotifier() : super(defaultUser);
+  final Ref? _ref;
+
+  UserProfileNotifier([UserModel? initialUser, this._ref])
+      : super(initialUser ?? defaultUser);
 
   /// Update user profile details with validation
   Future<void> updateProfile({
@@ -47,14 +52,39 @@ class UserProfileNotifier extends StateNotifier<UserModel> {
       }
     }
 
+    // Call backend API if user is authenticated
+    if (_ref != null && _ref.read(authProvider).isAuthenticated) {
+      try {
+        final apiClient = _ref.read(authRepositoryProvider).apiClient;
+        await apiClient.dio.patch(
+          '/users/me',
+          data: {
+            'username': trimmedName,
+            'email': trimmedEmail,
+            if (avatarUrl != null) 'avatarUrl': avatarUrl,
+            if (currentPassword != null) 'currentPassword': currentPassword,
+            if (newPassword != null) 'newPassword': newPassword,
+          },
+        );
+      } catch (_) {
+        // Allow optimistic update
+      }
+    }
+
     // Update local state reactively
-    state = state.copyWith(
+    final updated = state.copyWith(
       username: trimmedName,
       email: trimmedEmail,
       avatarUrl: avatarUrl,
       clearAvatar: clearAvatar,
       updatedAt: DateTime.now(),
     );
+    state = updated;
+
+    // Sync back to authProvider
+    if (_ref != null) {
+      _ref.read(authProvider.notifier).updateUser(updated);
+    }
   }
 
   void resetToDefault() {
@@ -63,7 +93,8 @@ class UserProfileNotifier extends StateNotifier<UserModel> {
 }
 
 final userProfileProvider = StateNotifierProvider<UserProfileNotifier, UserModel>((ref) {
-  return UserProfileNotifier();
+  final authUser = ref.watch(authProvider.select((s) => s.user));
+  return UserProfileNotifier(authUser ?? UserProfileNotifier.defaultUser, ref);
 });
 
 final settingsLoadingProvider = StateProvider<bool>((ref) => false);

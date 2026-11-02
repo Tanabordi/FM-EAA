@@ -237,6 +237,136 @@ class AuthService {
       }
     }
   }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(userId, { username, email, avatarUrl, currentPassword, newPassword } = {}) {
+    let conn;
+    try {
+      conn = await getDbConnection();
+
+      const existingSql = `
+        SELECT id, username, email, password_hash, avatar_url
+        FROM users
+        WHERE id = :userId
+      `;
+      const result = await conn.execute(
+        existingSql,
+        { userId },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      if (!result.rows || result.rows.length === 0) {
+        const err = new Error('User not found');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const currentUser = result.rows[0];
+      let cleanUsername = currentUser.USERNAME;
+      let cleanEmail = currentUser.EMAIL;
+      let newPasswordHash = currentUser.PASSWORD_HASH;
+      let newAvatarUrl = avatarUrl !== undefined ? avatarUrl : currentUser.AVATAR_URL;
+
+      if (username && username.trim()) {
+        cleanUsername = username.trim();
+        if (cleanUsername.length < 3) {
+          const err = new Error('Username must be at least 3 characters long');
+          err.statusCode = 400;
+          throw err;
+        }
+      }
+
+      if (email && email.trim()) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        cleanEmail = email.trim().toLowerCase();
+        if (!emailRegex.test(cleanEmail)) {
+          const err = new Error('A valid email address is required');
+          err.statusCode = 400;
+          throw err;
+        }
+      }
+
+      // Check unique username/email against other users
+      const dupCheckSql = `
+        SELECT id, username, email FROM users
+        WHERE (LOWER(username) = LOWER(:username) OR LOWER(email) = LOWER(:email))
+          AND id != :userId
+      `;
+      const dupCheck = await conn.execute(
+        dupCheckSql,
+        { username: cleanUsername, email: cleanEmail, userId },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      if (dupCheck.rows && dupCheck.rows.length > 0) {
+        const dup = dupCheck.rows[0];
+        const isSameUsername = dup.USERNAME && dup.USERNAME.toLowerCase() === cleanUsername.toLowerCase();
+        const err = new Error(
+          isSameUsername ? 'Username is already taken' : 'Email is already in use by another account'
+        );
+        err.statusCode = 409;
+        throw err;
+      }
+
+      // If new password provided, verify current password
+      if (newPassword && newPassword.length > 0) {
+        if (!currentPassword) {
+          const err = new Error('Current password is required to set a new password');
+          err.statusCode = 400;
+          throw err;
+        }
+        if (newPassword.length < 6) {
+          const err = new Error('New password must be at least 6 characters long');
+          err.statusCode = 400;
+          throw err;
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, currentUser.PASSWORD_HASH);
+        if (!isMatch) {
+          const err = new Error('Current password does not match');
+          err.statusCode = 401;
+          throw err;
+        }
+        newPasswordHash = await bcrypt.hash(newPassword, 10);
+      }
+
+      const updateSql = `
+        UPDATE users
+        SET username = :username,
+            email = :email,
+            avatar_url = :avatarUrl,
+            password_hash = :passwordHash,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :userId
+      `;
+      await conn.execute(
+        updateSql,
+        {
+          username: cleanUsername,
+          email: cleanEmail,
+          avatarUrl: newAvatarUrl,
+          passwordHash: newPasswordHash,
+          userId,
+        },
+        { autoCommit: true }
+      );
+
+      return {
+        id: userId,
+        username: cleanUsername,
+        email: cleanEmail,
+        avatarUrl: newAvatarUrl,
+      };
+    } finally {
+      if (conn) {
+        try {
+          await conn.close();
+        } catch (_) {}
+      }
+    }
+  }
 }
 
 module.exports = new AuthService();

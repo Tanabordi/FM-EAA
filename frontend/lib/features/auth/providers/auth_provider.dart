@@ -66,6 +66,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _repo.logout();
     state = const AuthState(isAuthenticated: false);
   }
+
+  void updateUser(UserModel user) {
+    state = AuthState(
+      isAuthenticated: true,
+      user: user,
+    );
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
