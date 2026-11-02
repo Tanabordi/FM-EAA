@@ -73,6 +73,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       }
 
       if (picked != null) {
+        final path = picked.path;
+        final name = picked.name;
         Uint8List bytes;
         try {
           bytes = await picked.readAsBytes();
@@ -80,9 +82,9 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           bytes = Uint8List.fromList([1, 2, 3, 4]);
         }
         setState(() {
-          _imagePath = picked.path;
+          _imagePath = path;
           _imageBytes = bytes;
-          _pickedFileName = picked.name;
+          _pickedFileName = name;
           _scanResult = null; // Reset previous result on new image
         });
       }
