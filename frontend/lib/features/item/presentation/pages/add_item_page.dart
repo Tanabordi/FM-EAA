@@ -9,14 +9,20 @@ import '../../../../data/repositories/ai_repository.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 import '../../../fridges/providers/fridges_provider.dart';
+import 'scan_label_page.dart';
 
 /// Screen #11: Add items
 /// AI Label Scan Card with Gemini button, form fields: Food Name, Category dropdown,
 /// Quantity & Unit row, Storage Location dropdown, Expiration Date picker, and Save button.
 class AddItemPage extends ConsumerStatefulWidget {
   final String fridgeId;
+  final AiScanResult? initialScanResult;
 
-  const AddItemPage({super.key, required this.fridgeId});
+  const AddItemPage({
+    super.key,
+    required this.fridgeId,
+    this.initialScanResult,
+  });
 
   @override
   ConsumerState<AddItemPage> createState() => _AddItemPageState();
@@ -32,10 +38,46 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   String? _imagePath;
   Uint8List? _imageBytes;
   String? _pickedFileName;
+  bool _hasAnalyzed = false;
+  bool _isScanning = false;
 
   final _categories = ['Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'];
   final _units = ['pieces', 'bag', 'punnet', 'bottle', 'box', 'can', 'pack', 'g', 'kg'];
   final _storages = ['Fridge', 'Freezer'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialScanResult != null) {
+      _applyScanResult(widget.initialScanResult!);
+    }
+  }
+
+  void _applyScanResult(AiScanResult result) {
+    if (result.foodName != null && result.foodName!.trim().isNotEmpty) {
+      _foodNameController.text = result.foodName!;
+    }
+    if (result.imagePath != null && result.imagePath!.isNotEmpty) {
+      _imagePath = result.imagePath;
+      try {
+        final f = File(result.imagePath!);
+        if (f.existsSync()) {
+          _imageBytes = f.readAsBytesSync();
+          _pickedFileName = f.path.split(Platform.pathSeparator).last;
+        }
+      } catch (_) {}
+    }
+    _selectedCategory = result.category;
+    if (_quantityController.text.trim().isEmpty) {
+      _quantityController.text = '2';
+    }
+    _selectedUnit = result.unit;
+    _selectedStorage = result.storage;
+    if (result.expiryDate != null) {
+      _expirationDate = result.expiryDate;
+    }
+    _hasAnalyzed = true;
+  }
 
   @override
   void dispose() {
@@ -71,9 +113,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       ),
     );
   }
-
-  bool _isScanning = false;
-  bool _hasAnalyzed = false;
 
   void _clearAllData() {
     setState(() {
@@ -290,6 +329,31 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                     'Capture or select an image to let Gemini AI extract food name and expiry date.',
                     style: TextStyle(fontSize: 13, color: Color(0xFF717971)),
                   ),
+                ),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFD8F3DC),
+                    child: Icon(Icons.document_scanner_outlined, color: Color(0xFF2D6A4F)),
+                  ),
+                  title: const Text(
+                    'Open AI Label Scanner',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                  subtitle: const Text('Interactive viewfinder & real-time scanner page'),
+                  onTap: () async {
+                    Navigator.of(bottomSheetContext).pop();
+                    final result = await Navigator.push<AiScanResult>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ScanLabelPage(fridgeId: widget.fridgeId),
+                      ),
+                    );
+                    if (result != null && mounted) {
+                      setState(() {
+                        _applyScanResult(result);
+                      });
+                    }
+                  },
                 ),
                 ListTile(
                   leading: const CircleAvatar(
