@@ -178,7 +178,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: AppBackButton(
-          onTap: () {
+          onPressed: () {
             if (Navigator.canPop(context)) {
               Navigator.pop(context);
             } else {
@@ -254,11 +254,11 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         color: const Color(0xFF1E2922),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0x66000000),
+            color: Color(0x66000000),
             blurRadius: 16,
-            offset: const Offset(0, 8),
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -296,8 +296,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                       height: 2.5,
                       width: double.infinity,
                       margin: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
                           colors: [
                             Colors.transparent,
                             Color(0xFF52B788),
@@ -306,7 +306,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                             Colors.transparent,
                           ],
                         ),
-                        boxShadow: const [
+                        boxShadow: [
                           BoxShadow(
                             color: Color(0xCC52B788),
                             blurRadius: 8,

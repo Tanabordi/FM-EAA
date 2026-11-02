@@ -62,8 +62,6 @@ void main() {
   testWidgets('Analyzing image shows result card and supports autofill callback', (tester) async {
     final fakeRepo = FakeAiRepository();
 
-    AiScanResult? returnedResult;
-
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -73,7 +71,7 @@ void main() {
           home: Builder(
             builder: (context) => ElevatedButton(
               onPressed: () async {
-                returnedResult = await Navigator.push<AiScanResult>(
+                await Navigator.push<AiScanResult>(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const ScanLabelPage(fridgeId: 'fridge_1'),

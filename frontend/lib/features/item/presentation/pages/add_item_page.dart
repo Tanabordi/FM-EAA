@@ -114,9 +114,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     );
   }
 
-  bool _isScanning = false;
-  bool _hasAnalyzed = false;
-
   void _clearAllData() {
     setState(() {
       _imagePath = null;
