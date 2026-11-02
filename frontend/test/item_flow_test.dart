@@ -173,6 +173,25 @@ void main() {
       expect(find.text('Veggies'), findsOneWidget);
       expect(find.text('Fridge'), findsOneWidget);
       expect(find.text('Save'), findsOneWidget);
+
+      // Tap camera button to open change photo bottom sheet
+      await tester.tap(find.byIcon(Icons.camera_alt_outlined));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Change Item Photo'), findsOneWidget);
+      expect(find.text('Take Photo with Camera'), findsOneWidget);
+      expect(find.text('Choose from Gallery'), findsOneWidget);
+
+      // Tap Choose from Gallery in sheet
+      await tester.tap(find.text('Choose from Gallery'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      // Tap Save
+      await tester.ensureVisible(find.text('Save'));
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Screens #14 & #15: MarkConsumedSheet renders stepper, Confirm, and Finished all buttons', (tester) async {
