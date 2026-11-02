@@ -19,5 +19,8 @@ module.exports = {
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || '',
   },
+  oci: {
+    parUrl: process.env.OCI_PAR_URL || '',
+  },
 };
 

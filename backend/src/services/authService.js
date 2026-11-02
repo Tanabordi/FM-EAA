@@ -372,23 +372,76 @@ class AuthService {
   }
 
   /**
+   * Helper: Generate unique username in DB
+   */
+  async _getUniqueUsername(conn, desiredName, currentUserId = null) {
+    let base = (desiredName || '').trim().replace(/[\r\n\t]/g, ' ').slice(0, 45) || 'user';
+    let candidate = base;
+    let counter = 1;
+
+    while (true) {
+      let checkSql = 'SELECT id FROM users WHERE LOWER(username) = LOWER(:u)';
+      const binds = { u: candidate };
+      if (currentUserId) {
+        checkSql += ' AND id != :userId';
+        binds.userId = currentUserId;
+      }
+      const checkRes = await conn.execute(
+        checkSql,
+        binds,
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      if (!checkRes.rows || checkRes.rows.length === 0) {
+        return candidate;
+      }
+      candidate = `${base.slice(0, 40)}_${counter++}`;
+    }
+  }
+
+  /**
    * Google OAuth 2.0 login / registration
    * Verifies Google idToken, retrieves user info, and creates/returns user in Oracle DB
    */
-  async loginWithGoogle(idToken) {
-    if (!idToken || typeof idToken !== 'string') {
-      const err = new Error('Google idToken is required');
+  async loginWithGoogle(idToken, { accessToken, displayName, photoUrl } = {}) {
+    if (!idToken && !accessToken) {
+      const err = new Error('Google idToken or accessToken is required');
       err.statusCode = 400;
       throw err;
     }
 
     let payload;
     try {
-      const ticket = await googleClient.verifyIdToken({
-        idToken,
-        audience: config.google.clientId,
-      });
-      payload = ticket.getPayload();
+      if (idToken && typeof idToken === 'string' && idToken.trim()) {
+        const ticket = await googleClient.verifyIdToken({
+          idToken,
+          audience: config.google.clientId,
+        });
+        payload = ticket.getPayload();
+      } else if (accessToken && typeof accessToken === 'string' && accessToken.trim()) {
+        const tokenInfo = await googleClient.getTokenInfo(accessToken);
+        if (tokenInfo.aud && tokenInfo.aud !== config.google.clientId) {
+          const err = new Error('Token audience mismatch');
+          err.statusCode = 401;
+          throw err;
+        }
+        const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!userinfoRes.ok) {
+          const err = new Error(`Failed to fetch Google userinfo: ${userinfoRes.status}`);
+          err.statusCode = 401;
+          throw err;
+        }
+        const userinfo = await userinfoRes.json();
+        payload = {
+          sub: tokenInfo.sub || userinfo.sub,
+          email: tokenInfo.email || userinfo.email,
+          name: userinfo.name,
+          picture: userinfo.picture,
+          given_name: userinfo.given_name,
+          family_name: userinfo.family_name,
+        };
+      }
     } catch (verifyErr) {
       const err = new Error(`Invalid Google token: ${verifyErr.message}`);
       err.statusCode = 401;
@@ -403,8 +456,8 @@ class AuthService {
 
     const googleId = payload.sub;
     const email = payload.email.trim().toLowerCase();
-    const name = payload.name || payload.given_name || email.split('@')[0];
-    const picture = payload.picture || null;
+    const name = displayName || payload.name || payload.given_name || email.split('@')[0];
+    const picture = photoUrl || payload.picture || null;
 
     let conn;
     try {
@@ -425,39 +478,44 @@ class AuthService {
       let user;
       if (result.rows && result.rows.length > 0) {
         user = result.rows[0];
-        // If user existed by email but didn't have google_id linked yet, link it
-        if (!user.GOOGLE_ID || (!user.AVATAR_URL && picture)) {
-          const updateSql = `
-            UPDATE users
-            SET google_id = COALESCE(google_id, :googleId),
-                avatar_url = COALESCE(avatar_url, :picture),
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = :id
-          `;
-          await conn.execute(
-            updateSql,
-            { googleId, picture, id: user.ID },
-            { autoCommit: true }
-          );
+
+        // Sync with Google username and avatar URL
+        let targetUsername = user.USERNAME;
+        if (!targetUsername || targetUsername === 'user' || targetUsername.startsWith('testuser_')) {
+          targetUsername = await this._getUniqueUsername(conn, name, user.ID);
+        } else if (name && (targetUsername === 'admin' || targetUsername.startsWith('user_'))) {
+          targetUsername = await this._getUniqueUsername(conn, name, user.ID);
+        } else if (name && targetUsername.toLowerCase() !== name.toLowerCase()) {
+          targetUsername = await this._getUniqueUsername(conn, name, user.ID);
         }
+
+        // Preserve custom avatar if user already uploaded one, otherwise fallback to Google photo
+        const newAvatar = user.AVATAR_URL || picture;
+
+        const updateSql = `
+          UPDATE users
+          SET google_id = :googleId,
+              username = :username,
+              avatar_url = :avatarUrl,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = :id
+        `;
+        await conn.execute(
+          updateSql,
+          {
+            googleId,
+            username: targetUsername,
+            avatarUrl: newAvatar,
+            id: user.ID,
+          },
+          { autoCommit: true }
+        );
+
+        user.USERNAME = targetUsername;
+        user.AVATAR_URL = newAvatar;
       } else {
         // Create new user
-        // Ensure unique username
-        let baseUsername = name.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30) || 'user';
-        if (baseUsername.length < 3) baseUsername = `user_${baseUsername}`;
-        let username = baseUsername;
-        let counter = 1;
-
-        while (true) {
-          const checkUserSql = `SELECT id FROM users WHERE LOWER(username) = LOWER(:u)`;
-          const checkRes = await conn.execute(
-            checkUserSql,
-            { u: username },
-            { outFormat: oracledb.OUT_FORMAT_OBJECT }
-          );
-          if (!checkRes.rows || checkRes.rows.length === 0) break;
-          username = `${baseUsername}${counter++}`;
-        }
+        const username = await this._getUniqueUsername(conn, name);
 
         const insertSql = `
           INSERT INTO users (id, username, email, google_id, avatar_url, created_at, updated_at)

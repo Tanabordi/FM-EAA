@@ -39,6 +39,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   bool _obscureNewPassword = true;
 
   String? _selectedAvatarPath;
+  XFile? _selectedImageFile;
   bool _removeAvatar = false;
   bool _forceExit = false;
 
@@ -172,6 +173,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     onTap: () {
                       Navigator.of(bottomSheetContext).pop();
                       setState(() {
+                        _selectedImageFile = null;
                         _selectedAvatarPath = null;
                         _removeAvatar = true;
                       });
@@ -197,6 +199,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
       if (pickedFile != null) {
         setState(() {
+          _selectedImageFile = pickedFile;
           _selectedAvatarPath = pickedFile.path;
           _removeAvatar = false;
         });
@@ -251,10 +254,20 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     setState(() => _isLoading = true);
 
     try {
+      final user = ref.read(userProfileProvider);
+      String? finalAvatarUrl = _removeAvatar ? null : user.avatarUrl;
+
+      // Upload newly selected image file to Oracle Cloud Object Storage via backend
+      if (!_removeAvatar && _selectedImageFile != null) {
+        final bytes = await _selectedImageFile!.readAsBytes();
+        final fileName = _selectedImageFile!.name;
+        finalAvatarUrl = await ref.read(authRepositoryProvider).uploadAvatar(bytes, fileName);
+      }
+
       await ref.read(userProfileProvider.notifier).updateProfile(
             name: name,
             email: email,
-            avatarUrl: _selectedAvatarPath,
+            avatarUrl: finalAvatarUrl,
             clearAvatar: _removeAvatar,
             currentPassword: currentPassword.isNotEmpty ? currentPassword : null,
             newPassword: newPassword.isNotEmpty ? newPassword : null,

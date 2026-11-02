@@ -51,8 +51,8 @@ router.get('/me', authenticateToken, async (req, res, next) => {
  */
 router.post('/google', async (req, res, next) => {
   try {
-    const { idToken } = req.body;
-    const result = await authService.loginWithGoogle(idToken);
+    const { idToken, accessToken, displayName, photoUrl } = req.body;
+    const result = await authService.loginWithGoogle(idToken, { accessToken, displayName, photoUrl });
     res.status(200).json(result);
   } catch (err) {
     next(err);

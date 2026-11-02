@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../remote/api_client.dart';
@@ -80,28 +81,52 @@ class AuthRepository {
     }
   }
 
+  GoogleSignIn _buildGoogleSignIn() {
+    return GoogleSignIn(
+      clientId: kIsWeb
+          ? '516658327353-do6p38rdv13tc6k5o83g5r3va0u1be2n.apps.googleusercontent.com'
+          : null,
+      serverClientId: kIsWeb
+          ? null
+          : '516658327353-do6p38rdv13tc6k5o83g5r3va0u1be2n.apps.googleusercontent.com',
+      scopes: ['email', 'openid', 'profile'],
+    );
+  }
+
   Future<UserModel> signInWithGoogle({GoogleSignIn? googleSignInOverride}) async {
     try {
-      final googleSignIn = googleSignInOverride ??
-          GoogleSignIn(
-            serverClientId: '516658327353-do6p38rdv13tc6k5o83g5r3va0u1be2n.apps.googleusercontent.com',
-            scopes: ['email', 'profile'],
-          );
+      final googleSignIn = googleSignInOverride ?? _buildGoogleSignIn();
 
-      final account = await googleSignIn.signIn();
+      // Clear any cached account state to ensure the Google account chooser is displayed
+      try {
+        await googleSignIn.signOut();
+      } catch (_) {}
+
+      GoogleSignInAccount? account = await googleSignIn.signIn();
       if (account == null) {
         throw Exception('Google sign-in was cancelled');
       }
 
-      final auth = await account.authentication;
+      final GoogleSignInAuthentication auth = await account.authentication;
       final idToken = auth.idToken;
-      if (idToken == null || idToken.isEmpty) {
-        throw Exception('Failed to retrieve Google ID token. Please try again.');
+      final accessToken = auth.accessToken;
+
+      if ((idToken == null || idToken.isEmpty) && (accessToken == null || accessToken.isEmpty)) {
+        throw Exception('Failed to retrieve Google authentication token. Please try again.');
       }
 
+      final googleName = account.displayName;
+      final googlePhoto = account.photoUrl;
       final response = await apiClient.dio.post(
         '/auth/google',
-        data: {'idToken': idToken},
+        data: {
+          if (idToken != null && idToken.isNotEmpty) 'idToken': idToken,
+          if (accessToken != null && accessToken.isNotEmpty) 'accessToken': accessToken,
+          if (googleName != null && googleName.isNotEmpty)
+            'displayName': googleName,
+          if (googlePhoto != null && googlePhoto.isNotEmpty)
+            'photoUrl': googlePhoto,
+        },
       );
 
       final data = response.data as Map<String, dynamic>;
@@ -115,8 +140,31 @@ class AuthRepository {
       await apiClient.storage.write(key: 'user_id', value: user.id);
       await apiClient.storage.write(key: 'user_username', value: user.username);
       await apiClient.storage.write(key: 'user_email', value: user.email);
+      if (user.avatarUrl != null) {
+        await apiClient.storage.write(key: 'user_avatar_url', value: user.avatarUrl);
+      }
 
       return user;
+    } on DioException catch (e) {
+      throw _parseDioError(e);
+    }
+  }
+
+  Future<String> uploadAvatar(List<int> bytes, String fileName) async {
+    try {
+      final formData = FormData.fromMap({
+        'avatar': MultipartFile.fromBytes(bytes, filename: fileName),
+      });
+
+      final response = await apiClient.dio.post(
+        '/users/me/avatar',
+        data: formData,
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      final avatarUrl = (data['avatarUrl'] ?? data['user']?['avatarUrl']) as String;
+      await apiClient.storage.write(key: 'user_avatar_url', value: avatarUrl);
+      return avatarUrl;
     } on DioException catch (e) {
       throw _parseDioError(e);
     }
@@ -139,6 +187,13 @@ class AuthRepository {
       await apiClient.storage.delete(key: 'user_id');
       await apiClient.storage.delete(key: 'user_username');
       await apiClient.storage.delete(key: 'user_email');
+      await apiClient.storage.delete(key: 'user_avatar_url');
+    } catch (_) {}
+
+    try {
+      final googleSignIn = _buildGoogleSignIn();
+      await googleSignIn.signOut();
+      await googleSignIn.disconnect();
     } catch (_) {}
   }
 
