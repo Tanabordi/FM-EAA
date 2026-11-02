@@ -10,6 +10,7 @@ import '../../features/fridges/presentation/pages/add_fridge_page.dart';
 import '../../features/fridge_detail/presentation/pages/fridge_detail_page.dart';
 import '../../features/search/presentation/pages/search_page.dart';
 import '../../features/item/presentation/pages/add_item_page.dart';
+import '../../features/item/presentation/pages/scan_label_page.dart';
 import '../../features/item/presentation/pages/item_details_page.dart';
 import '../../features/item/presentation/pages/edit_item_page.dart';
 import '../../features/history/presentation/pages/history_page.dart';
@@ -110,6 +111,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
                   return AddItemPage(fridgeId: id);
+                },
+              ),
+              GoRoute(
+                path: 'items/scan',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return ScanLabelPage(fridgeId: id);
                 },
               ),
               GoRoute(
