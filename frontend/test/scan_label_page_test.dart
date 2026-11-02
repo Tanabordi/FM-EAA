@@ -5,9 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/data/remote/api_client.dart';
 import 'package:fm_eaa/data/repositories/ai_repository.dart';
 import 'package:fm_eaa/features/item/presentation/pages/scan_label_page.dart';
+import 'package:fm_eaa/features/item/presentation/pages/add_item_page.dart';
 
 class FakeAiRepository extends AiRepository {
-  FakeAiRepository() : super(apiClient: ApiClient(baseUrl: 'http://localhost:5000'));
+  FakeAiRepository() : super(apiClient: ApiClient());
 
   @override
   Future<AiScanResult> scanLabelBytes(Uint8List bytes, {String? filename}) async {
@@ -102,6 +103,34 @@ void main() {
       await tester.tap(analyzeBtn);
       await tester.pumpAndSettle();
     }
+  });
+
+  testWidgets('AddItemPage with initialScanResult properly autofills fields and image', (tester) async {
+    final scanResult = AiScanResult(
+      isDetected: true,
+      foodName: 'Organic Greek Yogurt',
+      expiryDate: DateTime(2026, 11, 28),
+      category: 'Proteins',
+      unit: 'punnet',
+      storage: 'Fridge',
+      imagePath: 'assets/images/food_avocados.png',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: AddItemPage(
+            fridgeId: 'fridge_1',
+            initialScanResult: scanResult,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Organic Greek Yogurt'), findsOneWidget);
+    expect(find.text('Proteins'), findsOneWidget);
   });
 }
 

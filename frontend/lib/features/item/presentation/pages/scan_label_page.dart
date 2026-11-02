@@ -141,9 +141,21 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   void _onApplyResult() {
     if (_scanResult == null) return;
 
+    // Attach the actual local image path captured/selected by user
+    final finalResult = AiScanResult(
+      isDetected: _scanResult!.isDetected,
+      foodName: _scanResult!.foodName,
+      expiryDate: _scanResult!.expiryDate,
+      category: _scanResult!.category,
+      unit: _scanResult!.unit,
+      storage: _scanResult!.storage,
+      imagePath: _imagePath ?? _scanResult!.imagePath,
+      message: _scanResult!.message,
+    );
+
     // Pop with result if pushed from AddItemPage
     if (Navigator.canPop(context)) {
-      Navigator.pop(context, _scanResult);
+      Navigator.pop(context, finalResult);
     } else {
       // Navigate to AddItemPage with initial scan result
       Navigator.pushReplacement(
@@ -151,7 +163,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         MaterialPageRoute(
           builder: (context) => AddItemPage(
             fridgeId: widget.fridgeId,
-            initialScanResult: _scanResult,
+            initialScanResult: finalResult,
           ),
         ),
       );
@@ -244,7 +256,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: const Color(0x66000000),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -294,9 +306,9 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                             Colors.transparent,
                           ],
                         ),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
-                            color: const Color(0xFF52B788).withOpacity(0.8),
+                            color: Color(0xCC52B788),
                             blurRadius: 8,
                             spreadRadius: 2,
                           ),
@@ -320,7 +332,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             // Loading overlay when analyzing
             if (_isAnalyzing)
               Container(
-                color: Colors.black.withOpacity(0.65),
+                color: const Color(0xA6000000),
                 child: const Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -357,8 +369,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF2D6A4F).withOpacity(0.25),
-              border: Border.all(color: const Color(0xFF52B788).withOpacity(0.4)),
+              color: const Color(0x402D6A4F),
+              border: Border.all(color: const Color(0x6652B788)),
             ),
             child: const Icon(
               Icons.camera_alt_outlined,
@@ -586,7 +598,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               decoration: BoxDecoration(
                 color: const Color(0xFF23352A),
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF2D6A4F).withOpacity(0.4)),
+                border: Border.all(color: const Color(0x662D6A4F)),
               ),
               child: Icon(icon, color: const Color(0xFF74C69D), size: 24),
             ),

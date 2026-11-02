@@ -57,6 +57,16 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     if (result.foodName != null && result.foodName!.trim().isNotEmpty) {
       _foodNameController.text = result.foodName!;
     }
+    if (result.imagePath != null && result.imagePath!.isNotEmpty) {
+      _imagePath = result.imagePath;
+      try {
+        final f = File(result.imagePath!);
+        if (f.existsSync()) {
+          _imageBytes = f.readAsBytesSync();
+          _pickedFileName = f.path.split(Platform.pathSeparator).last;
+        }
+      } catch (_) {}
+    }
     _selectedCategory = result.category;
     if (_quantityController.text.trim().isEmpty) {
       _quantityController.text = '2';
