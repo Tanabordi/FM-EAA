@@ -64,8 +64,12 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       }
     } catch (e) {
       if (!mounted) return;
+      final errorMsg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sign in failed: ${e.toString()}')),
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: Colors.red.shade700,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

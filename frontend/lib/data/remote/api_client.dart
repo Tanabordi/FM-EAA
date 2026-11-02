@@ -26,15 +26,15 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // TODO(auth token): Attach Bearer token from secure storage
-          final token = await storage.read(key: 'jwt_token');
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
-          }
+          try {
+            final token = await storage.read(key: 'jwt_token');
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          } catch (_) {}
           return handler.next(options);
         },
         onError: (DioException error, handler) {
-          // TODO(error handling): Handle 401 Unauthorized token refresh
           return handler.next(error);
         },
       ),

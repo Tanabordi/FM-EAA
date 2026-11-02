@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
-import 'package:fm_eaa/features/settings/providers/settings_provider.dart';
+import '../../../auth/providers/auth_provider.dart';
 
 /// Screen #24: Log Out Alert Dialog matching Figma Node 133:438
 class LogoutDialog extends ConsumerWidget {
@@ -17,7 +17,7 @@ class LogoutDialog extends ConsumerWidget {
       isDestructive: true,
       onConfirm: () {
         final router = GoRouter.of(context);
-        ref.read(authRepositoryProvider).logout().catchError((_) {});
+        ref.read(authProvider.notifier).logout().catchError((_) {});
         router.go('/sign-in');
       },
     );
