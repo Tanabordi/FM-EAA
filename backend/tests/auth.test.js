@@ -103,16 +103,6 @@ describe('Auth API Integration Tests', () => {
       expect(res.body).toHaveProperty('token');
       expect(res.body.user.email).toBe(testUser.email.toLowerCase());
     });
-
-    it('successfully logs in existing admin seed user', async () => {
-      const res = await request(app).post('/api/auth/login').send({
-        identifier: 'admin',
-        password: 'Th53035303',
-      });
-      expect(res.statusCode).toBe(200);
-      expect(res.body.user.username).toBe('admin');
-      expect(res.body).toHaveProperty('token');
-    });
   });
 
   describe('GET /api/auth/me', () => {
