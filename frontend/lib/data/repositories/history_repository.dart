@@ -26,13 +26,73 @@ class HistoryRepository {
     return entries.map(HistoryModel.fromEntry).toList();
   }
 
-  /// Optimistic Delete: Deletes a single history record immediately
-  Future<void> deleteHistoryItem(String historyId) async {
+  /// Fetch history from backend API and cache into Drift SQLite
+  Future<List<HistoryModel>> fetchHistoryFromApi(String fridgeId, [String? kind]) async {
+    try {
+      final token = await apiClient.storage.read(key: 'jwt_token');
+      if (token != null && token.isNotEmpty) {
+        final queryParams = <String, dynamic>{};
+        if (kind != null) queryParams['kind'] = kind;
+
+        final res = await apiClient.dio.get(
+          '/fridges/$fridgeId/history',
+          queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        );
+
+        final list = (res.data['history'] as List?)
+            ?.map((e) => HistoryModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+
+        if (list != null) {
+          await database.itemDao.clearHistoryByFridge(fridgeId, kind: kind);
+          for (final h in list) {
+            await database.itemDao.into(database.itemDao.itemHistory).insert(
+              ItemHistoryCompanion.insert(
+                id: h.id,
+                fridgeId: h.fridgeId,
+                itemId: Value(h.itemId),
+                itemName: h.itemName,
+                category: const Value('meals'),
+                zone: const Value('fridge'),
+                imagePath: Value(h.imagePath),
+                kind: h.kind,
+                quantityChanged: h.quantityChanged,
+                quantityLeft: Value(h.quantityLeft),
+                unit: Value(h.unit),
+                byUserId: h.byUsername,
+                createdAt: Value(h.createdAt),
+              ),
+              mode: InsertMode.insertOrReplace,
+            );
+          }
+          return list;
+        }
+      }
+    } catch (_) {
+      // Fallback to local SQLite if offline or unauthenticated
+    }
+    return getHistory(fridgeId, kind);
+  }
+
+  /// Optimistic Delete: Deletes a single history record immediately from SQLite and calls backend API
+  Future<void> deleteHistoryItem(String historyId, {String? fridgeId}) async {
+    if (fridgeId != null) {
+      try {
+        await apiClient.dio.delete('/fridges/$fridgeId/history/$historyId');
+      } catch (_) {}
+    }
     await database.itemDao.deleteHistoryItem(historyId);
   }
 
-  /// Clear history for a fridge (optionally filtered by kind: consumed or expired)
+  /// Clear history for a fridge (optionally filtered by kind: consumed or expired) and calls backend API
   Future<void> clearHistory(String fridgeId, [String? kind]) async {
+    try {
+      final queryParams = kind != null ? {'kind': kind} : null;
+      await apiClient.dio.delete(
+        '/fridges/$fridgeId/history/clear',
+        queryParameters: queryParams,
+      );
+    } catch (_) {}
     await database.itemDao.clearHistoryByFridge(fridgeId, kind: kind);
   }
 

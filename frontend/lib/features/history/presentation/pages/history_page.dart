@@ -111,7 +111,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
     );
 
     if (confirmed == true && mounted) {
-      await ref.read(historyControllerProvider.notifier).deleteItem(item.id);
+      await ref.read(historyControllerProvider.notifier).deleteItem(item.id, fridgeId: widget.fridgeId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Removed "${item.itemName}" from history.')),

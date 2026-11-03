@@ -59,7 +59,10 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
           isDestructive: true,
           onConfirm: () {
             setState(() => _forceExit = true);
-            Navigator.pop(context);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              Navigator.pop(context);
+            });
           },
         ),
       );
@@ -107,7 +110,10 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
 
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _forceExit = true);
-    Navigator.pop(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.pop(context);
+    });
     messenger.showSnackBar(
       SnackBar(
         content: Text('Fridge "$name" updated successfully'),
@@ -209,7 +215,11 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
                     fontWeight: FontWeight.w400,
                   ),
                   onChanged: (val) {
-                    if (_nameError != null && val.trim().isNotEmpty && val.trim().length <= 15) {
+                    if (val.trim().length > 15) {
+                      setState(() {
+                        _nameError = 'Fridge name must not exceed 15 characters';
+                      });
+                    } else if (_nameError != null && val.trim().isNotEmpty) {
                       setState(() {
                         _nameError = null;
                       });
@@ -276,7 +286,11 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
                     fontWeight: FontWeight.w400,
                   ),
                   onChanged: (val) {
-                    if (_descError != null && val.trim().length <= 100) {
+                    if (val.trim().length > 100) {
+                      setState(() {
+                        _descError = 'Description must not exceed 100 characters';
+                      });
+                    } else if (_descError != null) {
                       setState(() {
                         _descError = null;
                       });
