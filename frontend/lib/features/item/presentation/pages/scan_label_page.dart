@@ -219,14 +219,18 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: AppBackButton(
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              context.pop();
-            }
-          },
+        leadingWidth: 70,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16.0),
+          child: AppBackButton(
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                context.pop();
+              }
+            },
+          ),
         ),
         title: const Text(
           'AI Label Scanner',
@@ -238,17 +242,20 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(
-              _torchEnabled ? Icons.flash_on : Icons.flash_off,
-              color: _torchEnabled ? const Color(0xFFFFD166) : Colors.white70,
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: IconButton(
+              icon: Icon(
+                _torchEnabled ? Icons.flash_on : Icons.flash_off,
+                color: _torchEnabled ? const Color(0xFFFFD166) : Colors.white70,
+              ),
+              tooltip: 'เปิด/ปิดแฟลช',
+              onPressed: () {
+                setState(() {
+                  _torchEnabled = !_torchEnabled;
+                });
+              },
             ),
-            tooltip: 'เปิด/ปิดแฟลช',
-            onPressed: () {
-              setState(() {
-                _torchEnabled = !_torchEnabled;
-              });
-            },
           ),
         ],
       ),
@@ -257,15 +264,15 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           children: [
             // Instructions banner
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
               child: Text(
                 _imageBytes != null
-                    ? 'ตรวจสอบภาพฉลาก แล้วกด "วิเคราะห์ด้วย Gemini AI"'
+                    ? 'ตรวจสอบภาพฉลาก แล้วกด "วิเคราะห์ฉลากด้วย Gemini AI"'
                     : 'จัดวางฉลากอาหารให้อยู่ในกรอบสี่เหลี่ยมเพื่อสแกน',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Color(0xFFE2E8F0),
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -274,7 +281,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             // Viewfinder Camera Frame
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
                 child: _buildViewfinder(context),
               ),
             ),
@@ -424,19 +431,24 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           ),
           const SizedBox(height: 16),
           const Text(
-            'เล็งกล้องไปที่ฉลากอาหารหรือวันหมดอายุ',
+            'เล็งกล้องไปที่ฉลากอาหาร หรือวันหมดอายุ',
             style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'กดถ่ายภาพด้านล่างเพื่อเริ่มต้นวิเคราะห์',
-            style: TextStyle(
-              color: Color(0xFF94A3B8),
-              fontSize: 12,
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.0),
+            child: Text(
+              'หากชื่อสินค้าและวันหมดอายุอยู่คนละจุด ถ่ายจุดที่ต้องการ ให้ AI ช่วยกรอก แล้วระบุส่วนที่เหลือในฟอร์มได้',
+              style: TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 12,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],
@@ -446,10 +458,10 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
   Widget _buildResultCard() {
     final res = _scanResult!;
-    final name = res.foodName ?? 'ไม่พบชื่ออาหาร';
+    final name = res.foodName ?? 'ไม่พบชื่ออาหาร (กรอกในฟอร์มได้)';
     final dateStr = res.expiryDate != null
         ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}'
-        : 'ไม่ระบุ';
+        : 'ไม่พบวันหมดอายุ (เลือกในฟอร์มได้)';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -525,8 +537,10 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   }
 
   Widget _buildBottomControls() {
+    final hasImage = _imageBytes != null || (_imagePath != null && _imagePath!.isNotEmpty);
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       decoration: const BoxDecoration(
         color: Color(0xFF141F18),
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -534,95 +548,172 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Row of image sources
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // Camera button
-              _buildIconButton(
-                key: const Key('scan_label_camera_btn'),
-                icon: Icons.camera_alt_rounded,
-                label: 'ถ่ายภาพ',
-                onTap: () => _pickImage(ImageSource.camera),
-              ),
-              // Gallery button
-              _buildIconButton(
-                key: const Key('scan_label_gallery_btn'),
-                icon: Icons.photo_library_rounded,
-                label: 'เลือกจากอัลบั้ม',
-                onTap: () => _pickImage(ImageSource.gallery),
-              ),
-              // Clear/Retake button if image picked
-              if (_imageBytes != null || _imagePath != null)
-                _buildIconButton(
-                  key: const Key('scan_label_retake_btn'),
-                  icon: Icons.refresh_rounded,
-                  label: 'ล้างภาพ',
-                  onTap: () {
-                    setState(() {
-                      _imagePath = null;
-                      _imageBytes = null;
-                      _scanResult = null;
-                    });
-                  },
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Main Action Button
+          // Primary Action Button (Autofill or Analyze)
           if (_scanResult != null)
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                key: const Key('scan_label_autofill_btn'),
-                icon: const Icon(Icons.check_rounded, color: Colors.white),
-                label: const Text(
-                  'นำข้อมูลไปใส่ในแบบฟอร์ม (Autofill)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2D6A4F),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  key: const Key('scan_label_autofill_btn'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2D6A4F),
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: _onApplyResult,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_rounded, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'นำข้อมูลไปใส่ในแบบฟอร์ม (Autofill)',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
-                onPressed: _onApplyResult,
               ),
             )
-          else
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                key: const Key('scan_label_analyze_btn'),
-                icon: const Icon(Icons.auto_awesome, color: Colors.white),
-                label: Text(
-                  _imageBytes != null
-                      ? 'วิเคราะห์ฉลากด้วย Gemini AI'
-                      : 'เลือกหรือถ่ายภาพก่อนวิเคราะห์',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _imageBytes != null
-                      ? const Color(0xFF2D6A4F)
-                      : const Color(0xFF2D3748),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+          else if (hasImage)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  key: const Key('scan_label_analyze_btn'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2D6A4F),
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
+                  onPressed: !_isAnalyzing ? _analyzeLabel : null,
+                  child: _isAnalyzing
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.document_scanner_rounded, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'วิเคราะห์ฉลากด้วย Gemini AI',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                 ),
-                onPressed: (_imageBytes != null && !_isAnalyzing) ? _analyzeLabel : null,
               ),
             ),
+
+          // Camera Control Bar (Retake on left, Shutter center, Gallery on right)
+          Row(
+            children: [
+              // Left: Retake button (when image picked) or balanced empty spacer
+              Expanded(
+                child: Center(
+                  child: hasImage
+                      ? _buildSideButton(
+                          key: const Key('scan_label_retake_btn'),
+                          icon: Icons.refresh_rounded,
+                          label: 'ถ่ายใหม่',
+                          onTap: () {
+                            setState(() {
+                              _imagePath = null;
+                              _imageBytes = null;
+                              _pickedFileName = null;
+                              _scanResult = null;
+                            });
+                          },
+                        )
+                      : const SizedBox(width: 68, height: 90),
+                ),
+              ),
+
+              // Center: Primary Camera Shutter
+              _buildShutterButton(),
+
+              // Right: Choose from Gallery
+              Expanded(
+                child: Center(
+                  child: _buildSideButton(
+                    key: const Key('scan_label_gallery_btn'),
+                    icon: Icons.photo_library_rounded,
+                    label: 'อัลบั้ม',
+                    onTap: () => _pickImage(ImageSource.gallery),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildIconButton({
+  Widget _buildShutterButton() {
+    return InkWell(
+      key: const Key('scan_label_camera_btn'),
+      onTap: () => _pickImage(ImageSource.camera),
+      borderRadius: BorderRadius.circular(40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 68,
+            height: 68,
+            child: Center(
+              child: Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF2D6A4F),
+                  border: Border.all(color: Colors.white, width: 3.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.45),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(Icons.camera_alt_rounded, color: Colors.white, size: 28),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'ถ่ายภาพ',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSideButton({
     required Key key,
     required IconData icon,
     required String label,
@@ -631,32 +722,38 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     return InkWell(
       key: key,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF23352A),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0x662D6A4F)),
-              ),
-              child: Icon(icon, color: const Color(0xFF74C69D), size: 24),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+      borderRadius: BorderRadius.circular(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 68,
+            height: 68,
+            child: Center(
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF23352A),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0x662D6A4F)),
+                ),
+                child: Center(
+                  child: Icon(icon, color: const Color(0xFF74C69D), size: 24),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFFD8F3DC),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

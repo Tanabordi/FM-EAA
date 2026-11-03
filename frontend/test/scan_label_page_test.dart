@@ -50,7 +50,8 @@ void main() {
     expect(find.textContaining('จัดวางฉลากอาหารให้อยู่ในกรอบ'), findsOneWidget);
     expect(find.byKey(const Key('scan_label_camera_btn')), findsOneWidget);
     expect(find.byKey(const Key('scan_label_gallery_btn')), findsOneWidget);
-    expect(find.byKey(const Key('scan_label_analyze_btn')), findsOneWidget);
+    // Analyze button appears after an image is captured or selected
+    expect(find.byKey(const Key('scan_label_analyze_btn')), findsNothing);
   });
 
   testWidgets('Toggling torch icon switches state', (tester) async {
