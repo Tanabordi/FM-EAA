@@ -5,7 +5,6 @@ import '../../../../data/models/item_model.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/category_chips.dart';
 import '../../../../shared/widgets/item_card.dart';
-import '../../../item/presentation/widgets/finish_all_snackbar.dart';
 import '../../../item/presentation/widgets/mark_consumed_sheet.dart';
 import '../../providers/fridge_detail_provider.dart';
 import '../../../search/providers/search_provider.dart';
@@ -65,13 +64,6 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
         onConsumed: (amount, finishedAll) {
           Navigator.pop(sheetContext);
           ref.read(fridgeItemsProvider(widget.fridgeId).notifier).consumeItem(item.id, amount, finishedAll);
-          FinishAllSnackbar.show(
-            context,
-            itemName: item.name,
-            onUndo: () {
-              ref.read(fridgeItemsProvider(widget.fridgeId).notifier).undoConsume();
-            },
-          );
         },
       ),
     );
@@ -153,18 +145,9 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                           statusText: item.statusText,
                           imagePath: item.imagePath,
                           onTap: () async {
-                            final result = await context.push<ItemModel?>(
+                            await context.push<ItemModel?>(
                               '/fridges/${widget.fridgeId}/items/${item.id}',
                             );
-                            if (result != null && context.mounted) {
-                              FinishAllSnackbar.show(
-                                context,
-                                itemName: result.name,
-                                onUndo: () {
-                                  ref.read(fridgeItemsProvider(widget.fridgeId).notifier).undoConsume();
-                                },
-                              );
-                            }
                           },
                           onLongPress: () => _showMarkConsumedSheet(context, item),
                         );
