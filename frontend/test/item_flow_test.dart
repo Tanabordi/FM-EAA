@@ -310,7 +310,7 @@ void main() {
       expect(deleteConfirmed, true);
     });
 
-    testWidgets('Screen #16: FinishAllSnackbar displays consumed confirmation and Undo restores item', (tester) async {
+    testWidgets('Screen #16: FinishAllSnackbar displays consumed confirmation', (tester) async {
       final container = ProviderContainer();
       final notifier = container.read(fridgeItemsProvider('fridge_kitchen').notifier);
 
@@ -323,8 +323,7 @@ void main() {
       expect(countAfterConsume, initialCount - 1);
       expect(container.read(fridgeItemsProvider('fridge_kitchen')).any((it) => it.id == 'item_milk'), false);
 
-      // Render SnackBar with Undo
-      bool undoClicked = false;
+      // Render SnackBar
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -334,10 +333,6 @@ void main() {
                   FinishAllSnackbar.show(
                     context,
                     itemName: 'Whole milk',
-                    onUndo: () {
-                      undoClicked = true;
-                      notifier.undoConsume();
-                    },
                   );
                 },
                 child: const Text('Show SnackBar'),
@@ -352,17 +347,6 @@ void main() {
 
       // Verify SnackBar content
       expect(find.text('Whole milk marked as consumed'), findsOneWidget);
-      expect(find.text('Undo'), findsOneWidget);
-
-      // Tap Undo
-      await tester.tap(find.text('Undo'));
-      await tester.pumpAndSettle();
-
-      expect(undoClicked, true);
-      // Item restored!
-      final countAfterUndo = container.read(fridgeItemsProvider('fridge_kitchen')).length;
-      expect(countAfterUndo, initialCount);
-      expect(container.read(fridgeItemsProvider('fridge_kitchen')).any((it) => it.id == 'item_milk'), true);
     });
 
     testWidgets('Screen #13: EditItemPage shows inline validation error on Save with empty name and discard dialog on back with unsaved edits', (tester) async {

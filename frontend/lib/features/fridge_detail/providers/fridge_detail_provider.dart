@@ -97,6 +97,8 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
 
   ItemModel? _lastConsumedItem;
   int? _lastConsumedIndex;
+  double? _lastConsumedAmount;
+  bool? _lastFinishedAll;
 
   ItemModel? getItem(String id) {
     try {
@@ -150,6 +152,8 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
     final item = state[index];
     _lastConsumedItem = item;
     _lastConsumedIndex = index;
+    _lastConsumedAmount = amount;
+    _lastFinishedAll = finishedAll;
 
     if (finishedAll || item.quantity <= amount) {
       _consumedIds.add(id);
@@ -177,35 +181,37 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
     }
   }
 
-  Future<void> undoConsume([ItemModel? fallbackItem]) async {
-    final itemToRestore = _lastConsumedItem ?? fallbackItem;
-    if (itemToRestore == null) return;
-    final id = itemToRestore.id;
-    _consumedIds.remove(id);
+  Future<void> undoConsume() async {
+    if (_lastConsumedItem == null) return;
+    final itemToRestore = _lastConsumedItem!;
+    _consumedIds.remove(itemToRestore.id);
 
-    final existsIndex = state.indexWhere((item) => item.id == id);
-    if (existsIndex != -1) {
-      // Item already in list (e.g. was partially consumed) - restore original quantity
-      state = [
-        for (int i = 0; i < state.length; i++)
-          if (i == existsIndex) itemToRestore else state[i],
-      ];
-    } else {
-      // Item was completely removed - insert back at previous index (or at beginning)
-      final idx = (_lastConsumedIndex != null && _lastConsumedIndex! <= state.length)
+    if (_lastFinishedAll == true ||
+        (_lastConsumedAmount != null &&
+            itemToRestore.quantity <= _lastConsumedAmount!)) {
+      final idx = (_lastConsumedIndex != null &&
+              _lastConsumedIndex! <= state.length)
           ? _lastConsumedIndex!
-          : 0;
+          : state.length;
       final newList = List<ItemModel>.from(state);
       newList.insert(idx, itemToRestore);
       state = newList;
+    } else if (_lastConsumedAmount != null) {
+      final id = itemToRestore.id;
+      state = [
+        for (final item in state)
+          if (item.id == id) itemToRestore else item,
+      ];
     }
 
     _lastConsumedItem = null;
     _lastConsumedIndex = null;
+    _lastConsumedAmount = null;
+    _lastFinishedAll = null;
 
     if (_repository != null) {
       try {
-        await _repository.undoConsume(itemToRestore.id, itemToRestore);
+        await _repository.undoConsume(itemToRestore.id);
       } catch (_) {}
     }
   }

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../local/app_database.dart';
 import '../models/item_model.dart';
@@ -204,7 +203,16 @@ class ItemRepository {
     bool finishedAll = false,
     String userId = 'user_1',
   }) async {
-    // 1. Local SQLite FIRST so UI reacts instantly
+    try {
+      await apiClient.dio.post(
+        '/items/$itemId/consume',
+        data: {
+          'amount': amount,
+          'finishedAll': finishedAll,
+        },
+      );
+    } catch (_) {}
+
     try {
       await database.itemDao.consumeItemOptimistic(
         itemId: itemId,
@@ -213,58 +221,16 @@ class ItemRepository {
         userId: userId,
       );
     } catch (_) {}
-
-    // 2. Network sync in background (non-blocking)
-    try {
-      unawaited(
-        apiClient.dio.post(
-          '/items/$itemId/consume',
-          data: {
-            'amount': amount,
-            'finishedAll': finishedAll,
-          },
-        ).then((_) {}, onError: (_) {}),
-      );
-    } catch (_) {}
   }
 
-  /// Undo consume: restores in Drift SQLite immediately and syncs with backend
-  Future<void> undoConsume(String historyId, [ItemModel? itemToRestore]) async {
-    // 1. Local SQLite restore FIRST so UI reacts immediately
+  /// Undo consume: calls backend API and restores in Drift SQLite
+  Future<void> undoConsume(String historyId) async {
     try {
-      await database.itemDao.undoConsume(historyId);
+      await apiClient.dio.post('/items/history/$historyId/undo');
     } catch (_) {}
 
-    if (itemToRestore != null) {
-      try {
-        final existing = await database.itemDao.getItemById(itemToRestore.id);
-        if (existing == null) {
-          await database.itemDao.insertItemOptimistic(
-            id: itemToRestore.id,
-            fridgeId: itemToRestore.fridgeId,
-            name: itemToRestore.name,
-            category: itemToRestore.category,
-            zone: itemToRestore.zone,
-            quantity: itemToRestore.quantity,
-            unit: itemToRestore.unit,
-            expiryDate: itemToRestore.expiryDate,
-            imagePath: itemToRestore.imagePath,
-            isSynced: false,
-          );
-        } else {
-          await database.itemDao.updateItemOptimistic(
-            id: itemToRestore.id,
-            quantity: itemToRestore.quantity,
-          );
-        }
-      } catch (_) {}
-    }
-
-    // 2. Network sync in background (non-blocking)
     try {
-      unawaited(
-        apiClient.dio.post('/items/history/$historyId/undo').then((_) {}, onError: (_) {}),
-      );
+      await database.itemDao.undoConsume(historyId);
     } catch (_) {}
   }
 
