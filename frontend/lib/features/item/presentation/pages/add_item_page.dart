@@ -37,7 +37,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   DateTime? _expirationDate;
   String? _imagePath;
   Uint8List? _imageBytes;
-  String? _pickedFileName;
   bool _hasAnalyzed = false;
   bool _isScanning = false;
 
@@ -63,7 +62,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
         final f = File(result.imagePath!);
         if (f.existsSync()) {
           _imageBytes = f.readAsBytesSync();
-          _pickedFileName = f.path.split(Platform.pathSeparator).last;
         }
       } catch (_) {}
     }
@@ -118,7 +116,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     setState(() {
       _imagePath = null;
       _imageBytes = null;
-      _pickedFileName = null;
       _hasAnalyzed = false;
       _isScanning = false;
       _foodNameController.clear();
@@ -139,16 +136,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
   void _onSave() {
     final name = _foodNameController.text.trim();
-    if (!_hasAnalyzed && name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณาวิเคราะห์ด้วย AI หรือกรอกข้อมูลอาหารก่อนบันทึก'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -195,89 +182,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     }
   }
 
-  Future<void> _onScanWithGemini() async {
-    // Must select or capture an image first; if no image loaded, do nothing
-    if ((_imagePath == null || _imagePath!.isEmpty) && _imageBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณาเลือกหรือถ่ายรูปภาพก่อนทำการวิเคราะห์'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    if (_isScanning) return;
-
-    setState(() {
-      _isScanning = true;
-    });
-
-    try {
-      final aiRepo = ref.read(aiRepositoryProvider);
-      final AiScanResult result;
-      if (_imageBytes != null) {
-        result = await aiRepo.scanLabelBytes(
-          _imageBytes!,
-          filename: _pickedFileName ?? _imagePath?.split(Platform.pathSeparator).last ?? 'photo.jpg',
-        );
-      } else {
-        final File file = File(_imagePath!);
-        result = await aiRepo.scanLabel(file);
-      }
-
-      if (!mounted) return;
-
-      if (result.isDetected && result.foodName != null && result.foodName!.trim().isNotEmpty) {
-        setState(() {
-          _foodNameController.text = result.foodName!;
-          _selectedCategory = result.category;
-          if (_quantityController.text.trim().isEmpty) {
-            _quantityController.text = '2';
-          }
-          _selectedUnit = result.unit;
-          _selectedStorage = result.storage;
-          if (result.expiryDate != null) {
-            _expirationDate = result.expiryDate;
-          }
-          _hasAnalyzed = true;
-          _isScanning = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✨ Gemini AI: ตรวจพบ ${result.foodName} เรียบร้อยแล้ว!'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      } else {
-        setState(() {
-          _hasAnalyzed = true;
-          _isScanning = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('📸 โหลดรูปภาพแล้ว! กรุณากรอกชื่อและข้อมูลอาหารเพื่อบันทึก'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _hasAnalyzed = true;
-        _isScanning = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('📸 โหลดรูปภาพแล้ว! กรุณากรอกชื่อและข้อมูลอาหารเพื่อบันทึก'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
 
   Future<void> _showScanSourceSheet() async {
     await showModalBottomSheet<void>(
@@ -425,13 +329,12 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
         setState(() {
           _imagePath = picked!.path;
           _imageBytes = bytes;
-          _pickedFileName = picked.name;
           _hasAnalyzed = false;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('📸 ได้รูปภาพแล้ว! กด "ให้ Gemini AI Vision Engine วิเคราะห์" ด้านล่าง'),
+            content: Text('📸 โหลดรูปภาพเรียบร้อยแล้ว'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -714,72 +617,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    // Gemini AI Vision Engine Button (Separate floating button with shadow)
-                    InkWell(
-                      borderRadius: BorderRadius.circular(28),
-                      onTap: _onScanWithGemini,
-                      child: Container(
-                        height: 52,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEAEFE8),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(
-                            color: const Color(0xFF717971),
-                            width: 1.0,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.22),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: ShaderMask(
-                                  shaderCallback: (bounds) => const SweepGradient(
-                                    colors: [
-                                      Color(0xFF4285F4),
-                                      Color(0xFF9B72CF),
-                                      Color(0xFFEA4335),
-                                      Color(0xFFFBBC04),
-                                      Color(0xFF4285F4),
-                                    ],
-                                  ).createShader(bounds),
-                                  child: const Icon(
-                                    Icons.auto_awesome,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            const Text(
-                              'ให้ Gemini AI Vision Engine วิเคราะห์',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF181D17),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
                     // Food Name Field
                     TextFormField(
                       controller: _foodNameController,
