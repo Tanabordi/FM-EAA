@@ -17,6 +17,9 @@ class EmailService {
           user: user.trim(),
           pass: pass.replace(/\s+/g, ''), // Strip spaces from Google App Password
         },
+        connectionTimeout: 5000, // 5 seconds timeout
+        greetingTimeout: 5000,
+        socketTimeout: 5000,
       });
     }
   }
