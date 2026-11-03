@@ -664,9 +664,9 @@ class AuthService {
         attempts: 0,
       });
 
-      console.log(`[Auth] Password reset OTP requested for ${cleanEmail}`);
+      console.log(`[Auth] Password reset OTP requested for ${cleanEmail} -> OTP: [${otp}]`);
 
-      // Send real email via EmailService (if EMAIL_USER and EMAIL_PASS are configured)
+      // Send real email via EmailService (Resend HTTPS API or SMTP fallback)
       await emailService.sendPasswordResetOtp(cleanEmail, otp);
 
       return {

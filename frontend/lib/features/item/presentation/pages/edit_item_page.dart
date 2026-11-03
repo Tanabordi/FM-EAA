@@ -238,7 +238,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('📸 เปลี่ยนรูปภาพเรียบร้อยแล้ว'),
+            content: Text('Photo updated successfully'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -321,7 +321,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('กรุณากรอกชื่ออาหารก่อนบันทึก'),
+          content: Text('Please enter a food name before saving'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -347,7 +347,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('บันทึกการแก้ไข "${updated.name}" เรียบร้อยแล้ว'),
+        content: Text('Changes saved for "${updated.name}"'),
         duration: const Duration(seconds: 2),
       ),
     );

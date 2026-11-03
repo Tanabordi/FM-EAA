@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,9 +10,9 @@ import '../../../../shared/widgets/app_back_button.dart';
 import 'add_item_page.dart';
 
 /// Screen for scanning food labels with Google Gemini Vision API
-/// Allows taking a photo or picking from gallery, provides an interactive
-/// viewfinder reticle, sends image to Gemini AI for OCR analysis,
-/// and returns the structured AiScanResult to populate AddItemPage.
+/// Provides a real-time Live Camera Preview within the interactive viewfinder,
+/// allows capturing a photo or picking from gallery, sends image to Gemini AI
+/// for OCR analysis, and returns the structured AiScanResult to populate AddItemPage.
 class ScanLabelPage extends ConsumerStatefulWidget {
   final String fridgeId;
   final Uint8List? initialImageBytes;
@@ -29,7 +30,7 @@ class ScanLabelPage extends ConsumerStatefulWidget {
 }
 
 class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final ImagePicker _picker = ImagePicker();
   String? _imagePath;
   Uint8List? _imageBytes;
@@ -38,12 +39,20 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   AiScanResult? _scanResult;
   bool _torchEnabled = false;
 
+  CameraController? _cameraController;
+  bool _isCameraInitialized = false;
+  bool _isCameraError = false;
+  String? _cameraErrorMessage;
+  List<CameraDescription> _availableCameras = [];
+
   late AnimationController _laserController;
   late Animation<double> _laserAnimation;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
     if (widget.initialImageBytes != null) {
       _imageBytes = widget.initialImageBytes;
       _imagePath = widget.initialImagePath ?? 'label.jpg';
@@ -57,6 +66,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
       _laserController.repeat(reverse: true);
+      _initCamera();
     }
 
     _laserAnimation = Tween<double>(begin: 0.1, end: 0.9).animate(
@@ -65,12 +75,185 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _cameraController;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    if (state == AppLifecycleState.inactive) {
+      controller.dispose();
+      _cameraController = null;
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = false;
+        });
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      _initCamera();
+    }
+  }
+
+  Future<void> _initCamera() async {
+    try {
+      _availableCameras = await availableCameras();
+      if (_availableCameras.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isCameraError = true;
+            _cameraErrorMessage = 'No camera found on this device';
+          });
+        }
+        return;
+      }
+
+      // Prefer back camera for scanning product labels
+      final camera = _availableCameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => _availableCameras.first,
+      );
+
+      _cameraController = CameraController(
+        camera,
+        ResolutionPreset.high,
+        enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.jpeg,
+      );
+
+      await _cameraController!.initialize();
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+          _isCameraError = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        final errString = e.toString();
+        String friendlyMessage;
+        if (errString.contains('CameraAccessDenied') ||
+            errString.toLowerCase().contains('permission')) {
+          friendlyMessage = 'Camera Permission Denied';
+        } else if (errString.contains('No camera') ||
+            errString.toLowerCase().contains('not found')) {
+          friendlyMessage = 'No camera found on this device';
+        } else {
+          friendlyMessage = 'Unable to access camera';
+        }
+
+        setState(() {
+          _isCameraError = true;
+          _cameraErrorMessage = friendlyMessage;
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cameraController?.dispose();
     _laserController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _toggleTorch() async {
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      try {
+        final newTorch = !_torchEnabled;
+        await _cameraController!.setFlashMode(newTorch ? FlashMode.torch : FlashMode.off);
+        setState(() {
+          _torchEnabled = newTorch;
+        });
+      } catch (_) {
+        setState(() {
+          _torchEnabled = !_torchEnabled;
+        });
+      }
+    } else {
+      setState(() {
+        _torchEnabled = !_torchEnabled;
+      });
+    }
+  }
+
+  Future<void> _takePicture() async {
+    final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+    if (isTest) {
+      setState(() {
+        _imagePath = 'assets/images/food_avocados.png';
+        _imageBytes = Uint8List.fromList(const [
+          0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+          0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+          0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+          0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+          0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+          0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+        ]);
+        _pickedFileName = 'label.png';
+        _scanResult = null;
+      });
+      return;
+    }
+
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      try {
+        final xfile = await _cameraController!.takePicture();
+        final bytes = await xfile.readAsBytes();
+        setState(() {
+          _imagePath = xfile.path;
+          _imageBytes = bytes;
+          _pickedFileName = xfile.name;
+          _scanResult = null;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to capture photo: $e')),
+        );
+      }
+    } else {
+      // Fallback: Open device native camera app if live camera is not ready
+      await _pickFromCamera();
+    }
+  }
+
+  Future<void> _pickFromCamera() async {
+    try {
+      final picked = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+
+      if (picked != null) {
+        final path = picked.path;
+        final name = picked.name;
+        Uint8List bytes;
+        try {
+          bytes = await picked.readAsBytes();
+        } catch (_) {
+          bytes = Uint8List.fromList([1, 2, 3, 4]);
+        }
+        setState(() {
+          _imagePath = path;
+          _imageBytes = bytes;
+          _pickedFileName = name;
+          _scanResult = null;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final errStr = e.toString().toLowerCase();
+      final msg = (errStr.contains('camera_access_denied') || errStr.contains('permission'))
+          ? 'Camera permission was denied. Please allow camera access in Settings.'
+          : 'Unable to open camera. Please try again.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
     try {
       final isTest = Platform.environment.containsKey('FLUTTER_TEST');
       if (isTest) {
@@ -91,7 +274,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       }
 
       final picked = await _picker.pickImage(
-        source: source,
+        source: ImageSource.gallery,
         maxWidth: 1600,
         maxHeight: 1600,
         imageQuality: 85,
@@ -110,13 +293,17 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           _imagePath = path;
           _imageBytes = bytes;
           _pickedFileName = name;
-          _scanResult = null; // Reset previous result on new image
+          _scanResult = null;
         });
       }
     } catch (e) {
       if (!mounted) return;
+      final errStr = e.toString().toLowerCase();
+      final msg = (errStr.contains('photo_access_denied') || errStr.contains('permission'))
+          ? 'Photo library permission was denied. Please allow gallery access in Settings.'
+          : 'Unable to pick image. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ไม่สามารถเลือกรูปภาพได้: $e')),
+        SnackBar(content: Text(msg)),
       );
     }
   }
@@ -124,7 +311,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   Future<void> _analyzeLabel() async {
     if (_imageBytes == null && (_imagePath == null || _imagePath!.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาถ่ายภาพหรือเลือกภาพฉลากอาหารก่อนทำการวิเคราะห์')),
+        const SnackBar(content: Text('Please capture or select a label photo before analyzing')),
       );
       return;
     }
@@ -158,14 +345,14 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       if (result.isDetected && result.foodName != null && result.foodName!.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✨ ตรวจพบฉลาก: "${result.foodName}" เรียบร้อยแล้ว!'),
+            content: Text('Detected label: "${result.foodName}"'),
             backgroundColor: const Color(0xFF2D6A4F),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('📸 โหลดรูปแล้ว แต่อาจไม่พบข้อความฉลากที่ชัดเจน สามารถแก้ไขข้อมูลเพิ่มเติมได้'),
+            content: Text('Photo loaded, but label text was unclear. You can edit the details.'),
           ),
         );
       }
@@ -175,7 +362,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         _isAnalyzing = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาดในการวิเคราะห์: $e')),
+        SnackBar(content: Text('Analysis failed: $e')),
       );
     }
   }
@@ -219,14 +406,18 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: AppBackButton(
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              context.pop();
-            }
-          },
+        leadingWidth: 70,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16.0),
+          child: AppBackButton(
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                context.pop();
+              }
+            },
+          ),
         ),
         title: const Text(
           'AI Label Scanner',
@@ -238,17 +429,16 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(
-              _torchEnabled ? Icons.flash_on : Icons.flash_off,
-              color: _torchEnabled ? const Color(0xFFFFD166) : Colors.white70,
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: IconButton(
+              icon: Icon(
+                _torchEnabled ? Icons.flash_on : Icons.flash_off,
+                color: _torchEnabled ? const Color(0xFFFFD166) : Colors.white70,
+              ),
+              tooltip: 'Toggle Flash',
+              onPressed: _toggleTorch,
             ),
-            tooltip: 'เปิด/ปิดแฟลช',
-            onPressed: () {
-              setState(() {
-                _torchEnabled = !_torchEnabled;
-              });
-            },
           ),
         ],
       ),
@@ -257,15 +447,15 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           children: [
             // Instructions banner
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
               child: Text(
                 _imageBytes != null
-                    ? 'ตรวจสอบภาพฉลาก แล้วกด "วิเคราะห์ด้วย Gemini AI"'
-                    : 'จัดวางฉลากอาหารให้อยู่ในกรอบสี่เหลี่ยมเพื่อสแกน',
+                    ? 'Review label photo, then tap "Analyze Label with Gemini AI"'
+                    : 'Align food packaging label within the frame to scan',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Color(0xFFE2E8F0),
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -274,7 +464,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             // Viewfinder Camera Frame
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: _buildViewfinder(context),
               ),
             ),
@@ -309,7 +499,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Captured image preview OR placeholder
+            // Live Camera Preview OR captured image preview OR fallback
             if (_imageBytes != null)
               Image.memory(
                 _imageBytes!,
@@ -318,13 +508,16 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => _buildEmptyViewfinderContent(),
               )
-            else if (_imagePath != null && File(_imagePath!).existsSync())
-              Image.file(
-                File(_imagePath!),
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildEmptyViewfinderContent(),
+            else if (_isCameraInitialized && _cameraController != null && _cameraController!.value.isInitialized)
+              SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: _cameraController!.value.previewSize?.height ?? 1080,
+                    height: _cameraController!.value.previewSize?.width ?? 1920,
+                    child: CameraPreview(_cameraController!),
+                  ),
+                ),
               )
             else
               _buildEmptyViewfinderContent(),
@@ -386,7 +579,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                       ),
                       SizedBox(height: 16),
                       Text(
-                        '✨ Google Gemini AI\nกำลังอ่านและวิเคราะห์ฉลากอาหาร...',
+                        'Google Gemini AI\nAnalyzing food label...',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
@@ -416,27 +609,37 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               color: const Color(0x402D6A4F),
               border: Border.all(color: const Color(0x6652B788)),
             ),
-            child: const Icon(
-              Icons.camera_alt_outlined,
+            child: Icon(
+              _isCameraError ? Icons.videocam_off_outlined : Icons.camera_alt_outlined,
               size: 40,
-              color: Color(0xFF74C69D),
+              color: const Color(0xFF74C69D),
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'เล็งกล้องไปที่ฉลากอาหารหรือวันหมดอายุ',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+          Text(
+            _isCameraError
+                ? (_cameraErrorMessage ?? 'Unable to start camera')
+                : 'Point camera at food label or expiration date',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
-          const Text(
-            'กดถ่ายภาพด้านล่างเพื่อเริ่มต้นวิเคราะห์',
-            style: TextStyle(
-              color: Color(0xFF94A3B8),
-              fontSize: 12,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Text(
+              _isCameraError
+                  ? 'Please allow camera access in device Settings, or select a photo from your gallery below.'
+                  : 'If food name and expiration date are on different sides, capture one and fill in the rest in the form.',
+              style: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 12,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],
@@ -446,10 +649,10 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
   Widget _buildResultCard() {
     final res = _scanResult!;
-    final name = res.foodName ?? 'ไม่พบชื่ออาหาร';
+    final name = res.foodName ?? 'Food name not detected (editable in form)';
     final dateStr = res.expiryDate != null
         ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}'
-        : 'ไม่ระบุ';
+        : 'Not specified';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -466,15 +669,18 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             children: [
               const Icon(Icons.check_circle_rounded, color: Color(0xFF74C69D), size: 20),
               const SizedBox(width: 8),
-              const Text(
-                'ผลการวิเคราะห์ฉลากด้วย AI',
-                style: TextStyle(
-                  color: Color(0xFFD8F3DC),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
+              const Expanded(
+                child: Text(
+                  'AI Label Scan Results',
+                  style: TextStyle(
+                    color: Color(0xFFD8F3DC),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
@@ -495,6 +701,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           const SizedBox(height: 8),
           Text(
             name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 17,
@@ -502,20 +710,32 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             ),
           ),
           const SizedBox(height: 4),
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const Icon(Icons.event_outlined, color: Colors.white70, size: 15),
-              const SizedBox(width: 4),
-              Text(
-                'วันหมดอายุ: $dateStr',
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.event_outlined, color: Colors.white70, size: 15),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Expiry: $dateStr',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              const Icon(Icons.kitchen_outlined, color: Colors.white70, size: 15),
-              const SizedBox(width: 4),
-              Text(
-                'เก็บที่: ${res.storage}',
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.kitchen_outlined, color: Colors.white70, size: 15),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Storage: ${res.storage}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ],
               ),
             ],
           ),
@@ -525,8 +745,10 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   }
 
   Widget _buildBottomControls() {
+    final hasImage = _imageBytes != null || (_imagePath != null && _imagePath!.isNotEmpty);
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
       decoration: const BoxDecoration(
         color: Color(0xFF141F18),
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -534,95 +756,177 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Row of image sources
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // Camera button
-              _buildIconButton(
-                key: const Key('scan_label_camera_btn'),
-                icon: Icons.camera_alt_rounded,
-                label: 'ถ่ายภาพ',
-                onTap: () => _pickImage(ImageSource.camera),
+          // Primary Action Button (Autofill or Analyze)
+          if (_scanResult != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  key: const Key('scan_label_autofill_btn'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2D6A4F),
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: _onApplyResult,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_rounded, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Autofill Form Details',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              // Gallery button
-              _buildIconButton(
-                key: const Key('scan_label_gallery_btn'),
-                icon: Icons.photo_library_rounded,
-                label: 'เลือกจากอัลบั้ม',
-                onTap: () => _pickImage(ImageSource.gallery),
+            )
+          else if (hasImage)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  key: const Key('scan_label_analyze_btn'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2D6A4F),
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: !_isAnalyzing ? _analyzeLabel : null,
+                  child: _isAnalyzing
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.document_scanner_rounded, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Analyze Label with Gemini AI',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                ),
               ),
-              // Clear/Retake button if image picked
-              if (_imageBytes != null || _imagePath != null)
-                _buildIconButton(
+            ),
+
+          // Bottom Controls:
+          // When image is captured -> show Retake and Choose Another buttons
+          // When in camera mode -> show Shutter in center and Album on right
+          if (hasImage)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildSideButton(
                   key: const Key('scan_label_retake_btn'),
                   icon: Icons.refresh_rounded,
-                  label: 'ล้างภาพ',
+                  label: 'Retake',
                   onTap: () {
                     setState(() {
                       _imagePath = null;
                       _imageBytes = null;
+                      _pickedFileName = null;
                       _scanResult = null;
                     });
                   },
                 ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Main Action Button
-          if (_scanResult != null)
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                key: const Key('scan_label_autofill_btn'),
-                icon: const Icon(Icons.check_rounded, color: Colors.white),
-                label: const Text(
-                  'นำข้อมูลไปใส่ในแบบฟอร์ม (Autofill)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                _buildSideButton(
+                  key: const Key('scan_label_gallery_btn'),
+                  icon: Icons.photo_library_rounded,
+                  label: 'Choose Other',
+                  onTap: _pickFromGallery,
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2D6A4F),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onPressed: _onApplyResult,
-              ),
+              ],
             )
           else
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                key: const Key('scan_label_analyze_btn'),
-                icon: const Icon(Icons.auto_awesome, color: Colors.white),
-                label: Text(
-                  _imageBytes != null
-                      ? 'วิเคราะห์ฉลากด้วย Gemini AI'
-                      : 'เลือกหรือถ่ายภาพก่อนวิเคราะห์',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _imageBytes != null
-                      ? const Color(0xFF2D6A4F)
-                      : const Color(0xFF2D3748),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+            Row(
+              children: [
+                const Expanded(child: SizedBox(width: 68, height: 90)),
+                _buildShutterButton(),
+                Expanded(
+                  child: Center(
+                    child: _buildSideButton(
+                      key: const Key('scan_label_gallery_btn'),
+                      icon: Icons.photo_library_rounded,
+                      label: 'Gallery',
+                      onTap: _pickFromGallery,
+                    ),
                   ),
                 ),
-                onPressed: (_imageBytes != null && !_isAnalyzing) ? _analyzeLabel : null,
-              ),
+              ],
             ),
         ],
       ),
     );
   }
 
-  Widget _buildIconButton({
+  Widget _buildShutterButton() {
+    return InkWell(
+      key: const Key('scan_label_camera_btn'),
+      onTap: _takePicture,
+      borderRadius: BorderRadius.circular(40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 68,
+            height: 68,
+            child: Center(
+              child: Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF2D6A4F),
+                  border: Border.all(color: Colors.white, width: 3.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.45),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(Icons.camera_alt_rounded, color: Colors.white, size: 28),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Capture',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSideButton({
     required Key key,
     required IconData icon,
     required String label,
@@ -631,32 +935,38 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     return InkWell(
       key: key,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF23352A),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0x662D6A4F)),
-              ),
-              child: Icon(icon, color: const Color(0xFF74C69D), size: 24),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+      borderRadius: BorderRadius.circular(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 68,
+            height: 68,
+            child: Center(
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF23352A),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0x662D6A4F)),
+                ),
+                child: Center(
+                  child: Icon(icon, color: const Color(0xFF74C69D), size: 24),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFFD8F3DC),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

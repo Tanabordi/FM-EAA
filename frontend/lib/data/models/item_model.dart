@@ -62,6 +62,27 @@ class ItemModel {
     }
   }
 
+  /// Formatted status label for Item Details page badge (e.g. "Use soon in 1 Day", "Use soon in 2 Days", "Fresh in 7 Days")
+  String get detailStatusLabel {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(expiryDate.year, expiryDate.month, expiryDate.day);
+    final diffDays = target.difference(today).inDays;
+
+    if (diffDays < 0) {
+      if (diffDays == -1) return 'Expired yesterday';
+      return 'Expired ${diffDays.abs()} days ago';
+    } else if (diffDays == 0) {
+      return 'Expires today';
+    } else if (diffDays == 1) {
+      return 'Use soon in 1 Day';
+    } else if (diffDays == 2) {
+      return 'Use soon in 2 Days';
+    } else {
+      return 'Fresh in $diffDays Days';
+    }
+  }
+
   /// Formatted quantity text helper (e.g. "1 carton", "2.5 kg", "500g · 2 pieces")
   String get formattedQuantity {
     final qtyStr = quantity == quantity.toInt() ? quantity.toInt().toString() : quantity.toString();
