@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../providers/auth_provider.dart';
@@ -27,16 +28,63 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  late bool _isGoogleLocked;
+  bool _forceExit = false;
 
   String? _usernameError;
   String? _emailError;
   String? _passwordError;
   String? _confirmPasswordError;
 
+  bool get _hasMinLength =>
+      _passwordController.text.length >= 8 && _passwordController.text.length <= 64;
+  bool get _hasLetter => RegExp(r'[a-zA-Z]').hasMatch(_passwordController.text);
+  bool get _hasNumber => RegExp(r'[0-9]').hasMatch(_passwordController.text);
+
+  bool get _hasUnsavedChanges {
+    if (_forceExit) return false;
+    final initialEmail = widget.prefilledEmail ?? '';
+    return _usernameController.text.trim().isNotEmpty ||
+        _passwordController.text.isNotEmpty ||
+        _confirmPasswordController.text.isNotEmpty ||
+        _emailController.text.trim() != initialEmail ||
+        (_isGoogleLocked && initialEmail.isEmpty);
+  }
+
+  void _handleBack() {
+    if (_hasUnsavedChanges) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => ConfirmDialog(
+          title: 'Discard changes?',
+          message: 'You have unsaved changes. Are you sure you want to discard them?',
+          confirmLabel: 'Discard',
+          cancelLabel: 'Keep editing',
+          isDestructive: true,
+          onConfirm: () {
+            setState(() => _forceExit = true);
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/sign-in');
+            }
+          },
+        ),
+      );
+    } else {
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/sign-in');
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.prefilledEmail ?? '');
+    _isGoogleLocked = widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty;
   }
 
   @override
@@ -44,6 +92,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
     super.didUpdateWidget(oldWidget);
     if (widget.prefilledEmail != oldWidget.prefilledEmail && widget.prefilledEmail != null) {
       _emailController.text = widget.prefilledEmail!;
+      _isGoogleLocked = widget.prefilledEmail!.isNotEmpty;
     }
   }
 
@@ -69,6 +118,12 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
 
     if (username.isEmpty) {
       uError = 'Username is required';
+    } else if (username.length < 3) {
+      uError = 'Username must be at least 3 characters';
+    } else if (username.length > 20) {
+      uError = 'Username must not exceed 20 characters';
+    } else if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(username)) {
+      uError = 'Letters, numbers, and underscores only';
     }
 
     if (email.isEmpty) {
@@ -81,6 +136,10 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
       pError = 'Password is required';
     } else if (password.length < 8) {
       pError = 'Password must be at least 8 characters';
+    } else if (password.length > 64) {
+      pError = 'Password must not exceed 64 characters';
+    } else if (!RegExp(r'[a-zA-Z]').hasMatch(password) || !RegExp(r'[0-9]').hasMatch(password)) {
+      pError = 'Password must contain both letters and numbers';
     }
 
     if (confirmPassword.isEmpty) {
@@ -110,6 +169,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
       await ref.read(authProvider.notifier).signUp(username, email, password);
 
       if (!mounted) return;
+      setState(() => _forceExit = true);
       context.go('/onboarding');
     } catch (e) {
       if (!mounted) return;
@@ -128,12 +188,26 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   Future<void> _handleGoogleSignUp() async {
     setState(() => _isLoading = true);
     try {
-      if (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty) {
-        if (!mounted) return;
-        context.go('/onboarding');
-      } else {
-        if (!mounted) return;
-        context.go('/create-account?email=user@gmail.com');
+      final email = await ref.read(authProvider.notifier).pickGoogleEmail();
+      if (!mounted) return;
+      if (email == null || email.isEmpty) return; // User cancelled or no email selected
+
+      // Populate Google email, lock the field with lock icon, and transition to Image 2
+      setState(() {
+        _isGoogleLocked = true;
+        _emailController.text = email;
+        _emailError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      final errorMsg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      if (errorMsg != 'Google sign-in was cancelled') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -144,21 +218,29 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isEmailLocked = widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty;
+    final isEmailLocked = _isGoogleLocked || (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty);
 
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Top Bar with rounded back button
-              Row(
-                children: [
-                  const FigmaBackButton(),
-                  const SizedBox(width: 16),
+    return PopScope(
+      canPop: !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: colorScheme.surface,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Top Bar with rounded back button
+                Row(
+                  children: [
+                    FigmaBackButton(
+                      onPressed: _handleBack,
+                    ),
+                    const SizedBox(width: 16),
                   Text(
                     'Create an Account',
                     style: theme.textTheme.titleLarge?.copyWith(
@@ -184,6 +266,8 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                 controller: _usernameController,
                 labelText: 'Username',
                 hintText: '',
+                helperText:
+                    '• 3–20 characters (letters, numbers, underscores)\n• Can be changed once every 14 days',
                 errorText: _usernameError,
                 onChanged: (_) {
                   if (_usernameError != null) setState(() => _usernameError = null);
@@ -210,15 +294,16 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                     : null,
               ),
               const SizedBox(height: 18),
-              // Password with helper text "Use at least 8 characters."
+              // Password with real-time requirement checklist
               AppTextField(
                 controller: _passwordController,
                 labelText: 'Password',
                 hintText: '',
-                helperText: _passwordError == null ? 'Use at least 8 characters.' : null,
                 errorText: _passwordError,
                 onChanged: (_) {
-                  if (_passwordError != null) setState(() => _passwordError = null);
+                  setState(() {
+                    if (_passwordError != null) _passwordError = null;
+                  });
                 },
                 obscureText: _obscurePassword,
                 suffixIcon: IconButton(
@@ -228,6 +313,31 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                     size: 22,
                   ),
                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Real-time password requirement checklist
+              Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildRequirementItem(
+                      isMet: _hasMinLength,
+                      label: 'At least 8 characters (8–64 characters)',
+                      colorScheme: colorScheme,
+                    ),
+                    _buildRequirementItem(
+                      isMet: _hasLetter,
+                      label: 'At least 1 letter (a-z, A-Z)',
+                      colorScheme: colorScheme,
+                    ),
+                    _buildRequirementItem(
+                      isMet: _hasNumber,
+                      label: 'At least 1 number (0-9)',
+                      colorScheme: colorScheme,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 18),
@@ -305,13 +415,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                     ),
                   ),
                   InkWell(
-                    onTap: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/sign-in');
-                      }
-                    },
+                    onTap: _handleBack,
                     child: Text(
                       'Sign In',
                       style: TextStyle(
@@ -327,6 +431,35 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
             ],
           ),
         ),
+      ),
+    ),
+  );
+  }
+
+  Widget _buildRequirementItem({
+    required bool isMet,
+    required String label,
+    required ColorScheme colorScheme,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4.0),
+      child: Row(
+        children: [
+          Icon(
+            isMet ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            size: 15,
+            color: isMet ? Colors.green.shade600 : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              color: isMet ? Colors.green.shade700 : colorScheme.onSurfaceVariant,
+              fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
       ),
     );
   }

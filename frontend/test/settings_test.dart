@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/core/l10n/locale_provider.dart';
 import 'package:fm_eaa/core/theme/app_theme.dart';
+import 'package:fm_eaa/data/models/user_model.dart';
 import 'package:fm_eaa/features/settings/presentation/pages/edit_profile_page.dart';
 import 'package:fm_eaa/features/settings/presentation/pages/settings_page.dart';
 import 'package:fm_eaa/features/settings/presentation/widgets/logout_dialog.dart';
@@ -229,7 +230,15 @@ void main() {
       expect(find.text('Edit Profile'), findsOneWidget);
       expect(find.text('Alex Lee'), findsOneWidget);
       expect(find.text('alex.lee@example.com'), findsOneWidget);
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      expect(
+        find.text('• 3–20 characters (letters, numbers, underscores)\n• Can be changed once every 14 days'),
+        findsOneWidget,
+      );
       expect(find.text('Change password'), findsOneWidget);
+      expect(find.text('At least 8 characters (8–64 characters)'), findsOneWidget);
+      expect(find.text('At least 1 letter (a-z, A-Z)'), findsOneWidget);
+      expect(find.text('At least 1 number (0-9)'), findsOneWidget);
       expect(find.text('Save Changes'), findsOneWidget);
     });
 
@@ -245,9 +254,9 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Clear name and enter invalid email
+      // Clear name and enter invalid email (email is readOnly in UI, set directly on controller to test validation)
       await tester.enterText(find.byType(TextField).at(0), '');
-      await tester.enterText(find.byType(TextField).at(1), 'invalid_email');
+      tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text = 'invalid_email';
 
       // Scroll to and tap Save Changes
       await tester.ensureVisible(find.text('Save Changes'));
@@ -311,16 +320,16 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      // Update name and email
-      await tester.enterText(find.byType(TextField).at(0), 'Alexander Great');
-      await tester.enterText(find.byType(TextField).at(1), 'alexander@test.com');
+      // Update name and email (username must follow ^[a-zA-Z0-9_]+$ rule)
+      await tester.enterText(find.byType(TextField).at(0), 'Alexander_Great');
+      tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text = 'alexander@test.com';
 
       // Scroll to and tap Save Changes
       await tester.ensureVisible(find.text('Save Changes'));
       await tester.tap(find.text('Save Changes'));
       await tester.pumpAndSettle();
 
-      expect(container.read(userProfileProvider).username, 'Alexander Great');
+      expect(container.read(userProfileProvider).username, 'Alexander_Great');
       expect(container.read(userProfileProvider).email, 'alexander@test.com');
       expect(find.byType(EditProfilePage), findsNothing);
     });
@@ -407,6 +416,36 @@ void main() {
 
       expect(find.byType(EditProfilePage), findsNothing);
       expect(find.text('Open'), findsOneWidget);
+    });
+
+    testWidgets('Locks Name field and displays cooldown countdown when within 14 days of last change', (tester) async {
+      final userWithCooldown = UserModel(
+        id: 'u123',
+        username: 'Alex Lee',
+        email: 'alex@example.com',
+        lastUsernameChange: DateTime.now().subtract(const Duration(days: 3)),
+        updatedAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            userProfileProvider.overrideWith(
+              (ref) => UserProfileNotifier(userWithCooldown, ref),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const EditProfilePage(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Two lock icons: one for email and one for locked username
+      expect(find.byIcon(Icons.lock_outline), findsNWidgets(2));
+      expect(find.textContaining('You can change your username again in 11 days'), findsOneWidget);
     });
   });
 

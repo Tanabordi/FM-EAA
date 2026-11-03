@@ -79,7 +79,16 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
     try {
-      await ref.read(authProvider.notifier).signInWithGoogle();
+      final result = await ref.read(authProvider.notifier).signInWithGoogle();
+
+      if (!mounted) return;
+
+      if (result.isNewUser) {
+        // User not in DB -> Navigate to Create an Account with locked Google email (Image 2)
+        final email = result.email ?? '';
+        context.push('/create-account?email=$email');
+        return;
+      }
 
       final prefs = await SharedPreferences.getInstance();
       final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
@@ -94,12 +103,14 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     } catch (e) {
       if (!mounted) return;
       final errorMsg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMsg),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
+      if (errorMsg != 'Google sign-in was cancelled') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

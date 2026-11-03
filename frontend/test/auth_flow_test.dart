@@ -6,6 +6,7 @@ import 'package:fm_eaa/data/repositories/auth_repository.dart';
 import 'package:fm_eaa/features/auth/presentation/pages/create_account_page.dart';
 import 'package:fm_eaa/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:fm_eaa/features/auth/providers/auth_provider.dart';
+import 'package:fm_eaa/shared/widgets/figma_auth_widgets.dart';
 import 'package:fm_eaa/shared/widgets/primary_button.dart';
 
 class MockAuthRepository implements AuthRepository {
@@ -244,11 +245,98 @@ void main() {
         ),
       );
 
-      // Find Sign Up button
+      // Scroll to and find Sign Up button
+      await tester.ensureVisible(find.byType(PrimaryButton).first);
       await tester.tap(find.byType(PrimaryButton).first);
       await tester.pump();
 
       expect(find.text('Please check your input fields'), findsOneWidget);
+    });
+
+    testWidgets('CreateAccountPage locks email and hides Google Sign Up button when prefilledEmail is provided', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(body: CreateAccountPage(prefilledEmail: 'user@gmail.com')),
+          ),
+        ),
+      );
+
+      // Email field should be prefilled with user@gmail.com
+      expect(find.text('user@gmail.com'), findsOneWidget);
+      // Lock icon should be visible
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      // "Sign up with Google" button should be hidden
+      expect(find.text('Sign up with Google'), findsNothing);
+      expect(find.text('Or'), findsNothing);
+    });
+
+    testWidgets('CreateAccountPage shows editable email and Google Sign Up button when prefilledEmail is not provided', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(body: CreateAccountPage()),
+          ),
+        ),
+      );
+
+      // Lock icon should NOT be visible
+      expect(find.byIcon(Icons.lock_outline), findsNothing);
+      // "Sign up with Google" button and "Or" divider should be visible
+      expect(find.text('Sign up with Google'), findsOneWidget);
+      expect(find.text('Or'), findsOneWidget);
+    });
+
+    testWidgets('CreateAccountPage renders password criteria checklist', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(body: CreateAccountPage()),
+          ),
+        ),
+      );
+
+      // Checklist items should be visible
+      expect(
+        find.text('• 3–20 characters (letters, numbers, underscores)\n• Can be changed once every 14 days'),
+        findsOneWidget,
+      );
+      expect(find.text('At least 8 characters (8–64 characters)'), findsOneWidget);
+      expect(find.text('At least 1 letter (a-z, A-Z)'), findsOneWidget);
+      expect(find.text('At least 1 number (0-9)'), findsOneWidget);
+    });
+
+    testWidgets('CreateAccountPage prompts discard confirmation when user enters data and taps back', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: CreateAccountPage(),
+          ),
+        ),
+      );
+
+      // Initially no discard dialog
+      expect(find.text('Discard changes?'), findsNothing);
+
+      // Enter username
+      await tester.enterText(find.byType(TextField).first, 'my_username');
+      await tester.pump();
+
+      // Tap back button
+      await tester.tap(find.byType(FigmaBackButton));
+      await tester.pumpAndSettle();
+
+      // Confirmation dialog should appear
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.text('You have unsaved changes. Are you sure you want to discard them?'), findsOneWidget);
+      expect(find.text('Keep editing'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+
+      // Tap 'Keep editing' -> dialog dismissed, stays on page
+      await tester.tap(find.text('Keep editing'));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.text('Create an Account'), findsOneWidget);
     });
   });
 }

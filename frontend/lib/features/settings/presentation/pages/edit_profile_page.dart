@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -73,6 +74,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _newPasswordFocus.dispose();
     super.dispose();
   }
+
+  bool get _hasNewPasswordMinLength =>
+      _newPasswordController.text.length >= 8 && _newPasswordController.text.length <= 64;
+  bool get _hasNewPasswordLetter => RegExp(r'[a-zA-Z]').hasMatch(_newPasswordController.text);
+  bool get _hasNewPasswordNumber => RegExp(r'[0-9]').hasMatch(_newPasswordController.text);
 
   bool get _hasUnsavedChanges {
     if (_forceExit) return false;
@@ -232,6 +238,15 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     if (name.isEmpty) {
       setState(() => _nameError = 'Name is required');
       hasError = true;
+    } else if (name.length < 3) {
+      setState(() => _nameError = 'Username must be at least 3 characters');
+      hasError = true;
+    } else if (name.length > 20) {
+      setState(() => _nameError = 'Username must not exceed 20 characters');
+      hasError = true;
+    } else if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(name)) {
+      setState(() => _nameError = 'Letters, numbers, and underscores only');
+      hasError = true;
     }
 
     if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
@@ -246,6 +261,12 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       } else if (newPassword.length < 8) {
         setState(() => _passwordError = 'New password must be at least 8 characters long');
         hasError = true;
+      } else if (newPassword.length > 64) {
+        setState(() => _passwordError = 'New password must not exceed 64 characters');
+        hasError = true;
+      } else if (!RegExp(r'[a-zA-Z]').hasMatch(newPassword) || !RegExp(r'[0-9]').hasMatch(newPassword)) {
+        setState(() => _passwordError = 'New password must contain both letters and numbers');
+        hasError = true;
       }
     }
 
@@ -255,6 +276,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
     try {
       final user = ref.read(userProfileProvider);
+      final isUsernameChanged = name != user.username;
+      final isPasswordChanged = newPassword.isNotEmpty;
+      final isAvatarChanged = _removeAvatar || _selectedImageFile != null;
       String? finalAvatarUrl = _removeAvatar ? null : user.avatarUrl;
 
       // Upload newly selected image file to Oracle Cloud Object Storage via backend
@@ -275,9 +299,22 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
       if (!mounted) return;
 
+      String successMessage;
+      if (isUsernameChanged && isPasswordChanged && !isAvatarChanged) {
+        successMessage = 'Username and password updated successfully';
+      } else if (isUsernameChanged && !isPasswordChanged && !isAvatarChanged) {
+        successMessage = 'Username updated successfully';
+      } else if (isPasswordChanged && !isUsernameChanged && !isAvatarChanged) {
+        successMessage = 'Password updated successfully';
+      } else if (isAvatarChanged && !isUsernameChanged && !isPasswordChanged) {
+        successMessage = 'Profile photo updated successfully';
+      } else {
+        successMessage = 'Profile updated successfully';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully'),
+        SnackBar(
+          content: Text(successMessage),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -288,9 +325,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
+      String errorMsg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      if (e is DioException && e.response?.data is Map && e.response!.data['error'] != null) {
+        errorMsg = e.response!.data['error'].toString();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to update profile: $e'),
+          content: Text(errorMsg),
+          backgroundColor: Colors.red.shade700,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -304,6 +346,16 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     final theme = Theme.of(context);
     final user = ref.watch(userProfileProvider);
     final displayedAvatarUrl = _removeAvatar ? null : (_selectedAvatarPath ?? user.avatarUrl);
+
+    int? usernameCooldownDays;
+    if (user.lastUsernameChange != null) {
+      final nextAllowed = user.lastUsernameChange!.add(const Duration(days: 14));
+      final now = DateTime.now();
+      if (now.isBefore(nextAllowed)) {
+        usernameCooldownDays = nextAllowed.difference(now).inDays + 1;
+      }
+    }
+    final isUsernameLocked = usernameCooldownDays != null;
 
     return PopScope(
       canPop: !_hasUnsavedChanges,
@@ -363,26 +415,41 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     focusNode: _nameFocus,
                     labelText: 'Name',
                     hintText: 'Enter your name',
+                    helperText: isUsernameLocked
+                        ? 'You can change your username again in $usernameCooldownDays day${usernameCooldownDays > 1 ? 's' : ''}'
+                        : '• 3–20 characters (letters, numbers, underscores)\n• Can be changed once every 14 days',
                     errorText: _nameError,
+                    readOnly: isUsernameLocked,
                     keyboardType: TextInputType.name,
                     textInputAction: TextInputAction.next,
-                    onSubmitted: (_) => _emailFocus.requestFocus(),
+                    onSubmitted: (_) => _currentPasswordFocus.requestFocus(),
+                    suffixIcon: isUsernameLocked
+                        ? Icon(
+                            Icons.lock_outline,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            size: 20,
+                          )
+                        : null,
                     onChanged: (_) {
                       if (_nameError != null) setState(() => _nameError = null);
                     },
                   ),
                   const SizedBox(height: 16),
 
-                  // Email Field
+                  // Email Field (Locked / Read-only)
                   AppTextField(
                     controller: _emailController,
                     focusNode: _emailFocus,
                     labelText: 'Email',
                     hintText: 'Enter your email',
                     errorText: _emailError,
+                    readOnly: true,
                     keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    onSubmitted: (_) => _currentPasswordFocus.requestFocus(),
+                    suffixIcon: Icon(
+                      Icons.lock_outline,
+                      color: theme.colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
                     onChanged: (_) {
                       if (_emailError != null) setState(() => _emailError = null);
                     },
@@ -448,8 +515,35 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
                     ),
                     onChanged: (_) {
-                      if (_passwordError != null) setState(() => _passwordError = null);
+                      setState(() {
+                        if (_passwordError != null) _passwordError = null;
+                      });
                     },
+                  ),
+                  const SizedBox(height: 8),
+                  // Real-time password requirement checklist
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildRequirementItem(
+                          isMet: _hasNewPasswordMinLength,
+                          label: 'At least 8 characters (8–64 characters)',
+                          colorScheme: theme.colorScheme,
+                        ),
+                        _buildRequirementItem(
+                          isMet: _hasNewPasswordLetter,
+                          label: 'At least 1 letter (a-z, A-Z)',
+                          colorScheme: theme.colorScheme,
+                        ),
+                        _buildRequirementItem(
+                          isMet: _hasNewPasswordNumber,
+                          label: 'At least 1 number (0-9)',
+                          colorScheme: theme.colorScheme,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 36),
 
@@ -464,6 +558,34 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRequirementItem({
+    required bool isMet,
+    required String label,
+    required ColorScheme colorScheme,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4.0),
+      child: Row(
+        children: [
+          Icon(
+            isMet ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            size: 15,
+            color: isMet ? Colors.green.shade600 : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              color: isMet ? Colors.green.shade700 : colorScheme.onSurfaceVariant,
+              fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
       ),
     );
   }

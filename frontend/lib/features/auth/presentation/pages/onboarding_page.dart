@@ -29,18 +29,18 @@ class OnboardingPage extends StatelessWidget {
                 child: IntrinsicHeight(
                   child: Column(
                     children: [
-                      const Spacer(flex: 2),
+                      const Spacer(flex: 1),
 
                       // 3D Fridge Illustration matching Figma
                       Center(
                         child: Image.asset(
                           'assets/images/onboarding_fridge.png',
-                          width: 250,
-                          height: 250,
+                          width: (constraints.maxWidth * 0.88).clamp(290.0, 350.0),
+                          height: (constraints.maxWidth * 0.88).clamp(290.0, 350.0),
                           fit: BoxFit.contain,
                         ),
                       ),
-                      const SizedBox(height: 36),
+                      const SizedBox(height: 28),
 
                       // Title matching Figma
                       Text(
