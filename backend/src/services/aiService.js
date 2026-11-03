@@ -311,23 +311,19 @@ async function suggestRecipes({ userId, mainIngredient, fridgeIngredients = [], 
     remainingQuota = quota.remaining;
   }
 
-  const otherItems = Array.isArray(fridgeIngredients) && fridgeIngredients.length > 0
-    ? fridgeIngredients.filter((i) => i && typeof i === 'string' && i.toLowerCase() !== mainIngredient.toLowerCase()).join(', ')
-    : '';
-
   const langInstruction = language === 'en'
     ? 'All recipe titles, descriptions, ingredients, and instructions MUST be in English.'
     : 'All recipe titles, descriptions, ingredients, and instructions MUST be in natural, friendly Thai (ภาษาไทยที่เข้าใจง่าย เป็นกันเอง).';
 
-  const prompt = `คุณคือเชฟ AI ผู้เชี่ยวชาญการทำอาหารแบบ Zero-Waste เน้นทำง่าย ใช้เวลาน้อย (10-20 นาที) และใช้วัตถุดิบเท่าที่มี
-วัตถุดิบหลักที่กำลังจะหมดอายุ: "${mainIngredient}"
-${otherItems ? `วัตถุดิบอื่นในตู้เย็นที่อาจนำมาผสมผสานได้ (ถ้าเหมาะสม): ${otherItems}` : ''}
+  const prompt = `คุณคือเชฟ AI ผู้เชี่ยวชาญการทำอาหาร เน้นทำง่าย ใช้เวลาน้อย (10-20 นาที) และใช้วัตถุดิบน้อย
+วัตถุดิบที่เลือกมาทำอาหาร: "${mainIngredient}"
 
-เป้าหมาย:
-1. แนะนำเมนูอาหารที่ใช้ "${mainIngredient}" เป็นหลักจำนวน 6 เมนู (3 เมนูแรก และอีก 3 เมนูสำหรับตัวเลือกเพิ่มเติมที่หลากหลาย)
-2. ทุกเมนูต้องทำง่าย ใช้วัตถุดิบเสริมน้อย เป็นของสามัญประจำบ้าน (เช่น ไข่ ข้าว น้ำมัน กระเทียม ซีอิ๊ว น้ำปลา เกลือ พริกไทย) ไม่ต้องซื้อของแปลกเพิ่ม
-3. เวลาปรุงควรอยู่ระหว่าง 5-20 นาที ระดับความง่าย Easy หรือ Very easy
-4. ${langInstruction}
+ข้อกำหนดสำคัญ:
+1. ทุกเมนูต้องโฟกัสเฉพาะ "${mainIngredient}" เป็นวัตถุดิบหลักเท่านั้น ห้ามใส่วัตถุดิบหลักชนิดอื่นที่ไม่เกี่ยวข้องลงไป (ไม่ต้องรวมกับของอย่างอื่นในตู้เย็น)
+2. วัตถุดิบเพิ่มเติมที่ใช้ร่วมได้ ต้องเป็นเครื่องปรุงหรือของสามัญประจำครัวเรือนทั่วไปเท่านั้น (เช่น ไข่ไก่, ข้าวสวย, น้ำมันพืช, กระเทียม, ซีอิ๊วขาว, น้ำปลา, เกลือ, พริกไทย, น้ำตาล, น้ำเปล่า) ห้ามใช้วัตถุดิบแปลกหรือของสดอื่นที่ต้องหาซื้อเพิ่ม
+3. แนะนำเมนูอาหารจำนวน 6 เมนู (3 เมนูแรก และอีก 3 เมนูเพื่อเป็นตัวเลือกสำรองที่หลากหลาย)
+4. เวลาปรุง 5-20 นาที ระดับความง่าย Easy หรือ Very easy
+5. ${langInstruction}
 
 ตอบกลับเป็น JSON array ของวัตถุ 6 รายการเท่านั้น ตามโครงสร้างดังนี้:
 [

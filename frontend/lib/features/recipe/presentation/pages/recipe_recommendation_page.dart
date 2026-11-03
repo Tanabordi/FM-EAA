@@ -60,11 +60,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
           }
         }
 
-        // Collect other fridge ingredients to feed Gemini for zero-waste synergy
-        final allItems = await itemRepo.getItems(widget.fridgeId);
-        final fridgeItemNames = allItems.map((i) => i.name).toList();
-
-        await _fetchRecipesFromAi(fridgeItemNames);
+        await _fetchRecipesFromAi();
       } catch (_) {}
     });
   }
@@ -338,12 +334,11 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     ];
   }
 
-  Future<void> _fetchRecipesFromAi(List<String> fridgeIngredients) async {
+  Future<void> _fetchRecipesFromAi() async {
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
       final results = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
-        fridgeIngredients: fridgeIngredients,
       );
 
       if (results.isNotEmpty && mounted) {
@@ -424,14 +419,10 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
-      final itemRepo = ref.read(itemRepositoryProvider);
-      final allItems = await itemRepo.getItems(widget.fridgeId);
-      final fridgeItemNames = allItems.map((i) => i.name).toList();
 
       _generationCount++;
       final freshResults = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
-        fridgeIngredients: fridgeItemNames,
         offset: _generationCount,
       );
 
