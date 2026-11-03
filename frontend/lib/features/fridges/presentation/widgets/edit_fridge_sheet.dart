@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/models/fridge_model.dart';
 import '../../providers/fridges_provider.dart';
+import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
 import 'delete_fridge_dialog.dart';
 
@@ -187,142 +188,50 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
               ),
               const SizedBox(height: 20),
 
-              // Field 1: Fridge Name (Original corner radius 12 frame)
-              const Text(
-                'Fridge Name',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: textDark,
-                ),
+              // Field 1: Fridge Name (Required 1–15 chars)
+              AppTextField(
+                controller: _nameController,
+                labelText: 'Fridge Name',
+                hintText: '',
+                helperText: '1–15 characters',
+                errorText: _nameError,
+                textInputAction: TextInputAction.next,
+                onChanged: (val) {
+                  if (val.trim().length > 15) {
+                    setState(() {
+                      _nameError = 'Fridge name must not exceed 15 characters';
+                    });
+                  } else if (_nameError != null && val.trim().isNotEmpty) {
+                    setState(() {
+                      _nameError = null;
+                    });
+                  }
+                },
               ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: sheetBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _nameError != null ? deleteRed : borderColor.withValues(alpha: 0.7),
-                    width: _nameError != null ? 1.5 : 1.0,
-                  ),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                child: TextField(
-                  controller: _nameController,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: textDark,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  onChanged: (val) {
-                    if (val.trim().length > 15) {
-                      setState(() {
-                        _nameError = 'Fridge name must not exceed 15 characters';
-                      });
-                    } else if (_nameError != null && val.trim().isNotEmpty) {
-                      setState(() {
-                        _nameError = null;
-                      });
-                    }
-                  },
-                  decoration: InputDecoration(
-                    counterText: '',
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    filled: false,
-                    fillColor: Colors.transparent,
-                    hintText: 'Fridge Name',
-                    hintStyle: TextStyle(
-                      fontSize: 15,
-                      color: textMuted.withValues(alpha: 0.8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
-              ),
-              if (_nameError != null) ...[
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Text(
-                    _nameError!,
-                    style: const TextStyle(fontSize: 12, color: deleteRed),
-                  ),
-                ),
-              ],
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // Field 2: Description (Original corner radius 12 frame, height 110)
-              const Text(
-                'Description',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: textDark,
-                ),
+              // Field 2: Description (Optional 0–100 chars)
+              AppTextField(
+                controller: _descController,
+                labelText: 'Description',
+                hintText: '',
+                helperText: '0–100 characters (optional)',
+                errorText: _descError,
+                maxLines: 5,
+                minLines: 4,
+                onChanged: (val) {
+                  if (val.trim().length > 100) {
+                    setState(() {
+                      _descError = 'Description must not exceed 100 characters';
+                    });
+                  } else if (_descError != null) {
+                    setState(() {
+                      _descError = null;
+                    });
+                  }
+                },
               ),
-              const SizedBox(height: 8),
-              Container(
-                height: 110,
-                decoration: BoxDecoration(
-                  color: sheetBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _descError != null ? deleteRed : borderColor.withValues(alpha: 0.7),
-                    width: _descError != null ? 1.5 : 1.0,
-                  ),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: TextField(
-                  controller: _descController,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: textDark,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  onChanged: (val) {
-                    if (val.trim().length > 100) {
-                      setState(() {
-                        _descError = 'Description must not exceed 100 characters';
-                      });
-                    } else if (_descError != null) {
-                      setState(() {
-                        _descError = null;
-                      });
-                    }
-                  },
-                  decoration: InputDecoration(
-                    counterText: '',
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    filled: false,
-                    fillColor: Colors.transparent,
-                    isDense: true,
-                    hintText: 'Add a description (optional)',
-                    hintStyle: TextStyle(
-                      fontSize: 15,
-                      color: textMuted.withValues(alpha: 0.8),
-                    ),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-              if (_descError != null) ...[
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Text(
-                    _descError!,
-                    style: const TextStyle(fontSize: 12, color: deleteRed),
-                  ),
-                ),
-              ],
 
               const SizedBox(height: 24),
 
