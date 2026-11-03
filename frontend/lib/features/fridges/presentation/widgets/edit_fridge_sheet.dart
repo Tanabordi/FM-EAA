@@ -125,7 +125,7 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
 
   @override
   Widget build(BuildContext context) {
-    const sheetBg = Color(0xFFEAEFE8);
+    const sheetBg = Color(0xFFF6FBF3);
     const borderColor = Color(0xFF717971);
     const primaryGreen = Color(0xFF2E6A44);
     const deleteRed = Color(0xFFBA1A1A);
