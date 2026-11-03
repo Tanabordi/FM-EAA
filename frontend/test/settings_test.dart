@@ -254,9 +254,9 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Clear name and enter invalid email
+      // Clear name and enter invalid email (email is readOnly in UI, set directly on controller to test validation)
       await tester.enterText(find.byType(TextField).at(0), '');
-      await tester.enterText(find.byType(TextField).at(1), 'invalid_email');
+      tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text = 'invalid_email';
 
       // Scroll to and tap Save Changes
       await tester.ensureVisible(find.text('Save Changes'));
@@ -320,16 +320,16 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      // Update name and email
-      await tester.enterText(find.byType(TextField).at(0), 'Alexander Great');
-      await tester.enterText(find.byType(TextField).at(1), 'alexander@test.com');
+      // Update name and email (username must follow ^[a-zA-Z0-9_]+$ rule)
+      await tester.enterText(find.byType(TextField).at(0), 'Alexander_Great');
+      tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text = 'alexander@test.com';
 
       // Scroll to and tap Save Changes
       await tester.ensureVisible(find.text('Save Changes'));
       await tester.tap(find.text('Save Changes'));
       await tester.pumpAndSettle();
 
-      expect(container.read(userProfileProvider).username, 'Alexander Great');
+      expect(container.read(userProfileProvider).username, 'Alexander_Great');
       expect(container.read(userProfileProvider).email, 'alexander@test.com');
       expect(find.byType(EditProfilePage), findsNothing);
     });

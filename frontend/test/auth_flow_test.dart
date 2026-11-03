@@ -245,7 +245,8 @@ void main() {
         ),
       );
 
-      // Find Sign Up button
+      // Scroll to and find Sign Up button
+      await tester.ensureVisible(find.byType(PrimaryButton).first);
       await tester.tap(find.byType(PrimaryButton).first);
       await tester.pump();
 
