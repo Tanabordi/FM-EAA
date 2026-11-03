@@ -69,7 +69,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             context,
             itemName: item.name,
             onUndo: () {
-              ref.read(fridgeItemsProvider(widget.fridgeId).notifier).undoConsume();
+              ref.read(fridgeItemsProvider(widget.fridgeId).notifier).undoConsume(item);
             },
           );
         },
@@ -161,7 +161,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                                 context,
                                 itemName: result.name,
                                 onUndo: () {
-                                  ref.read(fridgeItemsProvider(widget.fridgeId).notifier).undoConsume();
+                                  ref.read(fridgeItemsProvider(widget.fridgeId).notifier).undoConsume(result);
                                 },
                               );
                             }

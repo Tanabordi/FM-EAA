@@ -421,17 +421,30 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
   }
 
   /// Undo consume: Restores item quantity and deletes history record
-  Future<void> undoConsume(String historyId) async {
-    final hist = await (select(itemHistory)..where((t) => t.id.equals(historyId))).getSingleOrNull();
+  Future<void> undoConsume(String historyIdOrItemId) async {
+    // 1. Try finding by history id
+    var hist = await (select(itemHistory)..where((t) => t.id.equals(historyIdOrItemId))).getSingleOrNull();
+
+    // 2. If not found, try finding latest consumed record by itemId
+    if (hist == null) {
+      final list = await (select(itemHistory)
+            ..where((t) => t.itemId.equals(historyIdOrItemId) & t.kind.equals('consumed'))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .get();
+      if (list.isNotEmpty) {
+        hist = list.first;
+      }
+    }
     if (hist == null) return;
 
+    final targetHistory = hist;
     await transaction(() async {
-      if (hist.itemId != null) {
-        final existingItem = await getItemById(hist.itemId!);
+      if (targetHistory.itemId != null) {
+        final existingItem = await getItemById(targetHistory.itemId!);
         if (existingItem != null) {
-          await (update(itemsTable)..where((t) => t.id.equals(hist.itemId!))).write(
+          await (update(itemsTable)..where((t) => t.id.equals(targetHistory.itemId!))).write(
             ItemsTableCompanion(
-              quantity: Value(existingItem.quantity + hist.quantityChanged),
+              quantity: Value(existingItem.quantity + targetHistory.quantityChanged),
               isSynced: const Value(false),
               updatedAt: Value(DateTime.now()),
             ),
@@ -440,15 +453,15 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
           // Re-insert item if it was completely removed
           await into(itemsTable).insert(
             ItemsTableCompanion.insert(
-              id: hist.itemId!,
-              fridgeId: hist.fridgeId,
-              name: hist.itemName,
-              category: hist.category ?? 'meals',
-              zone: hist.zone ?? 'fridge',
-              quantity: Value(hist.quantityChanged),
-              unit: Value(hist.unit),
-              expiryDate: hist.expiryDate ?? DateTime.now(),
-              imagePath: Value(hist.imagePath),
+              id: targetHistory.itemId!,
+              fridgeId: targetHistory.fridgeId,
+              name: targetHistory.itemName,
+              category: targetHistory.category ?? 'meals',
+              zone: targetHistory.zone ?? 'fridge',
+              quantity: Value(targetHistory.quantityChanged),
+              unit: Value(targetHistory.unit),
+              expiryDate: targetHistory.expiryDate ?? DateTime.now(),
+              imagePath: Value(targetHistory.imagePath),
               isSynced: const Value(false),
               updatedAt: Value(DateTime.now()),
             ),
@@ -456,7 +469,7 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
           );
         }
       }
-      await (delete(itemHistory)..where((t) => t.id.equals(historyId))).go();
+      await (delete(itemHistory)..where((t) => t.id.equals(targetHistory.id))).go();
     });
   }
 

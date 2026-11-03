@@ -279,7 +279,7 @@ class ItemDetailsPage extends ConsumerWidget {
               context,
               itemName: item.name,
               onUndo: () {
-                ref.read(fridgeItemsProvider(fridgeId).notifier).undoConsume();
+                ref.read(fridgeItemsProvider(fridgeId).notifier).undoConsume(item);
               },
             );
           }
