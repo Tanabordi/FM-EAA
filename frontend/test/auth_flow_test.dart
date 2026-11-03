@@ -297,8 +297,8 @@ void main() {
       // Checklist items should be visible
       expect(find.text('3–20 characters (letters, numbers, underscores)'), findsOneWidget);
       expect(find.text('At least 8 characters (8–64 characters)'), findsOneWidget);
-      expect(find.text('Contains letters (a-z, A-Z)'), findsOneWidget);
-      expect(find.text('Contains numbers (0-9)'), findsOneWidget);
+      expect(find.text('At least 1 letter (a-z, A-Z)'), findsOneWidget);
+      expect(find.text('At least 1 number (0-9)'), findsOneWidget);
     });
 
     testWidgets('CreateAccountPage prompts discard confirmation when user enters data and taps back', (tester) async {

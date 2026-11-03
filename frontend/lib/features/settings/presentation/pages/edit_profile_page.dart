@@ -508,12 +508,12 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                         ),
                         _buildRequirementItem(
                           isMet: _hasNewPasswordLetter,
-                          label: 'Contains letters (a-z, A-Z)',
+                          label: 'At least 1 letter (a-z, A-Z)',
                           colorScheme: theme.colorScheme,
                         ),
                         _buildRequirementItem(
                           isMet: _hasNewPasswordNumber,
-                          label: 'Contains numbers (0-9)',
+                          label: 'At least 1 number (0-9)',
                           colorScheme: theme.colorScheme,
                         ),
                       ],

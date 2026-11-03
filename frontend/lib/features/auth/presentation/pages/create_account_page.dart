@@ -329,12 +329,12 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                     ),
                     _buildRequirementItem(
                       isMet: _hasLetter,
-                      label: 'Contains letters (a-z, A-Z)',
+                      label: 'At least 1 letter (a-z, A-Z)',
                       colorScheme: colorScheme,
                     ),
                     _buildRequirementItem(
                       isMet: _hasNumber,
-                      label: 'Contains numbers (0-9)',
+                      label: 'At least 1 number (0-9)',
                       colorScheme: colorScheme,
                     ),
                   ],
