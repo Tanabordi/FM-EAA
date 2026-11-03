@@ -475,16 +475,13 @@ class AuthService {
         { outFormat: oracledb.OUT_FORMAT_OBJECT }
       );
 
+      let user;
       if (result.rows && result.rows.length > 0) {
         user = result.rows[0];
 
-        // Sync with Google username and avatar URL
+        // Preserve user's chosen username; only fallback to Google name if user has no username
         let targetUsername = user.USERNAME;
-        if (!targetUsername || targetUsername === 'user' || targetUsername.startsWith('testuser_')) {
-          targetUsername = await this._getUniqueUsername(conn, name, user.ID);
-        } else if (name && (targetUsername === 'admin' || targetUsername.startsWith('user_'))) {
-          targetUsername = await this._getUniqueUsername(conn, name, user.ID);
-        } else if (name && targetUsername.toLowerCase() !== name.toLowerCase()) {
+        if (!targetUsername || !targetUsername.trim()) {
           targetUsername = await this._getUniqueUsername(conn, name, user.ID);
         }
 
