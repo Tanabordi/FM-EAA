@@ -5,6 +5,7 @@ const oracledb = require('oracledb');
 const { OAuth2Client } = require('google-auth-library');
 const config = require('../config/env');
 const { getDbConnection } = require('../config/db');
+const emailService = require('./emailService');
 
 const googleClient = new OAuth2Client(config.google.clientId);
 
@@ -664,6 +665,9 @@ class AuthService {
       });
 
       console.log(`[Auth] Password reset OTP generated for ${cleanEmail}: ${otp}`);
+
+      // Send real email via EmailService (if EMAIL_USER and EMAIL_PASS are configured)
+      await emailService.sendPasswordResetOtp(cleanEmail, otp);
 
       return {
         success: true,
