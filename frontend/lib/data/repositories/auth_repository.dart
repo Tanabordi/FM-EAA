@@ -255,6 +255,24 @@ class AuthRepository {
     }
   }
 
+  Future<Map<String, dynamic>> verifyOtp({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      final response = await apiClient.dio.post(
+        '/auth/verify-otp',
+        data: {
+          'email': email.trim(),
+          'otp': otp.trim(),
+        },
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _parseDioError(e);
+    }
+  }
+
   Future<Map<String, dynamic>> resetPassword({
     required String email,
     required String otp,

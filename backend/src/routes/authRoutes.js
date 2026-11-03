@@ -74,6 +74,20 @@ router.post('/forgot-password', async (req, res, next) => {
 });
 
 /**
+ * POST /api/auth/verify-otp
+ * Body: { email, otp }
+ */
+router.post('/verify-otp', (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const result = authService.verifyOtp(email, otp);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * POST /api/auth/reset-password
  * Body: { email, otp, newPassword }
  */

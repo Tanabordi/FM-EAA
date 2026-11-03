@@ -170,7 +170,26 @@ describe('Auth API Integration Tests', () => {
 
       const otp = forgotRes.body.otp;
 
-      // 2. Fails reset with wrong OTP
+      // 2. Fails verify with wrong OTP
+      const wrongVerifyRes = await request(app)
+        .post('/api/auth/verify-otp')
+        .send({
+          email: testUser.email,
+          otp: '000000',
+        });
+      expect(wrongVerifyRes.statusCode).toBe(400);
+
+      // 3. Succeeds verify with correct OTP
+      const correctVerifyRes = await request(app)
+        .post('/api/auth/verify-otp')
+        .send({
+          email: testUser.email,
+          otp,
+        });
+      expect(correctVerifyRes.statusCode).toBe(200);
+      expect(correctVerifyRes.body).toHaveProperty('success', true);
+
+      // 4. Fails reset with wrong OTP
       const wrongOtpRes = await request(app)
         .post('/api/auth/reset-password')
         .send({

@@ -7,6 +7,8 @@ import 'package:fm_eaa/features/auth/presentation/pages/create_account_page.dart
 import 'package:fm_eaa/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:fm_eaa/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:fm_eaa/features/auth/presentation/pages/verify_reset_password_page.dart';
+import 'package:fm_eaa/features/auth/presentation/pages/verify_otp_page.dart';
+import 'package:fm_eaa/features/auth/presentation/pages/set_new_password_page.dart';
 import 'package:fm_eaa/features/auth/providers/auth_provider.dart';
 import 'package:fm_eaa/shared/widgets/figma_auth_widgets.dart';
 import 'package:fm_eaa/shared/widgets/primary_button.dart';
@@ -63,6 +65,15 @@ class MockAuthRepository implements AuthRepository {
   Future<Map<String, dynamic>> requestPasswordReset(String email) async {
     if (shouldFail) throw Exception(errorMessage);
     return {'success': true, 'otp': '123456'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> verifyOtp({
+    required String email,
+    required String otp,
+  }) async {
+    if (shouldFail) throw Exception(errorMessage);
+    return {'success': true};
   }
 
   @override
@@ -417,6 +428,44 @@ void main() {
       await tester.pump();
 
       expect(find.text('Verification code is required'), findsOneWidget);
+    });
+
+    testWidgets('VerifyOtpPage renders and validates empty OTP', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(body: VerifyOtpPage(email: 'user@example.com')),
+          ),
+        ),
+      );
+
+      expect(find.text('Verification Code'), findsWidgets);
+      expect(find.text('user@example.com'), findsOneWidget);
+
+      // Tap Verify Code with empty input
+      await tester.tap(find.byType(PrimaryButton).first);
+      await tester.pump();
+
+      expect(find.text('Verification code is required'), findsOneWidget);
+    });
+
+    testWidgets('SetNewPasswordPage renders criteria and validates matching passwords', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(body: SetNewPasswordPage(email: 'user@example.com', otp: '123456')),
+          ),
+        ),
+      );
+
+      expect(find.text('Set New Password'), findsWidgets);
+      expect(find.text('At least 8 characters'), findsOneWidget);
+
+      // Tap Reset Password with empty fields
+      await tester.tap(find.byType(PrimaryButton).first);
+      await tester.pump();
+
+      expect(find.text('Password is required'), findsOneWidget);
     });
   });
 }

@@ -52,7 +52,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
         ),
       );
 
-      context.push('/verify-reset-password?email=${Uri.encodeComponent(email)}');
+      context.push('/verify-otp?email=${Uri.encodeComponent(email)}');
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString().replaceFirst('Exception: ', '');

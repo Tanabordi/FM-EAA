@@ -686,6 +686,55 @@ class AuthService {
   }
 
   /**
+   * Verify OTP code without consuming it
+   */
+  verifyOtp(email, otp) {
+    if (!email || !otp) {
+      const err = new Error('Email and OTP code are required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.toString().trim();
+
+    const record = this.passwordResetStore.get(cleanEmail);
+    if (!record) {
+      const err = new Error('No password reset requested for this email or code has expired');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (Date.now() > record.expiresAt) {
+      this.passwordResetStore.delete(cleanEmail);
+      const err = new Error('Verification code has expired. Please request a new one');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (record.attempts >= 5) {
+      this.passwordResetStore.delete(cleanEmail);
+      const err = new Error('Too many failed attempts. Please request a new code');
+      err.statusCode = 429;
+      throw err;
+    }
+
+    if (record.otp !== cleanOtp) {
+      record.attempts += 1;
+      const err = new Error('Invalid verification code');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    record.verified = true;
+    return {
+      success: true,
+      message: 'OTP verified successfully',
+      email: cleanEmail,
+    };
+  }
+
+  /**
    * Reset password using OTP
    */
   async resetPassword(email, otp, newPassword) {

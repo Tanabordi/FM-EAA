@@ -5,7 +5,8 @@ import '../../features/auth/presentation/pages/onboarding_page.dart';
 import '../../features/auth/presentation/pages/sign_in_page.dart';
 import '../../features/auth/presentation/pages/create_account_page.dart';
 import '../../features/auth/presentation/pages/reset_password_page.dart';
-import '../../features/auth/presentation/pages/verify_reset_password_page.dart';
+import '../../features/auth/presentation/pages/verify_otp_page.dart';
+import '../../features/auth/presentation/pages/set_new_password_page.dart';
 import '../../features/fridges/presentation/pages/my_fridges_page.dart';
 import '../../features/fridges/presentation/pages/add_fridge_page.dart';
 import '../../features/fridge_detail/presentation/pages/fridge_detail_page.dart';
@@ -51,10 +52,30 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ResetPasswordPage(),
       ),
       GoRoute(
+        path: '/verify-otp',
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? (state.extra as String? ?? '');
+          return VerifyOtpPage(email: email);
+        },
+      ),
+      GoRoute(
+        path: '/new-password',
+        builder: (context, state) {
+          String email = state.uri.queryParameters['email'] ?? '';
+          String otp = state.uri.queryParameters['otp'] ?? '';
+          if (state.extra is Map<String, dynamic>) {
+            final map = state.extra as Map<String, dynamic>;
+            email = map['email']?.toString() ?? email;
+            otp = map['otp']?.toString() ?? otp;
+          }
+          return SetNewPasswordPage(email: email, otp: otp);
+        },
+      ),
+      GoRoute(
         path: '/verify-reset-password',
         builder: (context, state) {
           final email = state.uri.queryParameters['email'] ?? (state.extra as String? ?? '');
-          return VerifyResetPasswordPage(email: email);
+          return VerifyOtpPage(email: email);
         },
       ),
       GoRoute(
