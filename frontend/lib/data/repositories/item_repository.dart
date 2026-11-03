@@ -224,7 +224,7 @@ class ItemRepository {
   }
 
   /// Undo consume: calls backend API and restores in Drift SQLite
-  Future<void> undoConsume(String historyId) async {
+  Future<void> undoConsume(String historyId, [ItemModel? itemToRestore]) async {
     try {
       await apiClient.dio.post('/items/history/$historyId/undo');
     } catch (_) {}
@@ -232,6 +232,31 @@ class ItemRepository {
     try {
       await database.itemDao.undoConsume(historyId);
     } catch (_) {}
+
+    if (itemToRestore != null) {
+      try {
+        final existing = await database.itemDao.getItemById(itemToRestore.id);
+        if (existing == null) {
+          await database.itemDao.insertItemOptimistic(
+            id: itemToRestore.id,
+            fridgeId: itemToRestore.fridgeId,
+            name: itemToRestore.name,
+            category: itemToRestore.category,
+            zone: itemToRestore.zone,
+            quantity: itemToRestore.quantity,
+            unit: itemToRestore.unit,
+            expiryDate: itemToRestore.expiryDate,
+            imagePath: itemToRestore.imagePath,
+            isSynced: false,
+          );
+        } else {
+          await database.itemDao.updateItemOptimistic(
+            id: itemToRestore.id,
+            quantity: itemToRestore.quantity,
+          );
+        }
+      } catch (_) {}
+    }
   }
 
   /// Get unsynced items

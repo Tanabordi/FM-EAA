@@ -205,7 +205,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
 
     if (_repository != null) {
       try {
-        await _repository.undoConsume(itemToRestore.id);
+        await _repository.undoConsume(itemToRestore.id, itemToRestore);
       } catch (_) {}
     }
   }
