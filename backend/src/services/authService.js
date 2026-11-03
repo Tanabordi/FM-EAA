@@ -28,6 +28,19 @@ class AuthService {
       throw err;
     }
 
+    if (username.trim().length > 20) {
+      const err = new Error('Username must not exceed 20 characters');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(username.trim())) {
+      const err = new Error('Username can only contain letters, numbers, and underscore');
+      err.statusCode = 400;
+      throw err;
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email.trim())) {
       const err = new Error('A valid email address is required');
@@ -276,6 +289,17 @@ class AuthService {
         cleanUsername = username.trim();
         if (cleanUsername.length < 3) {
           const err = new Error('Username must be at least 3 characters long');
+          err.statusCode = 400;
+          throw err;
+        }
+        if (cleanUsername.length > 20) {
+          const err = new Error('Username must not exceed 20 characters');
+          err.statusCode = 400;
+          throw err;
+        }
+        const usernameRegex = /^[a-zA-Z0-9_]+$/;
+        if (!usernameRegex.test(cleanUsername)) {
+          const err = new Error('Username can only contain letters, numbers, and underscore');
           err.statusCode = 400;
           throw err;
         }

@@ -232,6 +232,15 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     if (name.isEmpty) {
       setState(() => _nameError = 'Name is required');
       hasError = true;
+    } else if (name.length < 3) {
+      setState(() => _nameError = 'Username must be at least 3 characters');
+      hasError = true;
+    } else if (name.length > 20) {
+      setState(() => _nameError = 'Username must not exceed 20 characters');
+      hasError = true;
+    } else if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(name)) {
+      setState(() => _nameError = 'Letters, numbers, and underscores only');
+      hasError = true;
     }
 
     if (email.isEmpty || !email.contains('@') || !email.contains('.')) {

@@ -73,6 +73,12 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
 
     if (username.isEmpty) {
       uError = 'Username is required';
+    } else if (username.length < 3) {
+      uError = 'Username must be at least 3 characters';
+    } else if (username.length > 20) {
+      uError = 'Username must not exceed 20 characters';
+    } else if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(username)) {
+      uError = 'Letters, numbers, and underscores only';
     }
 
     if (email.isEmpty) {
