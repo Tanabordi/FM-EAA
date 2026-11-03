@@ -272,9 +272,21 @@ class ItemDetailsPage extends ConsumerWidget {
         onConsumed: (amount, finishedAll) {
           Navigator.pop(sheetContext); // Close sheet
           ref.read(fridgeItemsProvider(fridgeId).notifier).consumeItem(item.id, amount, finishedAll);
-          if (context.canPop()) {
-            context.pop(item); // Return to fridge detail page with the consumed item
+          final isCompletelyFinished = finishedAll || amount >= item.quantity;
+          if (isCompletelyFinished) {
+            if (context.canPop()) {
+              context.pop(item); // Return to fridge detail page with the consumed item
+            } else {
+              FinishAllSnackbar.show(
+                context,
+                itemName: item.name,
+                onUndo: () {
+                  ref.read(fridgeItemsProvider(fridgeId).notifier).undoConsume(item);
+                },
+              );
+            }
           } else {
+            // Partially consumed in details page - show undo toast
             FinishAllSnackbar.show(
               context,
               itemName: item.name,

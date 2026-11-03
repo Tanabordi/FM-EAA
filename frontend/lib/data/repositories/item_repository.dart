@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../local/app_database.dart';
 import '../models/item_model.dart';
@@ -203,16 +204,7 @@ class ItemRepository {
     bool finishedAll = false,
     String userId = 'user_1',
   }) async {
-    try {
-      await apiClient.dio.post(
-        '/items/$itemId/consume',
-        data: {
-          'amount': amount,
-          'finishedAll': finishedAll,
-        },
-      );
-    } catch (_) {}
-
+    // 1. Local SQLite FIRST so UI reacts instantly
     try {
       await database.itemDao.consumeItemOptimistic(
         itemId: itemId,
@@ -221,14 +213,24 @@ class ItemRepository {
         userId: userId,
       );
     } catch (_) {}
+
+    // 2. Network sync in background (non-blocking)
+    try {
+      unawaited(
+        apiClient.dio.post(
+          '/items/$itemId/consume',
+          data: {
+            'amount': amount,
+            'finishedAll': finishedAll,
+          },
+        ).then((_) {}, onError: (_) {}),
+      );
+    } catch (_) {}
   }
 
-  /// Undo consume: calls backend API and restores in Drift SQLite
+  /// Undo consume: restores in Drift SQLite immediately and syncs with backend
   Future<void> undoConsume(String historyId, [ItemModel? itemToRestore]) async {
-    try {
-      await apiClient.dio.post('/items/history/$historyId/undo');
-    } catch (_) {}
-
+    // 1. Local SQLite restore FIRST so UI reacts immediately
     try {
       await database.itemDao.undoConsume(historyId);
     } catch (_) {}
@@ -257,6 +259,13 @@ class ItemRepository {
         }
       } catch (_) {}
     }
+
+    // 2. Network sync in background (non-blocking)
+    try {
+      unawaited(
+        apiClient.dio.post('/items/history/$historyId/undo').then((_) {}, onError: (_) {}),
+      );
+    } catch (_) {}
   }
 
   /// Get unsynced items
