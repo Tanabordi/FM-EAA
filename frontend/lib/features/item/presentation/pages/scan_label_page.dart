@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,9 +10,9 @@ import '../../../../shared/widgets/app_back_button.dart';
 import 'add_item_page.dart';
 
 /// Screen for scanning food labels with Google Gemini Vision API
-/// Allows taking a photo or picking from gallery, provides an interactive
-/// viewfinder reticle, sends image to Gemini AI for OCR analysis,
-/// and returns the structured AiScanResult to populate AddItemPage.
+/// Provides a real-time Live Camera Preview within the interactive viewfinder,
+/// allows capturing a photo or picking from gallery, sends image to Gemini AI
+/// for OCR analysis, and returns the structured AiScanResult to populate AddItemPage.
 class ScanLabelPage extends ConsumerStatefulWidget {
   final String fridgeId;
   final Uint8List? initialImageBytes;
@@ -29,7 +30,7 @@ class ScanLabelPage extends ConsumerStatefulWidget {
 }
 
 class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final ImagePicker _picker = ImagePicker();
   String? _imagePath;
   Uint8List? _imageBytes;
@@ -38,12 +39,20 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   AiScanResult? _scanResult;
   bool _torchEnabled = false;
 
+  CameraController? _cameraController;
+  bool _isCameraInitialized = false;
+  bool _isCameraError = false;
+  String? _cameraErrorMessage;
+  List<CameraDescription> _availableCameras = [];
+
   late AnimationController _laserController;
   late Animation<double> _laserAnimation;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
     if (widget.initialImageBytes != null) {
       _imageBytes = widget.initialImageBytes;
       _imagePath = widget.initialImagePath ?? 'label.jpg';
@@ -57,6 +66,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
       _laserController.repeat(reverse: true);
+      _initCamera();
     }
 
     _laserAnimation = Tween<double>(begin: 0.1, end: 0.9).animate(
@@ -65,12 +75,136 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _cameraController;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    if (state == AppLifecycleState.inactive) {
+      controller.dispose();
+      _cameraController = null;
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = false;
+        });
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      _initCamera();
+    }
+  }
+
+  Future<void> _initCamera() async {
+    try {
+      _availableCameras = await availableCameras();
+      if (_availableCameras.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isCameraError = true;
+            _cameraErrorMessage = 'ไม่พบกล้องในอุปกรณ์นี้';
+          });
+        }
+        return;
+      }
+
+      // Prefer back camera for scanning product labels
+      final camera = _availableCameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => _availableCameras.first,
+      );
+
+      _cameraController = CameraController(
+        camera,
+        ResolutionPreset.high,
+        enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.jpeg,
+      );
+
+      await _cameraController!.initialize();
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+          _isCameraError = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isCameraError = true;
+          _cameraErrorMessage = 'ไม่สามารถเปิดกล้องสดได้: $e';
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cameraController?.dispose();
     _laserController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _toggleTorch() async {
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      try {
+        final newTorch = !_torchEnabled;
+        await _cameraController!.setFlashMode(newTorch ? FlashMode.torch : FlashMode.off);
+        setState(() {
+          _torchEnabled = newTorch;
+        });
+      } catch (_) {
+        setState(() {
+          _torchEnabled = !_torchEnabled;
+        });
+      }
+    } else {
+      setState(() {
+        _torchEnabled = !_torchEnabled;
+      });
+    }
+  }
+
+  Future<void> _takePicture() async {
+    final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+    if (isTest) {
+      setState(() {
+        _imagePath = 'assets/images/food_avocados.png';
+        _imageBytes = Uint8List.fromList(const [
+          0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+          0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+          0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+          0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+          0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+          0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+        ]);
+        _pickedFileName = 'label.png';
+        _scanResult = null;
+      });
+      return;
+    }
+
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      try {
+        final xfile = await _cameraController!.takePicture();
+        final bytes = await xfile.readAsBytes();
+        setState(() {
+          _imagePath = xfile.path;
+          _imageBytes = bytes;
+          _pickedFileName = xfile.name;
+          _scanResult = null;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ไม่สามารถถ่ายภาพได้: $e')),
+        );
+      }
+    } else {
+      // Fallback to gallery/native camera if live camera is not active
+      await _pickFromGallery();
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
     try {
       final isTest = Platform.environment.containsKey('FLUTTER_TEST');
       if (isTest) {
@@ -91,7 +225,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       }
 
       final picked = await _picker.pickImage(
-        source: source,
+        source: ImageSource.gallery,
         maxWidth: 1600,
         maxHeight: 1600,
         imageQuality: 85,
@@ -110,7 +244,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           _imagePath = path;
           _imageBytes = bytes;
           _pickedFileName = name;
-          _scanResult = null; // Reset previous result on new image
+          _scanResult = null;
         });
       }
     } catch (e) {
@@ -250,11 +384,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 color: _torchEnabled ? const Color(0xFFFFD166) : Colors.white70,
               ),
               tooltip: 'เปิด/ปิดแฟลช',
-              onPressed: () {
-                setState(() {
-                  _torchEnabled = !_torchEnabled;
-                });
-              },
+              onPressed: _toggleTorch,
             ),
           ),
         ],
@@ -281,7 +411,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             // Viewfinder Camera Frame
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: _buildViewfinder(context),
               ),
             ),
@@ -316,7 +446,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Captured image preview OR placeholder
+            // Live Camera Preview OR captured image preview OR fallback
             if (_imageBytes != null)
               Image.memory(
                 _imageBytes!,
@@ -325,13 +455,16 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => _buildEmptyViewfinderContent(),
               )
-            else if (_imagePath != null && File(_imagePath!).existsSync())
-              Image.file(
-                File(_imagePath!),
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildEmptyViewfinderContent(),
+            else if (_isCameraInitialized && _cameraController != null && _cameraController!.value.isInitialized)
+              SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: _cameraController!.value.previewSize?.height ?? 1080,
+                    height: _cameraController!.value.previewSize?.width ?? 1920,
+                    child: CameraPreview(_cameraController!),
+                  ),
+                ),
               )
             else
               _buildEmptyViewfinderContent(),
@@ -423,27 +556,32 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               color: const Color(0x402D6A4F),
               border: Border.all(color: const Color(0x6652B788)),
             ),
-            child: const Icon(
-              Icons.camera_alt_outlined,
+            child: Icon(
+              _isCameraError ? Icons.videocam_off_outlined : Icons.camera_alt_outlined,
               size: 40,
-              color: Color(0xFF74C69D),
+              color: const Color(0xFF74C69D),
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'เล็งกล้องไปที่ฉลากอาหาร หรือวันหมดอายุ',
-            style: TextStyle(
+          Text(
+            _isCameraError
+                ? (_cameraErrorMessage ?? 'ไม่สามารถเปิดกล้องได้')
+                : 'เล็งกล้องไปที่ฉลากอาหาร หรือวันหมดอายุ',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Text(
-              'หากชื่อสินค้าและวันหมดอายุอยู่คนละจุด ถ่ายจุดที่ต้องการ ให้ AI ช่วยกรอก แล้วระบุส่วนที่เหลือในฟอร์มได้',
-              style: TextStyle(
+              _isCameraError
+                  ? 'คุณสามารถเลือกภาพจากอัลบั้มเพื่อวิเคราะห์แทนได้'
+                  : 'หากชื่อสินค้าและวันหมดอายุอยู่คนละจุด ถ่ายจุดที่ต้องการ ให้ AI ช่วยกรอก แล้วระบุส่วนที่เหลือในฟอร์มได้',
+              style: const TextStyle(
                 color: Color(0xFF94A3B8),
                 fontSize: 12,
                 height: 1.4,
@@ -540,7 +678,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     final hasImage = _imageBytes != null || (_imagePath != null && _imagePath!.isNotEmpty);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
       decoration: const BoxDecoration(
         color: Color(0xFF141F18),
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -655,7 +793,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                     key: const Key('scan_label_gallery_btn'),
                     icon: Icons.photo_library_rounded,
                     label: 'อัลบั้ม',
-                    onTap: () => _pickImage(ImageSource.gallery),
+                    onTap: _pickFromGallery,
                   ),
                 ),
               ),
@@ -669,7 +807,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   Widget _buildShutterButton() {
     return InkWell(
       key: const Key('scan_label_camera_btn'),
-      onTap: () => _pickImage(ImageSource.camera),
+      onTap: _takePicture,
       borderRadius: BorderRadius.circular(40),
       child: Column(
         mainAxisSize: MainAxisSize.min,
