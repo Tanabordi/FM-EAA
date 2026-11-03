@@ -48,8 +48,20 @@ class AuthService {
       throw err;
     }
 
-    if (!password || typeof password !== 'string' || password.length < 6) {
-      const err = new Error('Password must be at least 6 characters long');
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      const err = new Error('Password must be at least 8 characters long');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (password.length > 64) {
+      const err = new Error('Password must not exceed 64 characters');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+      const err = new Error('Password must contain both letters and numbers');
       err.statusCode = 400;
       throw err;
     }
@@ -344,8 +356,18 @@ class AuthService {
           err.statusCode = 400;
           throw err;
         }
-        if (newPassword.length < 6) {
-          const err = new Error('New password must be at least 6 characters long');
+        if (newPassword.length < 8) {
+          const err = new Error('New password must be at least 8 characters long');
+          err.statusCode = 400;
+          throw err;
+        }
+        if (newPassword.length > 64) {
+          const err = new Error('New password must not exceed 64 characters');
+          err.statusCode = 400;
+          throw err;
+        }
+        if (!/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+          const err = new Error('New password must contain both letters and numbers');
           err.statusCode = 400;
           throw err;
         }

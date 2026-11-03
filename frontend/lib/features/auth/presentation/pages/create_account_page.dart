@@ -35,6 +35,11 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   String? _passwordError;
   String? _confirmPasswordError;
 
+  bool get _hasMinLength =>
+      _passwordController.text.length >= 8 && _passwordController.text.length <= 64;
+  bool get _hasLetter => RegExp(r'[a-zA-Z]').hasMatch(_passwordController.text);
+  bool get _hasNumber => RegExp(r'[0-9]').hasMatch(_passwordController.text);
+
   @override
   void initState() {
     super.initState();
@@ -91,6 +96,10 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
       pError = 'Password is required';
     } else if (password.length < 8) {
       pError = 'Password must be at least 8 characters';
+    } else if (password.length > 64) {
+      pError = 'Password must not exceed 64 characters';
+    } else if (!RegExp(r'[a-zA-Z]').hasMatch(password) || !RegExp(r'[0-9]').hasMatch(password)) {
+      pError = 'Password must contain both letters and numbers';
     }
 
     if (confirmPassword.isEmpty) {
@@ -234,15 +243,16 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                     : null,
               ),
               const SizedBox(height: 18),
-              // Password with helper text "Use at least 8 characters."
+              // Password with real-time requirement checklist
               AppTextField(
                 controller: _passwordController,
                 labelText: 'Password',
                 hintText: '',
-                helperText: _passwordError == null ? 'Use at least 8 characters.' : null,
                 errorText: _passwordError,
                 onChanged: (_) {
-                  if (_passwordError != null) setState(() => _passwordError = null);
+                  setState(() {
+                    if (_passwordError != null) _passwordError = null;
+                  });
                 },
                 obscureText: _obscurePassword,
                 suffixIcon: IconButton(
@@ -252,6 +262,31 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                     size: 22,
                   ),
                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Real-time password requirement checklist
+              Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildRequirementItem(
+                      isMet: _hasMinLength,
+                      label: 'At least 8 characters (8–64 characters)',
+                      colorScheme: colorScheme,
+                    ),
+                    _buildRequirementItem(
+                      isMet: _hasLetter,
+                      label: 'Contains letters (a-z, A-Z)',
+                      colorScheme: colorScheme,
+                    ),
+                    _buildRequirementItem(
+                      isMet: _hasNumber,
+                      label: 'Contains numbers (0-9)',
+                      colorScheme: colorScheme,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 18),
@@ -351,6 +386,34 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRequirementItem({
+    required bool isMet,
+    required String label,
+    required ColorScheme colorScheme,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4.0),
+      child: Row(
+        children: [
+          Icon(
+            isMet ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            size: 15,
+            color: isMet ? Colors.green.shade600 : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              color: isMet ? Colors.green.shade700 : colorScheme.onSurfaceVariant,
+              fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -284,5 +284,20 @@ void main() {
       expect(find.text('Sign up with Google'), findsOneWidget);
       expect(find.text('Or'), findsOneWidget);
     });
+
+    testWidgets('CreateAccountPage renders password criteria checklist', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(body: CreateAccountPage()),
+          ),
+        ),
+      );
+
+      // Checklist items should be visible
+      expect(find.text('At least 8 characters (8–64 characters)'), findsOneWidget);
+      expect(find.text('Contains letters (a-z, A-Z)'), findsOneWidget);
+      expect(find.text('Contains numbers (0-9)'), findsOneWidget);
+    });
   });
 }
