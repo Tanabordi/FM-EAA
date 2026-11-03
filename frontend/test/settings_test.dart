@@ -229,6 +229,7 @@ void main() {
       expect(find.text('Edit Profile'), findsOneWidget);
       expect(find.text('Alex Lee'), findsOneWidget);
       expect(find.text('alex.lee@example.com'), findsOneWidget);
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
       expect(find.text('Change password'), findsOneWidget);
       expect(find.text('Save Changes'), findsOneWidget);
     });

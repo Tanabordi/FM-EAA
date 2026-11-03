@@ -375,23 +375,27 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     errorText: _nameError,
                     keyboardType: TextInputType.name,
                     textInputAction: TextInputAction.next,
-                    onSubmitted: (_) => _emailFocus.requestFocus(),
+                    onSubmitted: (_) => _currentPasswordFocus.requestFocus(),
                     onChanged: (_) {
                       if (_nameError != null) setState(() => _nameError = null);
                     },
                   ),
                   const SizedBox(height: 16),
 
-                  // Email Field
+                  // Email Field (Locked / Read-only)
                   AppTextField(
                     controller: _emailController,
                     focusNode: _emailFocus,
                     labelText: 'Email',
                     hintText: 'Enter your email',
                     errorText: _emailError,
+                    readOnly: true,
                     keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    onSubmitted: (_) => _currentPasswordFocus.requestFocus(),
+                    suffixIcon: Icon(
+                      Icons.lock_outline,
+                      color: theme.colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
                     onChanged: (_) {
                       if (_emailError != null) setState(() => _emailError = null);
                     },
