@@ -151,9 +151,7 @@ class ItemDetailsPage extends ConsumerWidget {
                       alignment: Alignment.centerLeft,
                       child: StatusBadge(
                         status: item.status,
-                        customLabel: item.status == FreshnessStatus.useSoon
-                            ? 'Use soon in 2 Days'
-                            : item.statusText,
+                        customLabel: item.detailStatusLabel,
                       ),
                     ),
                     const SizedBox(height: 16),
