@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../providers/auth_provider.dart';
@@ -123,26 +124,50 @@ class _VerifyOtpPageState extends ConsumerState<VerifyOtpPage> {
     }
   }
 
+  void _showCancelDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => ConfirmDialog(
+        title: 'Cancel password reset?',
+        message: 'Are you sure you want to cancel? You will need to request a new code to reset your password.',
+        confirmLabel: 'Yes, Cancel',
+        cancelLabel: 'Stay',
+        isDestructive: true,
+        onConfirm: () {
+          context.go('/sign-in');
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Top Bar
-              Row(
-                children: [
-                  const FigmaBackButton(),
-                  const SizedBox(width: 16),
-                  Text(
-                    'Verification Code',
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _showCancelDialog();
+      },
+      child: Scaffold(
+        backgroundColor: colorScheme.surface,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Top Bar
+                Row(
+                  children: [
+                    FigmaBackButton(
+                      onPressed: _showCancelDialog,
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      'Verification Code',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface,
@@ -235,6 +260,7 @@ class _VerifyOtpPageState extends ConsumerState<VerifyOtpPage> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
