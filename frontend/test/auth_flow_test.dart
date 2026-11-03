@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/data/models/user_model.dart';
 import 'package:fm_eaa/data/repositories/auth_repository.dart';
 import 'package:fm_eaa/features/auth/presentation/pages/create_account_page.dart';
+import 'package:fm_eaa/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:fm_eaa/features/auth/presentation/pages/sign_in_page.dart';
+import 'package:fm_eaa/features/auth/presentation/pages/verify_reset_password_page.dart';
 import 'package:fm_eaa/features/auth/providers/auth_provider.dart';
 import 'package:fm_eaa/shared/widgets/figma_auth_widgets.dart';
 import 'package:fm_eaa/shared/widgets/primary_button.dart';
@@ -55,6 +57,22 @@ class MockAuthRepository implements AuthRepository {
   @override
   Future<void> logout() async {
     wasLogoutCalled = true;
+  }
+
+  @override
+  Future<Map<String, dynamic>> requestPasswordReset(String email) async {
+    if (shouldFail) throw Exception(errorMessage);
+    return {'success': true, 'otp': '123456'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    if (shouldFail) throw Exception(errorMessage);
+    return {'success': true};
   }
 }
 
@@ -337,6 +355,68 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Discard changes?'), findsNothing);
       expect(find.text('Create an Account'), findsOneWidget);
+    });
+  });
+
+  group('Forgot Password and Reset Password Flow Tests', () {
+    testWidgets('ResetPasswordPage validates empty email before sending', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(body: ResetPasswordPage()),
+          ),
+        ),
+      );
+
+      // Tap Send Link without email
+      await tester.tap(find.byType(PrimaryButton).first);
+      await tester.pump();
+
+      expect(find.text('Email is required'), findsOneWidget);
+    });
+
+    testWidgets('ResetPasswordPage triggers requestPasswordReset on valid email', (tester) async {
+      final mockRepo = MockAuthRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(mockRepo),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: ResetPasswordPage()),
+          ),
+        ),
+      );
+
+      // Enter valid email
+      await tester.enterText(find.byType(TextField).first, 'user@example.com');
+      await tester.pump();
+
+      // Tap Send Link
+      await tester.tap(find.byType(PrimaryButton).first);
+      await tester.pump(); // process async call
+
+      expect(find.text('Email is required'), findsNothing);
+    });
+
+    testWidgets('VerifyResetPasswordPage validates OTP and password complexity', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(body: VerifyResetPasswordPage(email: 'user@example.com')),
+          ),
+        ),
+      );
+
+      expect(find.text('Reset Password'), findsWidgets);
+      expect(find.text('user@example.com'), findsOneWidget);
+
+      // Tap Reset Password with empty fields
+      await tester.tap(find.byType(PrimaryButton).first);
+      await tester.pump();
+
+      expect(find.text('Verification code is required'), findsOneWidget);
     });
   });
 }

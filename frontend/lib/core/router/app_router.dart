@@ -5,6 +5,7 @@ import '../../features/auth/presentation/pages/onboarding_page.dart';
 import '../../features/auth/presentation/pages/sign_in_page.dart';
 import '../../features/auth/presentation/pages/create_account_page.dart';
 import '../../features/auth/presentation/pages/reset_password_page.dart';
+import '../../features/auth/presentation/pages/verify_reset_password_page.dart';
 import '../../features/fridges/presentation/pages/my_fridges_page.dart';
 import '../../features/fridges/presentation/pages/add_fridge_page.dart';
 import '../../features/fridge_detail/presentation/pages/fridge_detail_page.dart';
@@ -48,6 +49,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/reset-password',
         builder: (context, state) => const ResetPasswordPage(),
+      ),
+      GoRoute(
+        path: '/verify-reset-password',
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? (state.extra as String? ?? '');
+          return VerifyResetPasswordPage(email: email);
+        },
       ),
       GoRoute(
         path: '/fridges',

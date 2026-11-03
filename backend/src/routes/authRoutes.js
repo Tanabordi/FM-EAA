@@ -59,12 +59,32 @@ router.post('/google', async (req, res, next) => {
   }
 });
 
-router.post('/forgot-password', (req, res) => {
-  res.status(501).json({ error: 'Password reset not yet enabled', route: 'POST /api/auth/forgot-password' });
+/**
+ * POST /api/auth/forgot-password
+ * Body: { email }
+ */
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.requestPasswordReset(email);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
 });
 
-router.post('/reset-password', (req, res) => {
-  res.status(501).json({ error: 'Password reset not yet enabled', route: 'POST /api/auth/reset-password' });
+/**
+ * POST /api/auth/reset-password
+ * Body: { email, otp, newPassword }
+ */
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    const result = await authService.resetPassword(email, otp, newPassword);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;

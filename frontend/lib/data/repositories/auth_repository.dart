@@ -243,6 +243,38 @@ class AuthRepository {
     } catch (_) {}
   }
 
+  Future<Map<String, dynamic>> requestPasswordReset(String email) async {
+    try {
+      final response = await apiClient.dio.post(
+        '/auth/forgot-password',
+        data: {'email': email.trim()},
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _parseDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await apiClient.dio.post(
+        '/auth/reset-password',
+        data: {
+          'email': email.trim(),
+          'otp': otp.trim(),
+          'newPassword': newPassword,
+        },
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _parseDioError(e);
+    }
+  }
+
   Exception _parseDioError(DioException e) {
     if (e.response != null && e.response?.data is Map<String, dynamic>) {
       final errorData = e.response!.data as Map<String, dynamic>;

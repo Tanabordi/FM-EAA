@@ -9,6 +9,10 @@ const { getDbConnection } = require('../config/db');
 const googleClient = new OAuth2Client(config.google.clientId);
 
 class AuthService {
+  constructor() {
+    this.passwordResetStore = new Map();
+  }
+
   /**
    * Helper: Generate signed JWT token
    */
@@ -610,6 +614,161 @@ class AuthService {
           googleId,
         };
       }
+    } finally {
+      if (conn) {
+        try {
+          await conn.close();
+        } catch (_) {}
+      }
+    }
+  }
+
+  /**
+   * Request password reset code (OTP)
+   * Stores OTP in memory with a 10-minute expiration
+   */
+  async requestPasswordReset(email) {
+    if (!email || typeof email !== 'string') {
+      const err = new Error('Email is required');
+      err.statusCode = 400;
+      throw err;
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      const err = new Error('Invalid email format');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    let conn;
+    try {
+      conn = await getDbConnection();
+      const sql = 'SELECT id, username, email FROM users WHERE LOWER(email) = :email';
+      const result = await conn.execute(sql, { email: cleanEmail }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+
+      if (!result.rows || result.rows.length === 0) {
+        const err = new Error('No account found with this email address');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      // Generate 6-digit numeric OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+      this.passwordResetStore.set(cleanEmail, {
+        otp,
+        expiresAt,
+        attempts: 0,
+      });
+
+      console.log(`[Auth] Password reset OTP generated for ${cleanEmail}: ${otp}`);
+
+      return {
+        success: true,
+        message: 'Password reset code has been sent',
+        email: cleanEmail,
+        // In development or test, include OTP in response for easy testing
+        ...(process.env.NODE_ENV !== 'production' && { otp }),
+      };
+    } finally {
+      if (conn) {
+        try {
+          await conn.close();
+        } catch (_) {}
+      }
+    }
+  }
+
+  /**
+   * Reset password using OTP
+   */
+  async resetPassword(email, otp, newPassword) {
+    if (!email || !otp || !newPassword) {
+      const err = new Error('Email, OTP code, and new password are required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.toString().trim();
+
+    const record = this.passwordResetStore.get(cleanEmail);
+    if (!record) {
+      const err = new Error('No password reset requested for this email or code has expired');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (Date.now() > record.expiresAt) {
+      this.passwordResetStore.delete(cleanEmail);
+      const err = new Error('Verification code has expired. Please request a new one');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (record.attempts >= 5) {
+      this.passwordResetStore.delete(cleanEmail);
+      const err = new Error('Too many failed attempts. Please request a new code');
+      err.statusCode = 429;
+      throw err;
+    }
+
+    if (record.otp !== cleanOtp) {
+      record.attempts += 1;
+      const err = new Error('Invalid verification code');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Validate new password complexity
+    if (newPassword.length < 8) {
+      const err = new Error('New password must be at least 8 characters long');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (newPassword.length > 64) {
+      const err = new Error('New password must not exceed 64 characters');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (!/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      const err = new Error('New password must contain both letters and numbers');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    let conn;
+    try {
+      conn = await getDbConnection();
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      const updateSql = `
+        UPDATE users
+        SET password_hash = :hashedPassword,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE LOWER(email) = :email
+      `;
+      const updateResult = await conn.execute(
+        updateSql,
+        { hashedPassword, email: cleanEmail },
+        { autoCommit: true }
+      );
+
+      if (updateResult.rowsAffected === 0) {
+        const err = new Error('User not found');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      // Invalidate the OTP after successful reset
+      this.passwordResetStore.delete(cleanEmail);
+
+      return {
+        success: true,
+        message: 'Password has been reset successfully. You can now sign in with your new password.',
+      };
     } finally {
       if (conn) {
         try {

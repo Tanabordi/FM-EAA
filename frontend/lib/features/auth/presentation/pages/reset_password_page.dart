@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../providers/auth_provider.dart';
 
 /// Screen #4: Reset Password matching Figma node 64:3
-class ResetPasswordPage extends StatefulWidget {
+class ResetPasswordPage extends ConsumerStatefulWidget {
   const ResetPasswordPage({super.key});
 
   @override
-  State<ResetPasswordPage> createState() => _ResetPasswordPageState();
+  ConsumerState<ResetPasswordPage> createState() => _ResetPasswordPageState();
 }
 
-class _ResetPasswordPageState extends State<ResetPasswordPage> {
+class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   final _emailController = TextEditingController();
   bool _isLoading = false;
   String? _emailError;
@@ -40,18 +42,30 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     });
 
     try {
-      // Simulate network call
-      await Future.delayed(const Duration(milliseconds: 600));
+      final res = await ref.read(authRepositoryProvider).requestPasswordReset(email);
 
       if (!mounted) return;
+      final otp = res['otp'];
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset link has been sent to your email.')),
+        SnackBar(
+          content: Text(otp != null
+              ? 'Verification code sent! (DEV OTP: $otp)'
+              : 'Password reset code has been sent to your email.'),
+          backgroundColor: const Color(0xFF2E7D32),
+        ),
       );
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/sign-in');
-      }
+
+      context.push('/verify-reset-password?email=${Uri.encodeComponent(email)}');
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      setState(() => _emailError = msg);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

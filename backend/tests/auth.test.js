@@ -142,4 +142,74 @@ describe('Auth API Integration Tests', () => {
       expect(res.body.error).toMatch(/Invalid Google token/i);
     });
   });
+
+  describe('POST /api/auth/forgot-password and POST /api/auth/reset-password', () => {
+    it('fails when email is missing or invalid', async () => {
+      const res1 = await request(app).post('/api/auth/forgot-password').send({});
+      expect(res1.statusCode).toBe(400);
+
+      const res2 = await request(app).post('/api/auth/forgot-password').send({ email: 'notanemail' });
+      expect(res2.statusCode).toBe(400);
+    });
+
+    it('returns 404 when email does not exist', async () => {
+      const res = await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email: 'nonexistent_user_999999@example.com' });
+      expect(res.statusCode).toBe(404);
+    });
+
+    it('successfully requests OTP and resets password for existing user', async () => {
+      // 1. Request OTP for testUser created earlier
+      const forgotRes = await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email: testUser.email });
+      expect(forgotRes.statusCode).toBe(200);
+      expect(forgotRes.body).toHaveProperty('success', true);
+      expect(forgotRes.body).toHaveProperty('otp');
+
+      const otp = forgotRes.body.otp;
+
+      // 2. Fails reset with wrong OTP
+      const wrongOtpRes = await request(app)
+        .post('/api/auth/reset-password')
+        .send({
+          email: testUser.email,
+          otp: '000000',
+          newPassword: 'BrandNewPassword999!',
+        });
+      expect(wrongOtpRes.statusCode).toBe(400);
+
+      // 3. Fails reset with weak password
+      const weakPassRes = await request(app)
+        .post('/api/auth/reset-password')
+        .send({
+          email: testUser.email,
+          otp,
+          newPassword: 'short',
+        });
+      expect(weakPassRes.statusCode).toBe(400);
+
+      // 4. Successfully resets password
+      const resetRes = await request(app)
+        .post('/api/auth/reset-password')
+        .send({
+          email: testUser.email,
+          otp,
+          newPassword: 'BrandNewPassword999!',
+        });
+      expect(resetRes.statusCode).toBe(200);
+      expect(resetRes.body).toHaveProperty('success', true);
+
+      // 5. Verify user can log in with new password
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({
+          identifier: testUser.email,
+          password: 'BrandNewPassword999!',
+        });
+      expect(loginRes.statusCode).toBe(200);
+      expect(loginRes.body).toHaveProperty('token');
+    });
+  });
 });
