@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const multer = require('multer');
 const authenticateToken = require('../middleware/auth');
-const { scanLabel } = require('../services/aiService');
+const { scanLabel, suggestRecipes } = require('../services/aiService');
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
@@ -39,6 +39,33 @@ router.post('/scan-label', authenticateToken, handleUpload, async (req, res, nex
     const result = await scanLabel(req.file.buffer, req.file.mimetype);
     res.json(result);
   } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/recipes', authenticateToken, async (req, res, next) => {
+  try {
+    const { mainIngredient, fridgeIngredients, language } = req.body;
+    if (!mainIngredient || typeof mainIngredient !== 'string' || mainIngredient.trim().length === 0) {
+      return res.status(400).json({ error: 'mainIngredient is required' });
+    }
+
+    const userId = req.user?.userId || 'anonymous';
+    const result = await suggestRecipes({
+      userId,
+      mainIngredient: mainIngredient.trim(),
+      fridgeIngredients: Array.isArray(fridgeIngredients) ? fridgeIngredients : [],
+      language: language || 'th',
+    });
+
+    res.json(result);
+  } catch (err) {
+    if (err.statusCode === 429) {
+      return res.status(429).json({
+        error: err.message,
+        remainingDailyQuota: 0,
+      });
+    }
     next(err);
   }
 });

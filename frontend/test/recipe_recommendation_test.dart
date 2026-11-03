@@ -81,6 +81,59 @@ void main() {
       expect(find.text('Strawberry & Spinach Salad'), findsOneWidget);
       expect(find.text('Green Power Spinach Smoothie'), findsOneWidget);
     });
+
+    testWidgets('renders relevant recipes when ingredient is sausage (ค็อกเทลรมควัน)', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'ค็อกเทลรมควัน',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('AI found 3 recipes using ค็อกเทลรมควัน'), findsOneWidget);
+      expect(find.text('ผัดกระเทียมพริกไทยค็อกเทลรมควัน'), findsOneWidget);
+      expect(find.text('ไข่เจียวทรงเครื่องใส่ค็อกเทลรมควัน'), findsOneWidget);
+      expect(find.text('ข้าวผัดโบราณใส่ค็อกเทลรมควัน'), findsOneWidget);
+    });
+
+    testWidgets('triggers 3s cooldown on regenerate button tap', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'ค็อกเทลรมควัน',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.ensureVisible(find.text('Regenerate'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Regenerate'), findsOneWidget);
+      await tester.tap(find.text('Regenerate'));
+      await tester.pump();
+
+      // Button enters cooldown state
+      expect(find.textContaining('Regenerate ('), findsOneWidget);
+
+      // Advance time by 3 seconds
+      await tester.pump(const Duration(seconds: 4));
+      expect(find.text('Regenerate'), findsOneWidget);
+    });
   });
 
   group('Screen #26: Recipe Details Tests', () {

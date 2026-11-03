@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../data/models/recipe_model.dart';
 import '../../../../data/repositories/item_repository.dart';
+import '../../../../data/repositories/ai_repository.dart';
 import 'recipe_detail_page.dart';
 
 /// Screen #25: AI Suggested Recipes Page
-/// Matches Figma and uploaded screenshot (media_1793552072245_8dd28d30.jpg)
+/// Features smart batching (6 recipes fetched, instant 0s swap on 1st regenerate),
+/// 3-second cooldown anti-spam protection, and polite daily quota messaging.
 class RecipeRecommendationPage extends ConsumerStatefulWidget {
   final String fridgeId;
   final String initialIngredient;
@@ -24,8 +27,14 @@ class RecipeRecommendationPage extends ConsumerStatefulWidget {
 
 class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationPage> {
   late String _currentIngredient;
-  late List<RecipeModel> _recipes;
+  List<RecipeModel> _cachedBatch = [];
+  List<RecipeModel> _recipes = [];
+  int _currentBatchIndex = 0; // 0 = showing items 0-2, 1 = showing items 3-5
   bool _isRegenerating = false;
+
+  // Anti-Spam Cooldown (3 seconds)
+  int _cooldownSeconds = 0;
+  Timer? _cooldownTimer;
 
   @override
   void initState() {
@@ -33,27 +42,45 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     _currentIngredient = widget.initialIngredient.trim().isEmpty
         ? 'Strawberries'
         : widget.initialIngredient;
-    _recipes = _getRecipesForIngredient(_currentIngredient);
 
-    // Query expiring soon items from Local SQLite DB if available
+    // Load initial recipes immediately from smart fallback / cache
+    _loadInitialFallback();
+
+    // Query fridge items and fetch fresh AI recipes if applicable
     Future.microtask(() async {
       try {
-        final expiringItems = await ref.read(itemRepositoryProvider).getExpiringSoonItems(widget.fridgeId);
+        final itemRepo = ref.read(itemRepositoryProvider);
+        final expiringItems = await itemRepo.getExpiringSoonItems(widget.fridgeId);
         if (expiringItems.isNotEmpty && widget.initialIngredient == 'Strawberries') {
           if (mounted) {
             setState(() {
               _currentIngredient = expiringItems.first.name;
-              _recipes = _getRecipesForIngredient(_currentIngredient);
             });
           }
         }
+
+        // Collect other fridge ingredients to feed Gemini for zero-waste synergy
+        final allItems = await itemRepo.getItems(widget.fridgeId);
+        final fridgeItemNames = allItems.map((i) => i.name).toList();
+
+        await _fetchRecipesFromAi(fridgeItemNames);
       } catch (_) {}
     });
   }
 
-  List<RecipeModel> _getRecipesForIngredient(String ingredient) {
-    final lower = ingredient.toLowerCase();
+  @override
+  void dispose() {
+    _cooldownTimer?.cancel();
+    super.dispose();
+  }
 
+  void _loadInitialFallback() {
+    _cachedBatch = _getQuickLocalRecipes(_currentIngredient);
+    _recipes = _cachedBatch.take(3).toList();
+  }
+
+  List<RecipeModel> _getQuickLocalRecipes(String ingredient) {
+    final lower = ingredient.toLowerCase();
     if (lower.contains('spinach')) {
       return [
         const RecipeModel(
@@ -197,101 +224,244 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       ];
     }
 
-    // Default: Strawberries recipes matching screenshot exactly
+    if (lower.contains('strawberr')) {
+      return [
+        const RecipeModel(
+          id: 'strawberry_pancakes',
+          title: 'Fluffy Strawberry Pancakes',
+          imageUrl: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '20 min',
+          difficulty: 'Easy',
+          expiringIngredient: 'Strawberries',
+          ingredients: [
+            '1 cup fresh strawberries, sliced',
+            '1 1/2 cups all-purpose flour',
+            '1 cup milk',
+            '1 large egg',
+            '2 tbsp melted butter',
+            'Maple syrup for topping',
+          ],
+          steps: [
+            'Whisk flour, sugar, baking powder, and salt together in a bowl.',
+            'In a separate bowl, beat milk, melted butter, and eggs.',
+            'Combine wet and dry ingredients gently; do not overmix.',
+            'Cook on a buttered griddle over medium heat until bubbles form.',
+            'Flip pancakes and cook until golden brown.',
+            'Top generously with freshly sliced strawberries and warm maple syrup.',
+          ],
+        ),
+        const RecipeModel(
+          id: 'strawberry_smoothie',
+          title: 'Strawberry Yogurt Smoothie',
+          imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '10 mins',
+          difficulty: 'Very easy',
+          expiringIngredient: 'Strawberries',
+          ingredients: [
+            '1 cup strawberries, hulled',
+            '1/2 cup plain yogurt',
+            '1/2 cup milk',
+            '1 tsp honey',
+            'Ice cubes (optional)',
+          ],
+          steps: [
+            'Add strawberries, yogurt, milk, and honey to a blender.',
+            'Blend until smooth and creamy.',
+            'Add ice cubes if you want a thicker, colder smoothie.',
+            'Blend again until the ice is fully crushed, then pour and serve.',
+          ],
+        ),
+        const RecipeModel(
+          id: 'strawberry_salad',
+          title: 'Strawberry & Avocado Salad',
+          imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_avocados.png',
+          cookingTime: '10 min',
+          difficulty: 'Very easy',
+          expiringIngredient: 'Strawberries',
+          ingredients: [
+            '1 cup strawberries, sliced',
+            '1 ripe avocado, diced',
+            '2 cups fresh baby spinach',
+            '1/4 cup crumbled feta cheese',
+            '2 tbsp balsamic reduction',
+          ],
+          steps: [
+            'Wash baby spinach leaves and spin dry.',
+            'Quarter ripe strawberries and dice avocado into bite-sized cubes.',
+            'Toss spinach, strawberries, and avocados in a salad bowl.',
+            'Crumble fresh feta cheese over the top.',
+            'Drizzle with balsamic reduction and toasted pecans just before serving.',
+          ],
+        ),
+      ];
+    }
+
+    // Default for any custom ingredient like "ค็อกเทลรมควัน"
     return [
-      const RecipeModel(
-        id: 'strawberry_pancakes',
-        title: 'Fluffy Strawberry Pancakes',
-        imageUrl: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=80',
-        assetFallback: 'assets/images/food_strawberries.png',
-        cookingTime: '20 min',
-        difficulty: 'Easy',
-        expiringIngredient: 'Strawberries',
-        ingredients: [
-          '1 cup fresh strawberries, sliced',
-          '1 1/2 cups all-purpose flour',
-          '1 cup milk',
-          '1 large egg',
-          '2 tbsp melted butter',
-          'Maple syrup for topping',
-        ],
-        steps: [
-          'Whisk flour, sugar, baking powder, and salt together in a bowl.',
-          'In a separate bowl, beat milk, melted butter, and eggs.',
-          'Combine wet and dry ingredients gently; do not overmix.',
-          'Cook on a buttered griddle over medium heat until bubbles form.',
-          'Flip pancakes and cook until golden brown.',
-          'Top generously with freshly sliced strawberries and warm maple syrup.',
-        ],
-      ),
-      const RecipeModel(
-        id: 'strawberry_smoothie',
-        title: 'Strawberry Yogurt Smoothie',
-        imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
-        assetFallback: 'assets/images/food_strawberries.png',
-        cookingTime: '10 mins',
-        difficulty: 'Very easy',
-        expiringIngredient: 'Strawberries',
-        ingredients: [
-          '1 cup strawberries, hulled',
-          '1/2 cup plain yogurt',
-          '1/2 cup milk',
-          '1 tsp honey',
-          'Ice cubes (optional)',
-        ],
-        steps: [
-          'Add strawberries, yogurt, milk, and honey to a blender.',
-          'Blend until smooth and creamy.',
-          'Add ice cubes if you want a thicker, colder smoothie.',
-          'Blend again until the ice is fully crushed, then pour and serve.',
-        ],
-      ),
-      const RecipeModel(
-        id: 'strawberry_salad',
-        title: 'Strawberry & Avocado Salad',
-        imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-        assetFallback: 'assets/images/food_avocados.png',
+      RecipeModel(
+        id: 'recipe_local_1',
+        title: 'ผัดกระเทียมพริกไทย$ingredient',
+        imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        expiringIngredient: 'Strawberries',
-        ingredients: [
-          '1 cup strawberries, sliced',
-          '1 ripe avocado, diced',
-          '2 cups fresh baby spinach',
-          '1/4 cup crumbled feta cheese',
-          '2 tbsp balsamic reduction',
-        ],
-        steps: [
-          'Wash baby spinach leaves and spin dry.',
-          'Quarter ripe strawberries and dice avocado into bite-sized cubes.',
-          'Toss spinach, strawberries, and avocados in a salad bowl.',
-          'Crumble fresh feta cheese over the top.',
-          'Drizzle with balsamic reduction and toasted pecans just before serving.',
-        ],
+        expiringIngredient: ingredient,
+        ingredients: [ingredient, 'กระเทียมสับ', 'ซีอิ๊วขาว', 'น้ำมันพืช', 'พริกไทย'],
+        steps: ['ผัดกระเทียมจนหอม', 'ใส่$ingredientผัดให้สุก', 'ปรุงรสพร้อมเสิร์ฟ'],
+      ),
+      RecipeModel(
+        id: 'recipe_local_2',
+        title: 'ไข่เจียวทรงเครื่องใส่$ingredient',
+        imageUrl: 'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_eggs.png',
+        cookingTime: '10 min',
+        difficulty: 'Very easy',
+        expiringIngredient: ingredient,
+        ingredients: [ingredient, 'ไข่ไก่ 2 ฟอง', 'ซีอิ๊วขาว', 'น้ำมันพืช'],
+        steps: ['ตีไข่ผสมกับ$ingredient', 'ทอดในกระทะร้อนจนเหลืองฟู'],
+      ),
+      RecipeModel(
+        id: 'recipe_local_3',
+        title: 'ข้าวผัดโบราณใส่$ingredient',
+        imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_lasagna.png',
+        cookingTime: '15 min',
+        difficulty: 'Easy',
+        expiringIngredient: ingredient,
+        ingredients: [ingredient, 'ข้าวสวย 1 จาน', 'ไข่ไก่ 1 ฟอง', 'ซีอิ๊วขาว'],
+        steps: ['ผัดไข่พอสุก', 'ใส่ข้าวสวยและ$ingredient ผัดไฟแรงจนหอม'],
       ),
     ];
   }
 
+  Future<void> _fetchRecipesFromAi(List<String> fridgeIngredients) async {
+    try {
+      final aiRepo = ref.read(aiRepositoryProvider);
+      final results = await aiRepo.getSuggestedRecipes(
+        _currentIngredient,
+        fridgeIngredients: fridgeIngredients,
+      );
+
+      if (results.isNotEmpty && mounted) {
+        setState(() {
+          _cachedBatch = results;
+          _currentBatchIndex = 0;
+          _recipes = _cachedBatch.take(3).toList();
+        });
+      }
+    } catch (e) {
+      if (mounted && e.toString().contains('วันนี้คุณได้ไอเดีย')) {
+        _showDailyLimitAlert();
+      }
+    }
+  }
+
+  void _startCooldown() {
+    setState(() {
+      _cooldownSeconds = 3;
+    });
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_cooldownSeconds <= 1) {
+        timer.cancel();
+        setState(() {
+          _cooldownSeconds = 0;
+        });
+      } else {
+        setState(() {
+          _cooldownSeconds--;
+        });
+      }
+    });
+  }
+
+  void _showDailyLimitAlert() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('วันนี้คุณได้ไอเดียไปเยอะแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨'),
+        backgroundColor: Color(0xFFFA8B28),
+        duration: Duration(seconds: 4),
+      ),
+    );
+  }
+
   void _onRegenerate() async {
+    // Prevent spam if cooling down or currently regenerating
+    if (_cooldownSeconds > 0 || _isRegenerating) return;
+
+    // Start 3-second button cooldown immediately (Technique 2)
+    _startCooldown();
+
+    // Technique 1: 0-second instant swap from pre-fetched 6 recipes batch!
+    if (_currentBatchIndex == 0 && _cachedBatch.length > 3) {
+      setState(() {
+        _currentBatchIndex = 1;
+        _recipes = _cachedBatch.sublist(3, _cachedBatch.length.clamp(3, 6));
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚡ สลับ 3 เมนูสำรองทันที (0s)! ประหยัดโควตา'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Color(0xFF2E6A44),
+        ),
+      );
+      return;
+    }
+
+    // If already showed the backup 3 recipes, call Gemini AI to fetch next fresh batch of 6
     setState(() {
       _isRegenerating = true;
     });
 
-    await Future.delayed(const Duration(milliseconds: 700));
+    try {
+      final aiRepo = ref.read(aiRepositoryProvider);
+      final itemRepo = ref.read(itemRepositoryProvider);
+      final allItems = await itemRepo.getItems(widget.fridgeId);
+      final fridgeItemNames = allItems.map((i) => i.name).toList();
 
-    if (!mounted) return;
+      final freshResults = await aiRepo.getSuggestedRecipes(
+        _currentIngredient,
+        fridgeIngredients: fridgeItemNames,
+      );
 
-    setState(() {
-      _recipes = List.from(_recipes.reversed);
-      _isRegenerating = false;
-    });
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('✨ Gemini AI refreshed recipe suggestions!'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+      setState(() {
+        _cachedBatch = freshResults;
+        _currentBatchIndex = 0;
+        _recipes = _cachedBatch.take(3).toList();
+        _isRegenerating = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✨ Gemini AI คิดไอเดียชุดใหม่ 6 เมนูเรียบร้อย!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isRegenerating = false;
+      });
+
+      if (e.toString().contains('วันนี้คุณได้ไอเดีย')) {
+        _showDailyLimitAlert();
+      } else {
+        // Fallback swap
+        setState(() {
+          _recipes = List.from(_recipes.reversed);
+        });
+      }
+    }
   }
 
   void _onViewRecipe(RecipeModel recipe) {
@@ -364,43 +534,75 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                       ),
                     ),
                     const SizedBox(height: 4),
-                    // Recipe Cards
+                    // Recipe Cards or Loading Shimmer
                     if (_isRegenerating)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 40),
                         child: Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF2E6A44),
+                          child: Column(
+                            children: [
+                              CircularProgressIndicator(
+                                color: Color(0xFF2E6A44),
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                'Gemini AI is crafting delicious recipes...',
+                                style: TextStyle(
+                                  color: Color(0xFF414942),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       )
                     else
                       ..._recipes.map((recipe) => _buildRecipeCard(recipe)),
                     const SizedBox(height: 16),
-                    // Regenerate Button
+                    // Regenerate Button with Cooldown feedback
                     Center(
                       child: InkWell(
                         borderRadius: BorderRadius.circular(20),
-                        onTap: _onRegenerate,
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        onTap: (_cooldownSeconds > 0 || _isRegenerating) ? null : _onRegenerate,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.sync,
-                                color: Color(0xFF2E6A44),
-                                size: 18,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'Regenerate',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF2E6A44),
+                              if (_cooldownSeconds > 0) ...[
+                                const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFF717971),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Regenerate (${_cooldownSeconds}s)',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF717971),
+                                  ),
+                                ),
+                              ] else ...[
+                                const Icon(
+                                  Icons.sync,
+                                  color: Color(0xFF2E6A44),
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'Regenerate',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF2E6A44),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -482,6 +684,18 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                       color: Color(0xFF181D17),
                     ),
                   ),
+                  if (recipe.description.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      recipe.description,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFF414942),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   Row(
                     children: [
