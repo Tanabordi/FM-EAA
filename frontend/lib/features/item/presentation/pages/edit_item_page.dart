@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 
 /// Screen #13: Edit Item details
@@ -35,6 +38,61 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
   String? _imagePath;
   Uint8List? _imageBytes;
   bool _initialized = false;
+  String? _initialName;
+  String? _initialQuantity;
+  String? _initialCategory;
+  String? _initialUnit;
+  String? _initialStorage;
+  DateTime? _initialExpirationDate;
+  String? _initialImagePath;
+  String? _nameError;
+  bool _forceExit = false;
+
+  bool get _hasUnsavedChanges {
+    if (_forceExit) return false;
+    if (!_initialized) return false;
+    return _nameController.text.trim() != (_initialName ?? '').trim() ||
+        _quantityController.text.trim() != (_initialQuantity ?? '').trim() ||
+        _category != _initialCategory ||
+        _unit != _initialUnit ||
+        _storage != _initialStorage ||
+        _expirationDate != _initialExpirationDate ||
+        _imageBytes != null ||
+        _imagePath != _initialImagePath;
+  }
+
+  void _handleBack() {
+    if (_hasUnsavedChanges) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => ConfirmDialog(
+          title: 'Discard changes?',
+          message: 'You have unsaved changes. Are you sure you want to discard them?',
+          confirmLabel: 'Discard',
+          cancelLabel: 'Keep editing',
+          isDestructive: true,
+          onConfirm: () {
+            setState(() => _forceExit = true);
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              try {
+                context.pop();
+              } catch (_) {}
+            }
+          },
+        ),
+      );
+    } else {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        try {
+          context.pop();
+        } catch (_) {}
+      }
+    }
+  }
 
   final _categories = ['Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'];
   final _units = ['g', 'kg', 'pieces', 'bag', 'punnet', 'bottle', 'box', 'can', 'pack'];
@@ -101,6 +159,15 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       _storage = item.zone.toLowerCase() == 'freezer' ? 'Freezer' : 'Fridge';
       _expirationDate = item.expiryDate;
       _imagePath = item.imagePath;
+      _initialName = item.name;
+      _initialQuantity = item.quantity % 1 == 0
+          ? item.quantity.toInt().toString()
+          : item.quantity.toString();
+      _initialCategory = _category;
+      _initialUnit = _unit;
+      _initialStorage = _storage;
+      _initialExpirationDate = _expirationDate;
+      _initialImagePath = _imagePath;
       _initialized = true;
     }
   }
@@ -319,12 +386,9 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
   Future<void> _onSave() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณากรอกชื่ออาหารก่อนบันทึก'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      setState(() {
+        _nameError = 'Food name is required';
+      });
       return;
     }
 
@@ -352,7 +416,14 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       ),
     );
 
-    Navigator.pop(context);
+    setState(() => _forceExit = true);
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      try {
+        context.pop();
+      } catch (_) {}
+    }
   }
 
   @override
@@ -364,29 +435,35 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Navigation Bar
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  AppBackButton(),
-                  SizedBox(width: 14),
-                  Text(
-                    'Edit Item details',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF181D17),
+    return PopScope(
+      canPop: !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF6FBF3),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top Navigation Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Row(
+                  children: [
+                    AppBackButton(onPressed: _handleBack),
+                    const SizedBox(width: 14),
+                    const Text(
+                      'Edit Item details',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF181D17),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
             // Form Content
             Expanded(
               child: SingleChildScrollView(
@@ -445,14 +522,17 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                     ),
                     const SizedBox(height: 20),
                     // Food Name Field
-                    TextFormField(
+                    AppTextField(
                       controller: _nameController,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFF181D17),
-                        fontWeight: FontWeight.w400,
-                      ),
-                      decoration: _inputDecoration(hintText: 'Food Name'),
+                      labelText: 'Food Name',
+                      hintText: 'Enter food name',
+                      errorText: _nameError,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (val) {
+                        if (_nameError != null && val.trim().isNotEmpty) {
+                          setState(() => _nameError = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 14),
                     // Category Dropdown
@@ -650,6 +730,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
           ],
         ),
       ),
+    ),
     );
   }
 }

@@ -171,7 +171,7 @@ void main() {
       expect(find.byType(FloatingActionButton), findsOneWidget);
     });
 
-    testWidgets('Screen #6: AddFridgePage validates required name field', (tester) async {
+    testWidgets('Screen #6: AddFridgePage validates required name field (1-15 chars) and description (0-100 chars)', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -188,13 +188,64 @@ void main() {
       await tester.tap(find.text('Create Fridge'));
       await tester.pumpAndSettle();
 
-      // Verify validation error
-      expect(find.text('Please enter a fridge name'), findsOneWidget);
+      // Verify required validation error
+      expect(find.text('Fridge name is required'), findsOneWidget);
 
-      // Enter name and clear error
-      await tester.enterText(find.byType(TextField).first, 'New Living Room Fridge');
+      // Test exceeding 15 chars
+      await tester.enterText(find.byType(TextField).first, 'Super Long Name For Fridge 12345');
+      await tester.tap(find.text('Create Fridge'));
       await tester.pumpAndSettle();
-      expect(find.text('Please enter a fridge name'), findsNothing);
+      expect(find.text('Fridge name must not exceed 15 characters'), findsOneWidget);
+
+      // Enter valid name (1-15 chars)
+      await tester.enterText(find.byType(TextField).first, 'Living Room');
+      await tester.pumpAndSettle();
+      expect(find.text('Fridge name is required'), findsNothing);
+      expect(find.text('Fridge name must not exceed 15 characters'), findsNothing);
+
+      // Test description exceeding 100 chars
+      final longDesc = 'a' * 105;
+      await tester.enterText(find.byType(TextField).last, longDesc);
+      await tester.tap(find.text('Create Fridge'));
+      await tester.pumpAndSettle();
+      expect(find.text('Description must not exceed 100 characters'), findsOneWidget);
+    });
+
+    testWidgets('Screen #6: AddFridgePage shows Discard changes dialog on back with unsaved edits', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddFridgePage(),
+          ),
+        ),
+      );
+
+      // Type some unsaved changes
+      await tester.enterText(find.byType(TextField).first, 'Kitchen Fridge');
+      await tester.pumpAndSettle();
+
+      // Tap back button
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+
+      // Verify Discard changes dialog
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.text('You have unsaved changes. Are you sure you want to discard them?'), findsOneWidget);
+      expect(find.text('Keep editing'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+
+      // Tap Keep editing
+      await tester.tap(find.text('Keep editing'));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.text('Add New Fridge'), findsOneWidget);
+
+      // Tap back again and tap Discard
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Screen #7: EditFridgeSheet pre-fills fields and updates fridge', (tester) async {

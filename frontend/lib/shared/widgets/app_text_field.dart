@@ -21,6 +21,9 @@ class AppTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
   final FocusNode? focusNode;
+  final int? maxLines;
+  final int? minLines;
+  final int? maxLength;
 
   const AppTextField({
     super.key,
@@ -38,6 +41,9 @@ class AppTextField extends StatelessWidget {
     this.textInputAction,
     this.onSubmitted,
     this.focusNode,
+    this.maxLines = 1,
+    this.minLines,
+    this.maxLength,
   });
 
   @override
@@ -72,6 +78,12 @@ class AppTextField extends StatelessWidget {
             textInputAction: textInputAction,
             onSubmitted: onSubmitted,
             onChanged: onChanged,
+            maxLines: obscureText ? 1 : maxLines,
+            minLines: minLines,
+            maxLength: maxLength,
+            textAlignVertical: (maxLines != null && maxLines! > 1)
+                ? TextAlignVertical.top
+                : null,
             style: TextStyle(
               fontSize: 15,
               color: colorScheme.onSurface,
@@ -96,6 +108,7 @@ class AppTextField extends StatelessWidget {
               contentPadding: const EdgeInsets.symmetric(vertical: 8),
               prefixIcon: prefixIcon,
               suffixIcon: suffixIcon,
+              counterText: '',
             ),
           ),
         ),
