@@ -404,6 +404,12 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       setState(() {
         _nameError = 'Food name is required';
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a food name before saving'),
+          duration: Duration(seconds: 2),
+        ),
+      );
       return;
     }
 
