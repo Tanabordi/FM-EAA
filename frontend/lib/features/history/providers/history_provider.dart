@@ -13,8 +13,8 @@ final historyRepositoryProvider = Provider<HistoryRepository>((ref) {
 /// Reactive Stream of all history records for a fridge
 final historyStreamProvider = StreamProvider.family<List<HistoryModel>, String>((ref, fridgeId) {
   final repo = ref.watch(historyRepositoryProvider);
-  // Auto-seed initial sample data if empty so initial experience matches Figma prototype
-  repo.seedInitialDataIfEmpty(fridgeId);
+  // Fetch real history from backend API and sync with local Drift SQLite
+  repo.fetchHistoryFromApi(fridgeId);
   return repo.watchHistory(fridgeId);
 });
 
@@ -30,9 +30,9 @@ class HistoryController extends StateNotifier<AsyncValue<void>> {
 
   HistoryController(this._repository) : super(const AsyncData(null));
 
-  Future<void> deleteItem(String historyId) async {
+  Future<void> deleteItem(String historyId, {String? fridgeId}) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _repository.deleteHistoryItem(historyId));
+    state = await AsyncValue.guard(() => _repository.deleteHistoryItem(historyId, fridgeId: fridgeId));
   }
 
   Future<void> clearHistory(String fridgeId, {String? kind}) async {
