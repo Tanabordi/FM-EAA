@@ -34,6 +34,9 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
         ref.read(fridgeDetailFilterProvider.notifier).setZone(newZone);
       }
     });
+    Future.microtask(() {
+      ref.read(fridgeItemsProvider(widget.fridgeId).notifier).loadItems();
+    });
   }
 
   @override
@@ -180,7 +183,12 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
           backgroundColor: const Color(0xFF2E6A44), // Figma exact dark green
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          onPressed: () => context.push('/fridges/${widget.fridgeId}/items/add'),
+          onPressed: () async {
+            await context.push('/fridges/${widget.fridgeId}/items/add');
+            if (context.mounted) {
+              ref.read(fridgeItemsProvider(widget.fridgeId).notifier).loadItems();
+            }
+          },
           child: const Icon(Icons.add, size: 28),
         ),
       ),

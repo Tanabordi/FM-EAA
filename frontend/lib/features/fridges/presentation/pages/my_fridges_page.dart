@@ -8,11 +8,24 @@ import '../widgets/delete_fridge_dialog.dart';
 import '../../providers/fridges_provider.dart';
 
 /// Screen #5: My Fridges (Supports both Empty State [Image 1] and Populated State [Image 2 / 10])
-class MyFridgesPage extends ConsumerWidget {
+class MyFridgesPage extends ConsumerStatefulWidget {
   const MyFridgesPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyFridgesPage> createState() => _MyFridgesPageState();
+}
+
+class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(fridgesProvider.notifier).loadFridges();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final fridges = ref.watch(fridgesProvider);
     final theme = Theme.of(context);
     final isEmpty = fridges.isEmpty;

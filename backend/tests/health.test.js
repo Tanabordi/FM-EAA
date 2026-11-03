@@ -13,9 +13,9 @@ describe('Backend Skeleton Tests', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('GET /api/fridges returns 501 Not implemented', async () => {
+  it('GET /api/fridges requires auth (401 without token)', async () => {
     const res = await request(app).get('/api/fridges');
-    expect(res.statusCode).toBe(501);
+    expect(res.statusCode).toBe(401);
   });
 
   it('POST /api/sync returns 501 Not implemented', async () => {

@@ -39,6 +39,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
   }
 
   Future<void> _onDoneMarkAsConsumed() async {
+    if (widget.onMarkConsumed != null) {
+      widget.onMarkConsumed!();
+    }
+
     // 1. Record consumed entry into History database for HistoryPage
     try {
       await ref.read(historyRepositoryProvider).recordConsumedItem(
