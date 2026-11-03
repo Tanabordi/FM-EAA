@@ -1,4 +1,3 @@
-import '../../shared/widgets/app_back_button.dart';
 import 'package:flutter/material.dart';
 import 'material_theme.dart';
 
@@ -36,23 +35,6 @@ class AppTheme {
         foregroundColor: lightColorScheme.onSurface,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: const TextStyle(
-          color: Color(0xFF1A201C),
-          fontSize: 22,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -0.5,
-        ),
-      ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: const Color(0xFF2E6A44),
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      ),
-      actionIconTheme: ActionIconThemeData(
-        backButtonIconBuilder: (BuildContext context) {
-          return const AppBackButton();
-        },
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -86,13 +68,6 @@ class AppTheme {
         backgroundColor: darkColorScheme.surface,
         foregroundColor: darkColorScheme.onSurface,
         elevation: 0,
-        centerTitle: false,
-      ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: const Color(0xFF2E6A44),
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

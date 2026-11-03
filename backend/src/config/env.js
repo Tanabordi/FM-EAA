@@ -7,7 +7,6 @@ module.exports = {
     user: process.env.ORACLE_DB_USER || '',
     password: process.env.ORACLE_DB_PASSWORD || '',
     connectString: process.env.ORACLE_DB_CONNECT_STRING || '',
-    schema: process.env.ORACLE_DB_SCHEMA || 'U',
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'dev_secret_change_in_production',
@@ -18,9 +17,6 @@ module.exports = {
   },
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || '',
-  },
-  oci: {
-    parUrl: process.env.OCI_PAR_URL || '',
   },
 };
 

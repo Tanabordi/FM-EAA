@@ -1,6 +1,6 @@
 # FM-EAA Screen Mapping & Specifications
 
-เอกสารสรุปความเชื่อมโยงระหว่างหน้าจอในดีไซน์ Figma (26 หน้าจอและคอมโพเนนต์ตาม [DESIGN_SPEC.md](DESIGN_SPEC.md)) กับโครงสร้างไฟล์และ Route ใน Flutter Application
+เอกสารสรุปความเชื่อมโยงระหว่างหน้าจอในดีไซน์ Figma (24 หน้าจอและคอมโพเนนต์ตาม [DESIGN_SPEC.md](DESIGN_SPEC.md)) กับโครงสร้างไฟล์และ Route ใน Flutter Application
 
 Figma File [FM-EAA on Figma](https://www.figma.com/design/MB6XUkZz1GZqJpDqvfkHYc/FM-EAA?node-id=0-1&t=dJwjYD0ae67KEzdu-1)
 
@@ -14,7 +14,7 @@ Figma File [FM-EAA on Figma](https://www.figma.com/design/MB6XUkZz1GZqJpDqvfkHYc
 | **2** | Sign In | `features/auth/presentation/pages/sign_in_page.dart` | `/sign-in` | `8:39` | โลโก้แอป ข้อความ "Welcome To Fridge Management & Expiry Alert App" ช่อง Username/Email, Password (กดดู/ซ่อนได้), ลิงก์ Forgot password? ปุ่ม Sign In, ปุ่ม Sign in with Google และ Sign up link |
 | **3** | Create an Account | `features/auth/presentation/pages/create_account_page.dart` | `/create-account` | `52:113`, `362:18` | ช่องกรอก Username, Email, Password (คำแนะนำ "Use at least 8 characters."), Confirm Password, ปุ่ม Sign Up, ปุ่ม Sign up with Google และ Sign In link |
 | **4** | Reset Password | `features/auth/presentation/pages/reset_password_page.dart` | `/reset-password` | `64:3` | ข้อความ "Enter your email" ช่องกรอก Email และปุ่ม "Send Link" |
-| **5** | My Fridges | `features/fridges/presentation/pages/my_fridges_page.dart` | `/fridges` | `223:69`, `88:62` | หัวข้อ "My Fridges" ไอคอนแจ้งเตือนและตั้งค่า การ์ดตู้แบบ 2 คอลัมน์ (แสดงไอคอน, ชื่อ, คำอธิบาย, จำนวนของ, ป้าย Personal หรือ N members) และปุ่มลอยเพิ่มตู้ (ตัดแบนเนอร์สรุปออกตามการปรับปรุง UI ของทีมให้กระชับ) |
+| **5** | My Fridges | `features/fridges/presentation/pages/my_fridges_page.dart` | `/fridges` | `223:69`, `88:62` | หัวข้อ "My Fridges" ไอคอนแจ้งเตือนและตั้งค่า แบนเนอร์สรุปของที่ต้องรีบจัดการ การ์ดตู้แบบ 2 คอลัมน์ (แสดงไอคอน, ชื่อ, คำอธิบาย, จำนวนของ, ป้าย Personal หรือ N members) และปุ่มลอยเพิ่มตู้ |
 | **6** | Add New Fridge | `features/fridges/presentation/pages/add_fridge_page.dart` | `/fridges/add` | `88:225` | ช่องกรอก Fridge Name, Description และปุ่ม Create Fridge |
 | **7** | Edit Fridge (Bottom Sheet) | `features/fridges/presentation/widgets/edit_fridge_sheet.dart` | *(Bottom Sheet)* | `120:30` | หัวข้อ "Edit Fridge" ช่องกรอก Fridge Name, Description (ไม่บังคับ), ปุ่ม Save และปุ่ม Delete Fridge (สีแดง) |
 | **8** | Delete Fridge Alert (Dialog) | `features/fridges/presentation/widgets/delete_fridge_dialog.dart` | *(Dialog)* | `124:30` | ไดอะล็อกยืนยันการลบตู้เย็น |
@@ -34,8 +34,6 @@ Figma File [FM-EAA on Figma](https://www.figma.com/design/MB6XUkZz1GZqJpDqvfkHYc
 | **22** | Settings | `features/settings/presentation/pages/settings_page.dart` | `/settings` | `134:187` | การ์ด Profile (แสดงตัวอักษรย่อ, ชื่อ, อีเมล และปุ่มแก้ไข) หัวข้อ Preferences เลือกภาษา TH / EN เลือกธีม Light / Dark และปุ่ม "Log out" (สีแดง) |
 | **23** | Edit Profile | `features/settings/presentation/pages/edit_profile_page.dart` | `/settings/profile` | `138:183` | รูปอวตารพร้อมปุ่มกล้องถ่ายรูป ช่องแก้ไข Name, Email ส่วนเปลี่ยนรหัสผ่าน (Current Password, New Password) และปุ่ม Save Changes |
 | **24** | Log Out Alert (Dialog) | `features/settings/presentation/widgets/logout_dialog.dart` | *(Dialog)* | `133:438` | ไดอะล็อกยืนยันการออกจากระบบ |
-| **25** | AI Recipe Recommendations | `features/recipe/presentation/pages/recipe_recommendation_page.dart` | `/fridges/:id/recipes` | `0-1` | แถบด้านบนแสดงปุ่มย้อนกลับและชื่อตู้เย็น ปุ่มไอคอนสร้างเมนูใหม่ (Regenerate) การ์ดแบนเนอร์สรุปจำนวนวัตถุดิบใกล้หมดอายุ รายการการ์ดเมนูอาหารที่ AI แนะนำ (แสดงชื่อเมนู, รูปตัวแทนอาหาร, เวลาปรุง, ระดับความยาก, ชิปวัตถุดิบที่ใช้) และแตะการ์ดเพื่อนำทางไปหน้ารายละเอียดสูตร |
-| **26** | Recipe Details | `features/recipe/presentation/pages/recipe_detail_page.dart` | `/fridges/:id/recipes/:recipeId` | `0-1` | แถบด้านบนแสดงปุ่มย้อนกลับและหัวข้อ "Recipe" กึ่งกลาง ภาพอาหารขนาดใหญ่ หัวข้อชื่อเมนูอาหาร ป้ายกำกับเวลาปรุง (Cooking Time) และระดับความยาก (Difficulty) พร้อมป้ายส้ม "Uses expiring: <วัตถุดิบ>" รายการวัตถุดิบพร้อมกล่อง Checkbox ให้ติ๊กเลือก ขั้นตอนการทำอาหารทีละขั้นตอนอย่างละเอียดพร้อมตัวเลขวงกลม และปุ่มหลักสีเขียว #2E6A44 "Done! Mark as Consumed" ยืนยันการทำอาหารและตัดสต็อกอาหารอัตโนมัติ บันทึกประวัติลงหน้า HistoryPage พร้อมนำทางกลับสู่หน้ารายละเอียดตู้เย็น (/fridges/:id เช่น Kitchen) |
 
 ---
 
