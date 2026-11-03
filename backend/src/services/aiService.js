@@ -12,9 +12,9 @@ const PROMPT = `อ่านฉลากอาหารในรูปนี้ 
 - ถ้าไม่พบวันหมดอายุหรืออ่านไม่ออก ให้ใส่ null อย่าเดา`;
 
 async function scanLabel(buffer, mimeType) {
-  const model = process.env.GEMINI_MODEL;
-  if (!model) {
-    throw new Error('GEMINI_MODEL is not configured');
+  let model = (process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite').replace(/^["']|["']$/g, '');
+  if (model.includes('2.5') || model.includes('1.5')) {
+    model = 'gemini-3.5-flash-lite';
   }
 
   const res = await ai.models.generateContent({

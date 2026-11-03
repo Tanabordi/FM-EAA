@@ -632,7 +632,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     final name = res.foodName ?? 'ไม่พบชื่ออาหาร (กรอกในฟอร์มได้)';
     final dateStr = res.expiryDate != null
         ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}'
-        : 'ไม่พบวันหมดอายุ (เลือกในฟอร์มได้)';
+        : 'ไม่ระบุ';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -649,15 +649,18 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             children: [
               const Icon(Icons.check_circle_rounded, color: Color(0xFF74C69D), size: 20),
               const SizedBox(width: 8),
-              const Text(
-                'ผลการวิเคราะห์ฉลากด้วย AI',
-                style: TextStyle(
-                  color: Color(0xFFD8F3DC),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
+              const Expanded(
+                child: Text(
+                  'ผลการวิเคราะห์ฉลากด้วย AI',
+                  style: TextStyle(
+                    color: Color(0xFFD8F3DC),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
@@ -678,6 +681,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           const SizedBox(height: 8),
           Text(
             name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 17,
@@ -685,20 +690,32 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             ),
           ),
           const SizedBox(height: 4),
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const Icon(Icons.event_outlined, color: Colors.white70, size: 15),
-              const SizedBox(width: 4),
-              Text(
-                'วันหมดอายุ: $dateStr',
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.event_outlined, color: Colors.white70, size: 15),
+                  const SizedBox(width: 4),
+                  Text(
+                    'วันหมดอายุ: $dateStr',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              const Icon(Icons.kitchen_outlined, color: Colors.white70, size: 15),
-              const SizedBox(width: 4),
-              Text(
-                'เก็บที่: ${res.storage}',
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.kitchen_outlined, color: Colors.white70, size: 15),
+                  const SizedBox(width: 4),
+                  Text(
+                    'เก็บที่: ${res.storage}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ],
               ),
             ],
           ),

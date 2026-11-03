@@ -14,7 +14,12 @@ class ApiClient {
   final FlutterSecureStorage storage;
 
   ApiClient({Dio? customDio, FlutterSecureStorage? customStorage})
-      : dio = customDio ?? Dio(BaseOptions(baseUrl: baseUrl, connectTimeout: const Duration(seconds: 10))),
+      : dio = customDio ??
+            Dio(BaseOptions(
+              baseUrl: baseUrl,
+              connectTimeout: const Duration(seconds: 35),
+              receiveTimeout: const Duration(seconds: 35),
+            )),
         storage = customStorage ?? const FlutterSecureStorage() {
     _setupInterceptors();
   }
