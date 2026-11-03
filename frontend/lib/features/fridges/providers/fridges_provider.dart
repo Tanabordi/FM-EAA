@@ -26,8 +26,8 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
     ),
   ];
 
-  FridgesNotifier([this._repository, bool startEmpty = false])
-      : super(startEmpty ? [] : defaultFridges) {
+  FridgesNotifier([this._repository, bool? startEmpty])
+      : super((startEmpty ?? (_repository != null)) ? [] : defaultFridges) {
     if (_repository != null) {
       loadFridges();
     }
@@ -126,5 +126,5 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
 
 final fridgesProvider = StateNotifierProvider<FridgesNotifier, List<FridgeModel>>((ref) {
   final repo = ref.watch(fridgeRepositoryProvider);
-  return FridgesNotifier(repo);
+  return FridgesNotifier(repo, true);
 });
