@@ -31,6 +31,24 @@ async function resolveFridgeId(req) {
       }
     }
   }
+  const histId = req.params.historyId || req.body?.historyId;
+  if (histId) {
+    let conn;
+    try {
+      conn = await db.getDbConnection();
+      const res = await conn.execute(
+        `SELECT fridge_id FROM item_history WHERE id = :histId`,
+        [histId]
+      );
+      if (res.rows && res.rows.length > 0) {
+        return res.rows[0][0];
+      }
+    } finally {
+      if (conn) {
+        try { await conn.close(); } catch (_) {}
+      }
+    }
+  }
   const err = new Error('Fridge ID not found or specified');
   err.statusCode = 400;
   throw err;
@@ -100,6 +118,17 @@ router.post('/:itemId/consume', async (req, res, next) => {
   try {
     const fridgeId = await resolveFridgeId(req);
     const result = await itemService.consumeItem(fridgeId, req.params.itemId, req.user.id, req.body);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/items/history/:historyId/undo
+router.post('/history/:historyId/undo', async (req, res, next) => {
+  try {
+    const fridgeId = await resolveFridgeId(req);
+    const result = await itemService.undoConsume(fridgeId, req.params.historyId, req.user.id);
     res.status(200).json(result);
   } catch (err) {
     next(err);

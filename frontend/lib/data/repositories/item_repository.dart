@@ -109,7 +109,7 @@ class ItemRepository {
           'zone': item.zone,
           'quantity': item.quantity,
           'unit': item.unit,
-          'expiryDate': item.expiryDate.toIso8601String(),
+          'expiryDate': item.expiryDate.toIso8601String().substring(0, 10),
           if (item.imagePath != null) 'imagePath': item.imagePath,
           if (item.id.isNotEmpty && !item.id.startsWith('item_')) 'id': item.id,
         },
@@ -164,7 +164,7 @@ class ItemRepository {
           'zone': item.zone,
           'quantity': item.quantity,
           'unit': item.unit,
-          'expiryDate': item.expiryDate.toIso8601String(),
+          'expiryDate': item.expiryDate.toIso8601String().substring(0, 10),
           if (item.imagePath != null) 'imagePath': item.imagePath,
         },
       );

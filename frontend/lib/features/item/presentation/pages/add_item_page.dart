@@ -137,7 +137,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     );
   }
 
-  void _onSave() {
+  Future<void> _onSave() async {
     final name = _foodNameController.text.trim();
     if (!_hasAnalyzed && name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -173,9 +173,11 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       updatedAt: DateTime.now(),
     );
 
-    ref.read(fridgeItemsProvider(widget.fridgeId).notifier).addItem(newItem);
+    await ref.read(fridgeItemsProvider(widget.fridgeId).notifier).addItem(newItem);
     final currentItems = ref.read(fridgeItemsProvider(widget.fridgeId));
     ref.read(fridgesProvider.notifier).updateItemCount(widget.fridgeId, currentItems.length);
+
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -184,14 +186,12 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       ),
     );
 
-    if (context.mounted) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      } else {
-        try {
-          context.pop();
-        } catch (_) {}
-      }
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      try {
+        context.pop();
+      } catch (_) {}
     }
   }
 

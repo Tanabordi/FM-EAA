@@ -195,7 +195,8 @@ class ItemService {
       throw err;
     }
 
-    if (!expiryDate || !/^\d{4}-\d{2}-\d{2}$/.test(expiryDate)) {
+    const cleanExpiry = expiryDate ? String(expiryDate).slice(0, 10) : null;
+    if (!cleanExpiry || !/^\d{4}-\d{2}-\d{2}$/.test(cleanExpiry)) {
       const err = new Error('A valid expiryDate in YYYY-MM-DD format is required');
       err.statusCode = 400;
       throw err;
@@ -226,7 +227,7 @@ class ItemService {
         cleanZone,
         numQuantity,
         cleanUnit,
-        expiryDate,
+        cleanExpiry,
         imagePath || null,
       ]);
       await conn.commit();
@@ -239,7 +240,7 @@ class ItemService {
         zone: cleanZone,
         quantity: numQuantity,
         unit: cleanUnit,
-        expiryDate,
+        expiryDate: cleanExpiry,
         imagePath: imagePath || null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -324,13 +325,14 @@ class ItemService {
       }
 
       if (itemData.expiryDate !== undefined) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(itemData.expiryDate)) {
+        const cleanExpiry = itemData.expiryDate ? String(itemData.expiryDate).slice(0, 10) : null;
+        if (!cleanExpiry || !/^\d{4}-\d{2}-\d{2}$/.test(cleanExpiry)) {
           const err = new Error('A valid expiryDate in YYYY-MM-DD format is required');
           err.statusCode = 400;
           throw err;
         }
         updates.push("expiry_date = TO_DATE(:expiryDate, 'YYYY-MM-DD')");
-        params.push(itemData.expiryDate);
+        params.push(cleanExpiry);
       }
 
       if (itemData.imagePath !== undefined) {
