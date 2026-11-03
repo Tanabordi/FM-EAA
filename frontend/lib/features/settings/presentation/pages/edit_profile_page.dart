@@ -212,9 +212,15 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       }
     } catch (e) {
       if (!mounted) return;
+      final errStr = e.toString().toLowerCase();
+      final msg = (errStr.contains('camera_access_denied') || errStr.contains('permission'))
+          ? (source == ImageSource.camera
+              ? 'Camera permission was denied. Please allow camera access in Settings.'
+              : 'Photo library permission was denied. Please allow gallery access in Settings.')
+          : 'Could not access image. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not access image: $e'),
+          content: Text(msg),
           behavior: SnackBarBehavior.floating,
         ),
       );

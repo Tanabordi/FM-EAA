@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fm_eaa/data/repositories/ai_repository.dart';
 import 'package:fm_eaa/features/fridge_detail/providers/fridge_detail_provider.dart';
 import 'package:fm_eaa/features/item/presentation/pages/add_item_page.dart';
 import 'package:fm_eaa/features/item/presentation/pages/edit_item_page.dart';
@@ -8,6 +9,7 @@ import 'package:fm_eaa/features/item/presentation/pages/item_details_page.dart';
 import 'package:fm_eaa/features/item/presentation/widgets/delete_item_dialog.dart';
 import 'package:fm_eaa/features/item/presentation/widgets/finish_all_snackbar.dart';
 import 'package:fm_eaa/features/item/presentation/widgets/mark_consumed_sheet.dart';
+import 'package:fm_eaa/shared/widgets/app_back_button.dart';
 
 void main() {
   group('Screens #11-16: Ingredient Form and Consumption Flow Tests', () {
@@ -23,10 +25,13 @@ void main() {
       // Verify Header
       expect(find.text('Add items'), findsOneWidget);
 
-      // Verify AI scan card and Gemini button
+      // Verify Photo / AI scan card & manual options
+      expect(find.text('Add Photo or Scan Label'), findsOneWidget);
       expect(find.text('Scan Label with AI'), findsOneWidget);
-      expect(find.text("Capture the label. We'll fill in the details."), findsOneWidget);
-      expect(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'), findsOneWidget);
+      expect(find.text("Scan label to autofill details, or take/upload a photo"), findsOneWidget);
+      expect(find.text('Take Photo'), findsOneWidget);
+      expect(find.text('Gallery'), findsOneWidget);
+      expect(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'), findsNothing);
 
       // Verify Form inputs
       expect(find.text('Food Name'), findsOneWidget);
@@ -39,7 +44,7 @@ void main() {
       expect(find.text('Save'), findsOneWidget);
     });
 
-    testWidgets('Screen #11: Tapping analyze without photo does nothing; requires photo first', (tester) async {
+    testWidgets('Screen #11: Tapping Save without entering food name shows validation error', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -48,22 +53,84 @@ void main() {
         ),
       );
 
-      // Tapping analyze before photo is loaded does NOT populate form ("ถ้ายังไม่ใส่รูปกดวิเคราะห์จะไม่เกิดอะไรขึ้น")
-      await tester.tap(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
-
-      expect(find.text('Avocados'), findsNothing);
-      expect(find.text('Scan Label with AI'), findsOneWidget);
-
-      // Tapping Save before analyzing or inputting data does NOT save ("ถ้ายังไม่วิเคราะห์หรือยังไม่ได้ใส่อะไรลงไปไม่สามารถsaveได้ หรือกดไม่ไปนั่นเอง")
+      // Tapping Save before inputting food name does NOT save
       await tester.ensureVisible(find.text('Save'));
       await tester.tap(find.text('Save'));
       await tester.pump();
       expect(find.text('Add items'), findsOneWidget); // still on Add items page, does not pop
+      expect(find.text('Please enter a food name before saving'), findsOneWidget);
     });
 
-    testWidgets('Screen #11: Tapping Scan Label with AI card opens 2 options (Camera/Gallery), loads image, analyzes on button tap, and X clears all data', (tester) async {
+    testWidgets('Screen #11: Back button with unsaved changes shows Discard changes dialog', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddItemPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+
+      // Type some text in Food Name
+      await tester.enterText(find.widgetWithText(TextFormField, 'Food Name'), 'Avocado');
+      await tester.pump();
+
+      // Tap back button
+      await tester.tap(find.byType(AppBackButton));
+      await tester.pumpAndSettle();
+
+      // Verify ConfirmDialog appears with Discard and Keep editing
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.text('You have unsaved changes. Are you sure you want to discard them?'), findsOneWidget);
+      expect(find.text('Keep editing'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+
+      // Tap Keep editing -> dialog closes, stays on page
+      await tester.tap(find.text('Keep editing'));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.text('Add items'), findsOneWidget);
+    });
+
+    testWidgets('Screen #11: Tapping ✕ on photo shows action sheet with Remove photo only and Clear all options', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AddItemPage(
+            fridgeId: 'fridge_kitchen',
+            initialScanResult: AiScanResult(
+              isDetected: true,
+              foodName: 'Avocado',
+              category: 'Veggies',
+              unit: 'pieces',
+              storage: 'Fridge',
+              expiryDate: DateTime(2026, 11, 10),
+              imagePath: 'assets/images/food_avocados.png',
+            ),
+          ),
+        ),
+      );
+
+      // Verify photo and form are populated
+      expect(find.text('Avocado'), findsWidgets);
+      expect(find.byKey(const Key('add_item_remove_photo_btn')), findsOneWidget);
+
+      // Tap ✕ on photo
+      await tester.tap(find.byKey(const Key('add_item_remove_photo_btn')));
+      await tester.pumpAndSettle();
+
+      // Action sheet appears
+      expect(find.text('Remove Photo or Reset Form?'), findsOneWidget);
+      expect(find.text('Remove photo only'), findsOneWidget);
+      expect(find.text('Clear all and reset form'), findsOneWidget);
+
+      // Tap Remove photo only
+      await tester.tap(find.text('Remove photo only'));
+      await tester.pumpAndSettle();
+
+      // Form data is preserved!
+      expect(find.text('Avocado'), findsOneWidget);
+    });
+
+    testWidgets('Screen #11: Tapping Scan Label with AI card opens ScanLabelPage directly and supports saving item', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -77,58 +144,22 @@ void main() {
       await tester.tap(find.text('Scan Label with AI'));
       await tester.pumpAndSettle();
 
-      // Check bottom sheet options: exactly 2 options from user request
-      expect(find.text('Take Photo with Camera'), findsOneWidget);
-      expect(find.text('Choose from Gallery'), findsOneWidget);
-      expect(find.text('Demo AI Scan (Sample Avocados)'), findsNothing);
+      // Directly opens ScanLabelPage with camera and gallery controls
+      expect(find.text('AI Label Scanner'), findsOneWidget);
+      expect(find.byKey(const Key('scan_label_camera_btn')), findsOneWidget);
+      expect(find.byKey(const Key('scan_label_gallery_btn')), findsOneWidget);
 
-      // Tap Choose from Gallery in sheet
-      await tester.tap(find.text('Choose from Gallery'));
-      await tester.pumpAndSettle();
-      await tester.pump(const Duration(milliseconds: 350));
+      // Tap back button in ScanLabelPage to return to AddItemPage
+      await tester.tap(find.byType(IconButton).first);
       await tester.pumpAndSettle();
 
-      // Image is loaded, but form fields are NOT populated yet before analysis
-      expect(find.text('Photo Loaded'), findsOneWidget);
-      expect(find.text('Photo Selected'), findsOneWidget);
-      expect(find.text('Avocados'), findsNothing);
+      expect(find.text('Add items'), findsOneWidget);
 
-      // Now tap "ให้ Gemini AI Vision Engine วิเคราะห์"
-      await tester.tap(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
-
-      // Form fields should NOW be populated ("กดวิเคราะห์ข้อมูลถึงมา")
-      expect(find.text('Avocados'), findsOneWidget);
-      expect(find.text('2'), findsOneWidget);
-      expect(find.text('pieces'), findsOneWidget);
-      expect(find.text('Fridge'), findsOneWidget);
-
-      // Now test: "ถ้ากด กากบาทออกข้อมูลทั้งหมดในหน้า add itemก้จะหายหมดเหมือนกัน"
-      await tester.tap(find.byIcon(Icons.close));
+      // Enter food name and save
+      await tester.enterText(find.widgetWithText(TextFormField, 'Food Name'), 'Fresh Avocados');
       await tester.pumpAndSettle();
 
-      // Image and all fields must be cleared
-      expect(find.text('Scan Label with AI'), findsOneWidget);
-      expect(find.text('Avocados'), findsNothing);
-      expect(find.text('Photo Loaded'), findsNothing);
-
-      // User can choose new photo and analyze again ("ถ้าหากจะใส่รูปต้องเลือกรูปที่ใส่ใหม่ได้และกดวิเคราะห์ใหม่ได้")
-      await tester.tap(find.text('Scan Label with AI'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Take Photo with Camera'));
-      await tester.pumpAndSettle();
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Photo Loaded'), findsOneWidget);
-      await tester.tap(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
-
-      expect(find.text('Avocados'), findsOneWidget);
-
-      // Now tap Save to add the analyzed item to the fridge
+      // Now tap Save to add the item to the fridge
       await tester.ensureVisible(find.text('Save'));
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
@@ -218,7 +249,7 @@ void main() {
       expect(find.text('Avocados · 2 pieces in fridge'), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.text('of 2 pieces'), findsOneWidget);
-      expect(find.text('ให้ Gemini AI แนะนำเมนูอาหาร'), findsOneWidget);
+      expect(find.text('Ask Gemini AI for recipe ideas'), findsOneWidget);
 
       // Test Stepper [+]
       await tester.tap(find.byIcon(Icons.add));
