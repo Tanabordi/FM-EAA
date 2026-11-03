@@ -630,12 +630,12 @@ class ItemService {
           SELECT id, name, image_path, quantity, unit, expiry_date
           FROM items
           WHERE fridge_id = :fridgeId
-            AND expiry_date < TRUNC(CURRENT_TIMESTAMP)
+            AND expiry_date < CURRENT_TIMESTAMP
             AND id NOT IN (
               SELECT item_id FROM item_history WHERE fridge_id = :fridgeId AND kind = 'expired' AND item_id IS NOT NULL
             )
         `;
-        const expiredRes = await conn.execute(expiredSql, [fridgeId, fridgeId]);
+        const expiredRes = await conn.execute(expiredSql, { fridgeId });
         if (expiredRes.rows && expiredRes.rows.length > 0) {
           for (const row of expiredRes.rows) {
             const expItemId = row[0];
@@ -668,7 +668,7 @@ class ItemService {
           await conn.commit();
         }
       } catch (e) {
-        // Auto-record expired items shouldn't block history read
+        console.error('[getHistory auto-record error]', e.message);
       }
 
       const conditions = ['h.fridge_id = :fridgeId'];

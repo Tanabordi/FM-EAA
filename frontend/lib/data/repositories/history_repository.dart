@@ -67,7 +67,8 @@ class HistoryRepository {
               mode: InsertMode.insertOrReplace,
             );
           }
-          return list;
+          await database.itemDao.autoRecordExpiredItems(fridgeId);
+          return getHistory(fridgeId, kind);
         }
       }
     } catch (_) {

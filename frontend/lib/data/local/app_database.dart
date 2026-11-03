@@ -577,7 +577,7 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
     for (final it in allItems) {
       final exp = it.expiryDate;
       final expDay = DateTime(exp.year, exp.month, exp.day);
-      if (expDay.isBefore(today)) {
+      if (expDay.isBefore(today) || it.expiryDate.isBefore(now)) {
         final existing = await (select(itemHistory)
               ..where((t) =>
                   t.fridgeId.equals(fridgeId) &
