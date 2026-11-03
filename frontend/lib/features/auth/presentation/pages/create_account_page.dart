@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../providers/auth_provider.dart';
@@ -29,6 +30,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   late bool _isGoogleLocked;
+  bool _forceExit = false;
 
   String? _usernameError;
   String? _emailError;
@@ -39,6 +41,45 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
       _passwordController.text.length >= 8 && _passwordController.text.length <= 64;
   bool get _hasLetter => RegExp(r'[a-zA-Z]').hasMatch(_passwordController.text);
   bool get _hasNumber => RegExp(r'[0-9]').hasMatch(_passwordController.text);
+
+  bool get _hasUnsavedChanges {
+    if (_forceExit) return false;
+    final initialEmail = widget.prefilledEmail ?? '';
+    return _usernameController.text.trim().isNotEmpty ||
+        _passwordController.text.isNotEmpty ||
+        _confirmPasswordController.text.isNotEmpty ||
+        _emailController.text.trim() != initialEmail ||
+        (_isGoogleLocked && initialEmail.isEmpty);
+  }
+
+  void _handleBack() {
+    if (_hasUnsavedChanges) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => ConfirmDialog(
+          title: 'Discard changes?',
+          message: 'You have unsaved changes. Are you sure you want to discard them?',
+          confirmLabel: 'Discard',
+          cancelLabel: 'Keep editing',
+          isDestructive: true,
+          onConfirm: () {
+            setState(() => _forceExit = true);
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/sign-in');
+            }
+          },
+        ),
+      );
+    } else {
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/sign-in');
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -129,6 +170,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
       await ref.read(authProvider.notifier).signUp(username, email, password);
 
       if (!mounted) return;
+      setState(() => _forceExit = true);
       context.go('/onboarding');
     } catch (e) {
       if (!mounted) return;
@@ -179,19 +221,27 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
     final colorScheme = theme.colorScheme;
     final isEmailLocked = _isGoogleLocked || (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty);
 
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Top Bar with rounded back button
-              Row(
-                children: [
-                  const FigmaBackButton(),
-                  const SizedBox(width: 16),
+    return PopScope(
+      canPop: !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: colorScheme.surface,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Top Bar with rounded back button
+                Row(
+                  children: [
+                    FigmaBackButton(
+                      onPressed: _handleBack,
+                    ),
+                    const SizedBox(width: 16),
                   Text(
                     'Create an Account',
                     style: theme.textTheme.titleLarge?.copyWith(
@@ -364,13 +414,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                     ),
                   ),
                   InkWell(
-                    onTap: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/sign-in');
-                      }
-                    },
+                    onTap: _handleBack,
                     child: Text(
                       'Sign In',
                       style: TextStyle(
@@ -387,7 +431,8 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildRequirementItem({

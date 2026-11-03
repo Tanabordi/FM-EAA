@@ -299,5 +299,38 @@ void main() {
       expect(find.text('Contains letters (a-z, A-Z)'), findsOneWidget);
       expect(find.text('Contains numbers (0-9)'), findsOneWidget);
     });
+
+    testWidgets('CreateAccountPage prompts discard confirmation when user enters data and taps back', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: CreateAccountPage(),
+          ),
+        ),
+      );
+
+      // Initially no discard dialog
+      expect(find.text('Discard changes?'), findsNothing);
+
+      // Enter username
+      await tester.enterText(find.byType(TextField).first, 'my_username');
+      await tester.pump();
+
+      // Tap back button
+      await tester.tap(find.byType(FigmaBackButton));
+      await tester.pumpAndSettle();
+
+      // Confirmation dialog should appear
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.text('You have unsaved changes. Are you sure you want to discard them?'), findsOneWidget);
+      expect(find.text('Keep editing'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+
+      // Tap 'Keep editing' -> dialog dismissed, stays on page
+      await tester.tap(find.text('Keep editing'));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.text('Create an Account'), findsOneWidget);
+    });
   });
 }
