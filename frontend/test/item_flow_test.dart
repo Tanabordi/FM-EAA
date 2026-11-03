@@ -24,9 +24,12 @@ void main() {
       // Verify Header
       expect(find.text('Add items'), findsOneWidget);
 
-      // Verify AI scan card
+      // Verify Photo / AI scan card & manual options
+      expect(find.text('Add Photo or Scan Label'), findsOneWidget);
       expect(find.text('Scan Label with AI'), findsOneWidget);
-      expect(find.text("Capture the label. We'll fill in the details."), findsOneWidget);
+      expect(find.text("Scan label to autofill details, or take/upload a photo"), findsOneWidget);
+      expect(find.text('Take Photo'), findsOneWidget);
+      expect(find.text('Gallery'), findsOneWidget);
       expect(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'), findsNothing);
 
       // Verify Form inputs

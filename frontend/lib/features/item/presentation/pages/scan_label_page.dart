@@ -127,9 +127,21 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       }
     } catch (e) {
       if (mounted) {
+        final errString = e.toString();
+        String friendlyMessage;
+        if (errString.contains('CameraAccessDenied') ||
+            errString.toLowerCase().contains('permission')) {
+          friendlyMessage = 'Camera Permission Denied';
+        } else if (errString.contains('No camera') ||
+            errString.toLowerCase().contains('not found')) {
+          friendlyMessage = 'No camera found on this device';
+        } else {
+          friendlyMessage = 'Unable to access camera';
+        }
+
         setState(() {
           _isCameraError = true;
-          _cameraErrorMessage = 'Unable to start camera: $e';
+          _cameraErrorMessage = friendlyMessage;
         });
       }
     }
@@ -612,7 +624,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Text(
               _isCameraError
-                  ? 'You can select a photo from your gallery instead'
+                  ? 'Please allow camera access in device Settings, or select a photo from your gallery below.'
                   : 'If food name and expiration date are on different sides, capture one and fill in the rest in the form.',
               style: const TextStyle(
                 color: Color(0xFF94A3B8),

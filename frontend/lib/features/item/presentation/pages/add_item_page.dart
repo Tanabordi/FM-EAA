@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
 import '../../../../shared/widgets/app_back_button.dart';
@@ -304,6 +305,97 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   }
 
 
+  final ImagePicker _imagePicker = ImagePicker();
+
+  Future<void> _pickManualPhoto(ImageSource source) async {
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        if (mounted) {
+          setState(() {
+            _imageBytes = bytes;
+            _imagePath = picked.path;
+            _hasAnalyzed = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unable to select photo: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _removePhoto() {
+    setState(() {
+      _imagePath = null;
+      _imageBytes = null;
+      _hasAnalyzed = false;
+    });
+  }
+
+  void _showChangePhotoSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.auto_awesome, color: Color(0xFF2E6A44)),
+                title: const Text('Scan Label with AI'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openScanLabelScanner();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFF2E6A44)),
+                title: const Text('Take Photo (Manual)'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickManualPhoto(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: Color(0xFF2E6A44)),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickManualPhoto(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Remove Photo', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _removePhoto();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _openScanLabelScanner() async {
     final result = await Navigator.push<AiScanResult>(
       context,
@@ -379,144 +471,229 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     }
 
     if (_imageBytes != null || (_imagePath != null && _imagePath!.isNotEmpty)) {
-      return Column(
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: SizedBox(
-                  height: 130,
-                  width: double.infinity,
-                  child: _imageBytes != null
-                      ? Image.memory(
-                          _imageBytes!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Center(
-                            child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
-                          ),
-                        )
-                      : (_imagePath!.startsWith('assets/')
-                          ? Image.asset(
-                              _imagePath!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Center(
-                                child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
-                              ),
-                            )
-                          : Image.file(
-                              File(_imagePath!),
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Center(
-                                child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
-                              ),
-                            )),
-                ),
-              ),
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _hasAnalyzed ? Icons.check_circle_rounded : Icons.photo_camera_rounded,
-                        color: const Color(0xFF2E6A44),
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _hasAnalyzed ? 'Label Scanned with AI' : 'Photo Selected',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E6A44),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: InkWell(
-                  onTap: _clearAllData,
+      return InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: _showChangePhotoSheet,
+        child: Column(
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.close, color: Colors.white, size: 16),
+                  child: SizedBox(
+                    height: 130,
+                    width: double.infinity,
+                    child: _imageBytes != null
+                        ? Image.memory(
+                            _imageBytes!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Center(
+                              child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                            ),
+                          )
+                        : (_imagePath!.startsWith('assets/')
+                            ? Image.asset(
+                                _imagePath!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Center(
+                                  child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                                ),
+                              )
+                            : Image.file(
+                                File(_imagePath!),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Center(
+                                  child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                                ),
+                              )),
                   ),
                 ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _hasAnalyzed ? Icons.check_circle_rounded : Icons.photo_camera_rounded,
+                          color: const Color(0xFF2E6A44),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _hasAnalyzed ? 'Label Scanned with AI' : 'Photo Attached',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2E6A44),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: InkWell(
+                    onTap: _removePhoto,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _hasAnalyzed && _foodNameController.text.isNotEmpty
+                  ? 'Detected: ${_foodNameController.text}'
+                  : (_foodNameController.text.isNotEmpty
+                      ? _foodNameController.text
+                      : 'Food photo attached'),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF181D17),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            _hasAnalyzed && _foodNameController.text.isNotEmpty
-                ? 'Detected: ${_foodNameController.text}'
-                : 'Photo Loaded',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF181D17),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _hasAnalyzed
-                ? 'Tap card to retake or change photo'
-                : 'Tap card to change photo, or tap ✕ to remove',
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF414941),
+            const SizedBox(height: 4),
+            const Text(
+              'Tap card to change photo, or tap ✕ to remove',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF414941),
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       );
     }
 
-    // Default Card (Matching media_1793560538466_0ad00275.png exact design)
-    return const Column(
+    // Default Card: AI Scan & Manual Photo Options
+    return Column(
       children: [
-        Icon(
+        const Icon(
           Icons.camera_alt_outlined,
           size: 32,
           color: Color(0xFF181D17),
         ),
-        SizedBox(height: 10),
-        Text(
-          'Scan Label with AI',
+        const SizedBox(height: 8),
+        const Text(
+          'Add Photo or Scan Label',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Color(0xFF181D17),
           ),
         ),
-        SizedBox(height: 4),
-        Text(
-          "Capture the label. We'll fill in the details.",
+        const SizedBox(height: 4),
+        const Text(
+          "Scan label to autofill details, or take/upload a photo",
           style: TextStyle(
             fontSize: 13,
             color: Color(0xFF414941),
           ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        // Primary action: Scan Label with AI
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            key: const Key('add_item_scan_ai_btn'),
+            onPressed: _openScanLabelScanner,
+            icon: const Icon(Icons.auto_awesome, size: 18, color: Colors.white),
+            label: const Text(
+              'Scan Label with AI',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E6A44),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: 0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Secondary actions: Take Photo & Gallery
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                key: const Key('add_item_take_photo_btn'),
+                onPressed: () => _pickManualPhoto(ImageSource.camera),
+                icon: const Icon(Icons.camera_alt_outlined, size: 16, color: Color(0xFF2E6A44)),
+                label: const Text(
+                  'Take Photo',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF181D17),
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.8),
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                key: const Key('add_item_gallery_btn'),
+                onPressed: () => _pickManualPhoto(ImageSource.gallery),
+                icon: const Icon(Icons.photo_library_outlined, size: 16, color: Color(0xFF2E6A44)),
+                label: const Text(
+                  'Gallery',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF181D17),
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.8),
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -562,28 +739,20 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // AI Label Scan Card matching media_1793560538466_0ad00275.png
-                    Material(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(24),
-                      child: InkWell(
+                    // Top Photo / Scan Card
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAEFE8),
                         borderRadius: BorderRadius.circular(24),
-                        onTap: _isScanning ? null : _openScanLabelScanner,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEAEFE8),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: (_imagePath != null || _imageBytes != null)
-                                  ? const Color(0xFF2E6A44).withValues(alpha: 0.3)
-                                  : Colors.transparent,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: _buildScanCardContent(),
+                        border: Border.all(
+                          color: (_imagePath != null || _imageBytes != null)
+                              ? const Color(0xFF2E6A44).withValues(alpha: 0.3)
+                              : Colors.transparent,
+                          width: 1.5,
                         ),
                       ),
+                      child: _buildScanCardContent(),
                     ),
                     const SizedBox(height: 20),
                     // Food Name Field
