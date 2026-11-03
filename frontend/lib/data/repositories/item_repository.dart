@@ -186,7 +186,33 @@ class ItemRepository {
   }
 
   /// Delete item: calls backend API and removes from Drift SQLite
-  Future<void> deleteItem(String itemId) async {
+  Future<void> deleteItem(String itemId, {String? fridgeId}) async {
+    try {
+      final item = await database.itemDao.getItemById(itemId);
+      if (item != null) {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final expDay = DateTime(item.expiryDate.year, item.expiryDate.month, item.expiryDate.day);
+        if (expDay.isBefore(today)) {
+          await database.itemDao.recordExpiredHistory(
+            id: 'exp_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
+            fridgeId: item.fridgeId,
+            itemId: item.id,
+            itemName: item.name,
+            category: item.category,
+            zone: item.zone,
+            expiryDate: item.expiryDate,
+            imagePath: item.imagePath,
+            quantityChanged: item.quantity,
+            quantityLeft: 0,
+            unit: item.unit,
+            byUserId: 'system',
+            createdAt: item.expiryDate,
+          );
+        }
+      }
+    } catch (_) {}
+
     try {
       await apiClient.dio.delete('/items/$itemId');
     } catch (_) {}
@@ -202,6 +228,7 @@ class ItemRepository {
     double amount, {
     bool finishedAll = false,
     String userId = 'user_1',
+    String? imagePath,
   }) async {
     try {
       await apiClient.dio.post(
@@ -209,6 +236,7 @@ class ItemRepository {
         data: {
           'amount': amount,
           'finishedAll': finishedAll,
+          if (imagePath != null && imagePath.isNotEmpty) 'imagePath': imagePath,
         },
       );
     } catch (_) {}
