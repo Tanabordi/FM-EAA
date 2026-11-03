@@ -73,17 +73,25 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
     final iso = DateTime.tryParse(trimmed);
     if (iso != null) return iso;
 
-    final dmyMatch = RegExp(r'^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$').firstMatch(trimmed);
-    if (dmyMatch != null) {
-      final day = int.tryParse(dmyMatch.group(1)!);
-      final month = int.tryParse(dmyMatch.group(2)!);
-      var year = int.tryParse(dmyMatch.group(3)!);
-      if (day != null && month != null && year != null) {
+    final mdyMatch = RegExp(r'^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$').firstMatch(trimmed);
+    if (mdyMatch != null) {
+      final p1 = int.tryParse(mdyMatch.group(1)!);
+      final p2 = int.tryParse(mdyMatch.group(2)!);
+      var year = int.tryParse(mdyMatch.group(3)!);
+      if (p1 != null && p2 != null && year != null) {
         if (year < 100) year += 2000;
-        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        // Priority 1: MM/DD/YYYY (e.g. 10/28/2026)
+        if (p1 >= 1 && p1 <= 12 && p2 >= 1 && p2 <= 31) {
           try {
-            final dt = DateTime(year, month, day);
-            if (dt.year == year && dt.month == month && dt.day == day) return dt;
+            final dt = DateTime(year, p1, p2);
+            if (dt.year == year && dt.month == p1 && dt.day == p2) return dt;
+          } catch (_) {}
+        }
+        // Priority 2: Fallback to DD/MM/YYYY (if day > 12)
+        if (p2 >= 1 && p2 <= 12 && p1 >= 1 && p1 <= 31) {
+          try {
+            final dt = DateTime(year, p2, p1);
+            if (dt.year == year && dt.month == p2 && dt.day == p1) return dt;
           } catch (_) {}
         }
       }
@@ -409,7 +417,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid expiration date (e.g. DD/MM/YYYY)'),
+          content: Text('Please enter a valid expiration date (e.g. MM/DD/YYYY)'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -662,7 +670,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                         fontWeight: FontWeight.w400,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Expiration Date (e.g. DD/MM/YYYY)',
+                        hintText: 'Expiration Date (MM/DD/YYYY)',
                         hintStyle: const TextStyle(
                           color: Color(0xFF717971),
                           fontSize: 15,
@@ -741,7 +749,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                     const Padding(
                       padding: EdgeInsets.only(left: 12.0),
                       child: Text(
-                        'Type date (e.g. 28/10/2026 or 2026-10-28) or pick from calendar',
+                        'Use-by or best-before date (MM/DD/YYYY)',
                         style: TextStyle(fontSize: 12, color: Color(0xFF414941)),
                       ),
                     ),

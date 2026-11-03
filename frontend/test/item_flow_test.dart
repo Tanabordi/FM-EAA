@@ -39,8 +39,8 @@ void main() {
       expect(find.text('Quantity'), findsOneWidget);
       expect(find.text('Unit'), findsOneWidget);
       expect(find.text('Storage Location'), findsOneWidget);
-      expect(find.text('Expiration Date'), findsOneWidget);
-      expect(find.text('Use-by or best-before date'), findsOneWidget);
+      expect(find.textContaining('Expiration Date'), findsOneWidget);
+      expect(find.textContaining('Use-by or best-before date'), findsOneWidget);
       expect(find.text('Save'), findsOneWidget);
     });
 
@@ -377,11 +377,11 @@ void main() {
       final dateFinder = find.byKey(const Key('add_item_expiration_date'));
       expect(dateFinder, findsOneWidget);
 
-      // User types a date using keyboard
-      await tester.enterText(dateFinder, '25/12/2026');
+      // User types a date using keyboard in MM/DD/YYYY format
+      await tester.enterText(dateFinder, '12/25/2026');
       await tester.pumpAndSettle();
 
-      expect(find.text('25/12/2026'), findsOneWidget);
+      expect(find.text('12/25/2026'), findsOneWidget);
     });
 
     testWidgets('Screen #13: EditItemPage allows editing expiration date manually with keyboard', (tester) async {
