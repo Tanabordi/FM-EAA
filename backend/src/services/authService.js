@@ -664,7 +664,7 @@ class AuthService {
         attempts: 0,
       });
 
-      console.log(`[Auth] Password reset OTP generated for ${cleanEmail}: ${otp}`);
+      console.log(`[Auth] Password reset OTP requested for ${cleanEmail}`);
 
       // Send real email via EmailService (if EMAIL_USER and EMAIL_PASS are configured)
       await emailService.sendPasswordResetOtp(cleanEmail, otp);
@@ -673,8 +673,8 @@ class AuthService {
         success: true,
         message: 'Password reset code has been sent',
         email: cleanEmail,
-        // In development or test, include OTP in response for easy testing
-        ...(process.env.NODE_ENV !== 'production' && { otp }),
+        // Only include OTP in automated Jest test runs
+        ...(process.env.NODE_ENV === 'test' && { otp }),
       };
     } finally {
       if (conn) {

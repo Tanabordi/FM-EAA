@@ -73,16 +73,12 @@ class _VerifyResetPasswordPageState extends ConsumerState<VerifyResetPasswordPag
 
     setState(() => _isResending = true);
     try {
-      final res = await ref.read(authRepositoryProvider).requestPasswordReset(widget.email);
+      await ref.read(authRepositoryProvider).requestPasswordReset(widget.email);
       if (!mounted) return;
-
-      final otp = res['otp'];
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(otp != null
-              ? 'New code sent! (DEV OTP: $otp)'
-              : 'A new verification code has been sent to your email.'),
-          backgroundColor: const Color(0xFF2E7D32),
+        const SnackBar(
+          content: Text('A new verification code has been sent to your email.'),
+          backgroundColor: Color(0xFF2E7D32),
         ),
       );
       _startCooldownTimer();

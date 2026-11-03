@@ -42,16 +42,13 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     });
 
     try {
-      final res = await ref.read(authRepositoryProvider).requestPasswordReset(email);
+      await ref.read(authRepositoryProvider).requestPasswordReset(email);
 
       if (!mounted) return;
-      final otp = res['otp'];
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(otp != null
-              ? 'Verification code sent! (DEV OTP: $otp)'
-              : 'Password reset code has been sent to your email.'),
-          backgroundColor: const Color(0xFF2E7D32),
+        const SnackBar(
+          content: Text('Password reset code has been sent to your email.'),
+          backgroundColor: Color(0xFF2E7D32),
         ),
       );
 
