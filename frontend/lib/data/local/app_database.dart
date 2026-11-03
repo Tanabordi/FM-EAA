@@ -568,6 +568,42 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
       ),
     );
   }
+
+  /// Automatically detect expired items in itemsTable and record into itemHistory if not present
+  Future<void> autoRecordExpiredItems(String fridgeId) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final allItems = await (select(itemsTable)..where((t) => t.fridgeId.equals(fridgeId))).get();
+    for (final it in allItems) {
+      final exp = it.expiryDate;
+      final expDay = DateTime(exp.year, exp.month, exp.day);
+      if (expDay.isBefore(today)) {
+        final existing = await (select(itemHistory)
+              ..where((t) =>
+                  t.fridgeId.equals(fridgeId) &
+                  t.itemId.equals(it.id) &
+                  t.kind.equals('expired')))
+            .get();
+        if (existing.isEmpty) {
+          await recordExpiredHistory(
+            id: 'exp_${it.id}',
+            fridgeId: fridgeId,
+            itemId: it.id,
+            itemName: it.name,
+            category: it.category,
+            zone: it.zone,
+            expiryDate: it.expiryDate,
+            imagePath: it.imagePath,
+            quantityChanged: it.quantity,
+            quantityLeft: 0,
+            unit: it.unit,
+            byUserId: 'system',
+            createdAt: it.expiryDate,
+          );
+        }
+      }
+    }
+  }
 }
 
 // =======================================================================

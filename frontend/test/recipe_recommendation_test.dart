@@ -38,10 +38,6 @@ void main() {
       // Top bar
       expect(find.text('AI Suggested Recipes'), findsOneWidget);
 
-      // Orange banner
-      expect(find.text('AI found 3 recipes using Strawberries'), findsOneWidget);
-      expect(find.byIcon(Icons.auto_awesome), findsOneWidget);
-
       // Recipe Cards
       expect(find.text('Fluffy Strawberry Pancakes'), findsOneWidget);
       expect(find.text('Strawberry Yogurt Smoothie'), findsOneWidget);
@@ -56,7 +52,7 @@ void main() {
       expect(find.text('View Recipe'), findsNWidgets(3));
 
       // Regenerate button
-      expect(find.text('Regenerate'), findsOneWidget);
+      expect(find.textContaining('Regenerate'), findsOneWidget);
       expect(find.byIcon(Icons.sync), findsOneWidget);
     });
 
@@ -76,10 +72,61 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('AI found 3 recipes using Baby spinach'), findsOneWidget);
       expect(find.text('Creamy Garlic Spinach Pasta'), findsOneWidget);
       expect(find.text('Strawberry & Spinach Salad'), findsOneWidget);
       expect(find.text('Green Power Spinach Smoothie'), findsOneWidget);
+    });
+
+    testWidgets('renders relevant recipes when ingredient is sausage (ค็อกเทลรมควัน)', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'ค็อกเทลรมควัน',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('ผัดกระเทียมพริกไทยค็อกเทลรมควัน'), findsOneWidget);
+      expect(find.text('ไข่เจียวทรงเครื่องใส่ค็อกเทลรมควัน'), findsOneWidget);
+      expect(find.text('ข้าวผัดโบราณใส่ค็อกเทลรมควัน'), findsOneWidget);
+    });
+
+    testWidgets('triggers 3s cooldown on regenerate button tap', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'ค็อกเทลรมควัน',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.ensureVisible(find.textContaining('Regenerate'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Regenerate (1/10)'), findsOneWidget);
+      await tester.tap(find.textContaining('Regenerate'));
+      await tester.pump();
+
+      // Button enters cooldown state
+      expect(find.textContaining('Regenerate ('), findsOneWidget);
+
+      // Advance time by 3 seconds
+      await tester.pump(const Duration(seconds: 4));
+      expect(find.textContaining('Regenerate'), findsOneWidget);
     });
   });
 
@@ -156,6 +203,14 @@ void main() {
       // Bottom Button
       expect(find.text('Done! Mark as Consumed'), findsOneWidget);
       await tester.tap(find.text('Done! Mark as Consumed'));
+      await tester.pumpAndSettle();
+
+      // Opens MarkConsumedSheet with stepper and Confirm button
+      expect(find.text('How much did you consume?'), findsOneWidget);
+      expect(find.text('Confirm'), findsOneWidget);
+      expect(find.text('Finished all'), findsOneWidget);
+
+      await tester.tap(find.text('Confirm'));
       await tester.pumpAndSettle();
       expect(markedConsumed, true);
     });

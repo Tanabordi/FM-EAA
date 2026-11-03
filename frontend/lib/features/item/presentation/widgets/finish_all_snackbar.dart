@@ -8,8 +8,11 @@ class FinishAllSnackbar {
     required String itemName,
     VoidCallback? onUndo,
   }) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF181D17),
         behavior: SnackBarBehavior.floating,

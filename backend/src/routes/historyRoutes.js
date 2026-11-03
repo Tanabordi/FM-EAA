@@ -16,6 +16,16 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// POST /api/fridges/:id/history - Record history entry manually (consumed or expired)
+router.post('/', async (req, res, next) => {
+  try {
+    const result = await itemService.recordHistory(req.params.id, req.user.id, req.body);
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // DELETE /api/fridges/:id/history/clear?kind=consumed|expired
 router.delete('/clear', async (req, res, next) => {
   try {

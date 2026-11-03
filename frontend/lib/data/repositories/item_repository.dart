@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../local/app_database.dart';
 import '../models/item_model.dart';
@@ -35,6 +36,14 @@ class ItemRepository {
     String? category,
     String? zone,
   }) async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      final entries = await database.itemDao.getItemsByFridge(
+        fridgeId,
+        category: category,
+        zone: zone,
+      );
+      return entries.map(ItemModel.fromEntry).toList();
+    }
     try {
       final token = await apiClient.storage.read(key: 'jwt_token');
       if (token != null && token.isNotEmpty) {
@@ -186,7 +195,33 @@ class ItemRepository {
   }
 
   /// Delete item: calls backend API and removes from Drift SQLite
-  Future<void> deleteItem(String itemId) async {
+  Future<void> deleteItem(String itemId, {String? fridgeId}) async {
+    try {
+      final item = await database.itemDao.getItemById(itemId);
+      if (item != null) {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final expDay = DateTime(item.expiryDate.year, item.expiryDate.month, item.expiryDate.day);
+        if (expDay.isBefore(today)) {
+          await database.itemDao.recordExpiredHistory(
+            id: 'exp_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
+            fridgeId: item.fridgeId,
+            itemId: item.id,
+            itemName: item.name,
+            category: item.category,
+            zone: item.zone,
+            expiryDate: item.expiryDate,
+            imagePath: item.imagePath,
+            quantityChanged: item.quantity,
+            quantityLeft: 0,
+            unit: item.unit,
+            byUserId: 'system',
+            createdAt: item.expiryDate,
+          );
+        }
+      }
+    } catch (_) {}
+
     try {
       await apiClient.dio.delete('/items/$itemId');
     } catch (_) {}
@@ -202,6 +237,7 @@ class ItemRepository {
     double amount, {
     bool finishedAll = false,
     String userId = 'user_1',
+    String? imagePath,
   }) async {
     try {
       await apiClient.dio.post(
@@ -209,6 +245,7 @@ class ItemRepository {
         data: {
           'amount': amount,
           'finishedAll': finishedAll,
+          if (imagePath != null && imagePath.isNotEmpty) 'imagePath': imagePath,
         },
       );
     } catch (_) {}

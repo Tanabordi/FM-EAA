@@ -176,7 +176,12 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
 
     if (_repository != null) {
       try {
-        await _repository.consumeItem(id, amount, finishedAll: finishedAll);
+        await _repository.consumeItem(
+          id,
+          amount,
+          finishedAll: finishedAll,
+          imagePath: item.imagePath,
+        );
       } catch (_) {}
     }
   }

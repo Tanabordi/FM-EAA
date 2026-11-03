@@ -379,6 +379,46 @@ class ItemService {
       conn = await db.getDbConnection();
       await this.checkFridgeAccess(conn, fridgeId, userId);
 
+      // Check if item was expired before deletion, if so record to item_history
+      try {
+        const itemRes = await conn.execute(
+          `SELECT name, image_path, quantity, unit, expiry_date FROM items WHERE id = :itemId AND fridge_id = :fridgeId`,
+          [itemId, fridgeId]
+        );
+        if (itemRes.rows && itemRes.rows.length > 0) {
+          const itemRow = itemRes.rows[0];
+          const expDate = itemRow[4];
+          if (expDate && new Date(expDate) < new Date()) {
+            const checkHist = await conn.execute(
+              `SELECT id FROM item_history WHERE fridge_id = :fridgeId AND item_id = :itemId AND kind = 'expired'`,
+              [fridgeId, itemId]
+            );
+            if (!checkHist.rows || checkHist.rows.length === 0) {
+              await conn.execute(
+                `INSERT INTO item_history (
+                  id, fridge_id, item_id, item_name, image_path, kind, quantity_changed, quantity_left, unit, by_user_id, created_at
+                ) VALUES (
+                  :id, :fridgeId, :itemId, :name, :imagePath, 'expired', :qty, 0, :unit, :userId, :createdAt
+                )`,
+                [
+                  crypto.randomUUID(),
+                  fridgeId,
+                  itemId,
+                  itemRow[0],
+                  itemRow[1] || null,
+                  Number(itemRow[2]),
+                  itemRow[3],
+                  userId,
+                  expDate,
+                ]
+              );
+            }
+          }
+        }
+      } catch (e) {
+        // Continue with deletion
+      }
+
       const result = await conn.execute(
         `DELETE FROM items WHERE id = :itemId AND fridge_id = :fridgeId`,
         [itemId, fridgeId]
@@ -408,7 +448,7 @@ class ItemService {
    * @param {string} fridgeId 
    * @param {string} itemId 
    * @param {string} userId 
-   * @param {{ amount?: number, finishAll?: boolean }} consumeData 
+   * @param {{ amount?: number, finishAll?: boolean, imagePath?: string }} consumeData 
    */
   async consumeItem(fridgeId, itemId, userId, consumeData = {}) {
     let conn;
@@ -428,6 +468,7 @@ class ItemService {
 
       const quantityLeft = Math.max(0, item.quantity - amountToConsume);
       const historyId = crypto.randomUUID();
+      const imagePathToSave = item.imagePath || consumeData.imagePath || null;
 
       // 1. Record in item_history
       await conn.execute(
@@ -441,7 +482,7 @@ class ItemService {
           fridgeId,
           itemId,
           item.name,
-          item.imagePath,
+          imagePathToSave,
           amountToConsume,
           quantityLeft,
           item.unit,
@@ -572,6 +613,7 @@ class ItemService {
 
   /**
    * Get history (consumed or expired)
+   * Automatically synchronizes any expired items in the fridge into item_history
    * @param {string} fridgeId 
    * @param {string} userId 
    * @param {string} [kind] 'consumed' or 'expired'
@@ -581,6 +623,53 @@ class ItemService {
     try {
       conn = await db.getDbConnection();
       await this.checkFridgeAccess(conn, fridgeId, userId);
+
+      // Check and auto-record any items currently in the fridge whose expiry_date has passed
+      try {
+        const expiredSql = `
+          SELECT id, name, image_path, quantity, unit, expiry_date
+          FROM items
+          WHERE fridge_id = :fridgeId
+            AND expiry_date < TRUNC(CURRENT_TIMESTAMP)
+            AND id NOT IN (
+              SELECT item_id FROM item_history WHERE fridge_id = :fridgeId AND kind = 'expired' AND item_id IS NOT NULL
+            )
+        `;
+        const expiredRes = await conn.execute(expiredSql, [fridgeId, fridgeId]);
+        if (expiredRes.rows && expiredRes.rows.length > 0) {
+          for (const row of expiredRes.rows) {
+            const expItemId = row[0];
+            const expName = row[1];
+            const expImagePath = row[2];
+            const expQty = Number(row[3]);
+            const expUnit = row[4];
+            const expDate = row[5];
+            const histId = crypto.randomUUID();
+
+            await conn.execute(
+              `INSERT INTO item_history (
+                id, fridge_id, item_id, item_name, image_path, kind, quantity_changed, quantity_left, unit, by_user_id, created_at
+              ) VALUES (
+                :id, :fridgeId, :itemId, :name, :imagePath, 'expired', :qty, 0, :unit, :userId, :createdAt
+              )`,
+              [
+                histId,
+                fridgeId,
+                expItemId,
+                expName,
+                expImagePath,
+                expQty,
+                expUnit,
+                userId,
+                expDate || new Date(),
+              ]
+            );
+          }
+          await conn.commit();
+        }
+      } catch (e) {
+        // Auto-record expired items shouldn't block history read
+      }
 
       const conditions = ['h.fridge_id = :fridgeId'];
       const params = [fridgeId];
@@ -601,10 +690,10 @@ class ItemService {
           h.quantity_changed,
           h.quantity_left,
           h.unit,
-          u.username AS by_username,
+          COALESCE(u.username, 'system') AS by_username,
           h.created_at
         FROM item_history h
-        JOIN users u ON h.by_user_id = u.id
+        LEFT JOIN users u ON h.by_user_id = u.id
         WHERE ${conditions.join(' AND ')}
         ORDER BY h.created_at DESC
       `;
@@ -689,6 +778,53 @@ class ItemService {
       await conn.commit();
 
       return { success: true, message: 'History cleared successfully' };
+    } catch (err) {
+      if (conn) {
+        try { await conn.rollback(); } catch (_) {}
+      }
+      throw err;
+    } finally {
+      if (conn) {
+        try { await conn.close(); } catch (_) {}
+      }
+    }
+  }
+
+  /**
+   * Manually record a history entry (consumed or expired)
+   * @param {string} fridgeId 
+   * @param {string} userId 
+   * @param {object} data 
+   */
+  async recordHistory(fridgeId, userId, data) {
+    let conn;
+    try {
+      conn = await db.getDbConnection();
+      await this.checkFridgeAccess(conn, fridgeId, userId);
+
+      const histId = data.id || crypto.randomUUID();
+      const kind = (data.kind || 'consumed').toLowerCase();
+      const sql = `
+        INSERT INTO item_history (
+          id, fridge_id, item_id, item_name, image_path, kind, quantity_changed, quantity_left, unit, by_user_id, created_at
+        ) VALUES (
+          :id, :fridgeId, :itemId, :itemName, :imagePath, :kind, :qtyChanged, :qtyLeft, :unit, :userId, CURRENT_TIMESTAMP
+        )
+      `;
+      await conn.execute(sql, [
+        histId,
+        fridgeId,
+        data.itemId || null,
+        data.itemName,
+        data.imagePath || null,
+        kind,
+        Number(data.quantityChanged || data.quantity || 1),
+        Number(data.quantityLeft || 0),
+        data.unit || 'pieces',
+        userId,
+      ]);
+      await conn.commit();
+      return { success: true, historyId: histId };
     } catch (err) {
       if (conn) {
         try { await conn.rollback(); } catch (_) {}
