@@ -6,6 +6,7 @@ import 'package:fm_eaa/data/repositories/auth_repository.dart';
 import 'package:fm_eaa/features/auth/presentation/pages/create_account_page.dart';
 import 'package:fm_eaa/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:fm_eaa/features/auth/providers/auth_provider.dart';
+import 'package:fm_eaa/shared/widgets/figma_auth_widgets.dart';
 import 'package:fm_eaa/shared/widgets/primary_button.dart';
 
 class MockAuthRepository implements AuthRepository {
