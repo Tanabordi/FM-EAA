@@ -1,11 +1,12 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
+import '../../../../shared/utils/date_input_formatter.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
@@ -267,8 +268,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   }
 
   String _formatDate(DateTime date) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$m/$d/${date.year}';
   }
 
   InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon, String? errorText}) {
@@ -1193,6 +1195,10 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                       key: const Key('add_item_expiration_date'),
                       controller: _expirationDateController,
                       keyboardType: TextInputType.datetime,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9/]')),
+                        DateInputFormatter(),
+                      ],
                       style: const TextStyle(
                         fontSize: 15,
                         color: Color(0xFF181D17),

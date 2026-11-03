@@ -365,7 +365,7 @@ void main() {
       expect(container.read(fridgeItemsProvider('fridge_kitchen')).any((it) => it.id == 'item_milk'), true);
     });
 
-    testWidgets('Screen #11: AddItemPage allows typing expiration date manually with keyboard', (tester) async {
+    testWidgets('Screen #11: AddItemPage allows typing expiration date manually with keyboard and auto-inserts slashes', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -377,14 +377,14 @@ void main() {
       final dateFinder = find.byKey(const Key('add_item_expiration_date'));
       expect(dateFinder, findsOneWidget);
 
-      // User types a date using keyboard in MM/DD/YYYY format
-      await tester.enterText(dateFinder, '12/25/2026');
+      // User types raw digits without typing '/' manually
+      await tester.enterText(dateFinder, '12252026');
       await tester.pumpAndSettle();
 
       expect(find.text('12/25/2026'), findsOneWidget);
     });
 
-    testWidgets('Screen #13: EditItemPage allows editing expiration date manually with keyboard', (tester) async {
+    testWidgets('Screen #13: EditItemPage allows editing expiration date manually with keyboard and auto-inserts slashes', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -397,11 +397,11 @@ void main() {
       final dateFinder = find.byKey(const Key('edit_item_expiration_date'));
       expect(dateFinder, findsOneWidget);
 
-      // User types a new date
-      await tester.enterText(dateFinder, '2026-11-30');
+      // User types a new date using raw digits
+      await tester.enterText(dateFinder, '11302026');
       await tester.pumpAndSettle();
 
-      expect(find.text('2026-11-30'), findsOneWidget);
+      expect(find.text('11/30/2026'), findsOneWidget);
     });
   });
 }
