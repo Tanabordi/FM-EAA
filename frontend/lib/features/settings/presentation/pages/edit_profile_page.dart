@@ -275,6 +275,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
     try {
       final user = ref.read(userProfileProvider);
+      final isUsernameChanged = name != user.username;
+      final isPasswordChanged = newPassword.isNotEmpty;
+      final isAvatarChanged = _removeAvatar || _selectedImageFile != null;
       String? finalAvatarUrl = _removeAvatar ? null : user.avatarUrl;
 
       // Upload newly selected image file to Oracle Cloud Object Storage via backend
@@ -295,9 +298,22 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
       if (!mounted) return;
 
+      String successMessage;
+      if (isUsernameChanged && isPasswordChanged && !isAvatarChanged) {
+        successMessage = 'Username and password updated successfully';
+      } else if (isUsernameChanged && !isPasswordChanged && !isAvatarChanged) {
+        successMessage = 'Username updated successfully';
+      } else if (isPasswordChanged && !isUsernameChanged && !isAvatarChanged) {
+        successMessage = 'Password updated successfully';
+      } else if (isAvatarChanged && !isUsernameChanged && !isPasswordChanged) {
+        successMessage = 'Profile photo updated successfully';
+      } else {
+        successMessage = 'Profile updated successfully';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully'),
+        SnackBar(
+          content: Text(successMessage),
           behavior: SnackBarBehavior.floating,
         ),
       );
