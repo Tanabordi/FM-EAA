@@ -276,14 +276,78 @@ void main() {
       expect(find.text('Save'), findsOneWidget);
       expect(find.text('Delete Fridge'), findsOneWidget);
 
-      // Edit name
-      await tester.enterText(find.byType(TextField).first, 'Updated Studio Fridge');
+      // Edit name to valid length (1-15 chars)
+      await tester.enterText(find.byType(TextField).first, 'Studio Fridge');
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 
       // Check updated in container
       final updated = container.read(fridgesProvider).firstWhere((f) => f.id == targetFridge.id);
-      expect(updated.name, 'Updated Studio Fridge');
+      expect(updated.name, 'Studio Fridge');
+    });
+
+    testWidgets('Screen #7: EditFridgeSheet validates required name (1-15 chars), desc (0-100 chars), and shows Discard dialog on close icon', (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          fridgesProvider.overrideWith((ref) => FridgesNotifier(null, false)),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(fridgesProvider.notifier).loadMockData();
+      final targetFridge = container.read(fridgesProvider).first;
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: EditFridgeSheet(fridge: targetFridge),
+            ),
+          ),
+        ),
+      );
+
+      // Clear name and tap Save
+      await tester.enterText(find.byType(TextField).first, '');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(find.text('Fridge name is required'), findsOneWidget);
+
+      // Name > 15 chars
+      await tester.enterText(find.byType(TextField).first, 'Super Long Name For Fridge 12345');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(find.text('Fridge name must not exceed 15 characters'), findsOneWidget);
+
+      // Description > 100 chars
+      final longDesc = 'b' * 105;
+      await tester.enterText(find.byType(TextField).last, longDesc);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(find.text('Description must not exceed 100 characters'), findsOneWidget);
+
+      // Tap close button (Icons.close) with unsaved changes
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      // Verify Discard changes dialog
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.text('You have unsaved changes. Are you sure you want to discard them?'), findsOneWidget);
+      expect(find.text('Keep editing'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+
+      // Tap Keep editing
+      await tester.tap(find.text('Keep editing'));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.text('Edit Fridge'), findsOneWidget);
+
+      // Tap close again and Discard
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Screen #8: DeleteFridgeDialog confirms deletion and removes fridge', (tester) async {

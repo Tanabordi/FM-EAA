@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_back_button.dart';
-import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 
@@ -360,7 +359,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
     );
   }
 
-  InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon}) {
+  InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon, String? errorText}) {
     return InputDecoration(
       hintText: hintText,
       hintStyle: const TextStyle(
@@ -372,13 +371,29 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       filled: true,
       fillColor: const Color(0xFFF6FBF3),
       suffixIcon: suffixIcon,
+      errorText: errorText,
+      errorStyle: const TextStyle(fontSize: 12, color: Color(0xFFBA1A1A)),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF717971), width: 1.0),
+        borderSide: BorderSide(
+          color: errorText != null ? const Color(0xFFBA1A1A) : const Color(0xFF717971),
+          width: errorText != null ? 1.5 : 1.0,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF2E6A44), width: 1.5),
+        borderSide: BorderSide(
+          color: errorText != null ? const Color(0xFFBA1A1A) : const Color(0xFF2E6A44),
+          width: 1.5,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFBA1A1A), width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFBA1A1A), width: 1.5),
       ),
     );
   }
@@ -522,12 +537,17 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                     ),
                     const SizedBox(height: 20),
                     // Food Name Field
-                    AppTextField(
+                    TextFormField(
                       controller: _nameController,
-                      labelText: 'Food Name',
-                      hintText: 'Enter food name',
-                      errorText: _nameError,
-                      textInputAction: TextInputAction.next,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF181D17),
+                        fontWeight: FontWeight.w400,
+                      ),
+                      decoration: _inputDecoration(
+                        hintText: 'Food Name',
+                        errorText: _nameError,
+                      ),
                       onChanged: (val) {
                         if (_nameError != null && val.trim().isNotEmpty) {
                           setState(() => _nameError = null);
