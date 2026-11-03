@@ -132,35 +132,14 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   Future<void> _handleGoogleSignUp() async {
     setState(() => _isLoading = true);
     try {
-      final result = await ref.read(authProvider.notifier).signInWithGoogle();
+      final email = await ref.read(authProvider.notifier).pickGoogleEmail();
       if (!mounted) return;
+      if (email == null || email.isEmpty) return; // User cancelled or no email selected
 
-      if (!result.isNewUser) {
-        // User already has an account in DB and is now authenticated!
-        final prefs = await SharedPreferences.getInstance();
-        final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
-        if (!mounted) return;
-        if (!hasEnabled) {
-          context.go('/onboarding');
-        } else {
-          context.go('/fridges');
-        }
-        return;
-      }
-
-      // User does not exist in DB yet: populate Google email, lock it, and show Image 2
+      // Populate Google email, lock the field with lock icon, and transition to Image 2
       setState(() {
         _isGoogleLocked = true;
-        if (result.email != null && result.email!.isNotEmpty) {
-          _emailController.text = result.email!;
-        }
-        if (_usernameController.text.trim().isEmpty) {
-          if (result.displayName != null && result.displayName!.isNotEmpty) {
-            _usernameController.text = result.displayName!;
-          } else if (result.email != null) {
-            _usernameController.text = result.email!.split('@')[0];
-          }
-        }
+        _emailController.text = email;
         _emailError = null;
       });
     } catch (e) {
