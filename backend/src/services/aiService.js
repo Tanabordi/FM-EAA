@@ -3,13 +3,23 @@ const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const PROMPT = `อ่านฉลากอาหารในรูปนี้ แล้วตอบเป็น JSON เท่านั้นตามรูปแบบนี้:
-{"foodName": string|null, "expiryDate": "YYYY-MM-DD"|null}
-- foodName คือชื่อสินค้าหรือชนิดวัตถุดิบ
-- expiryDate ใช้เฉพาะวันหมดอายุ (EXP, BBD, Best Before, ควรบริโภคก่อน, หมดอายุ) ห้ามใช้วันผลิต (MFD, MFG, ผลิต)
-- วันที่บนฉลากไทยมักเป็น วัน/เดือน/ปี (DD/MM/YY หรือ DD/MM/YYYY)
-- ปีสองหลัก 60-99 ให้ตีความเป็น พ.ศ. 25xx ปีสองหลัก 00-59 เป็น ค.ศ. 20xx
-- ปีสี่หลักที่มากกว่า 2400 เป็น พ.ศ. ให้แปลงเป็น ค.ศ. ในคำตอบ
-- ถ้าไม่พบวันหมดอายุหรืออ่านไม่ออก ให้ใส่ null อย่าเดา`;
+{
+  "foodName": string|null,
+  "expiryDate": "YYYY-MM-DD"|null,
+  "category": "Proteins"|"Veggies"|"Beverages"|"Meals"|"Sauces",
+  "storage": "Fridge"|"Freezer",
+  "unit": "pieces"|"bag"|"punnet"|"bottle"|"box"|"can"|"pack"|"g"|"kg"
+}
+- foodName: คือชื่อสินค้าหรือชนิดวัตถุดิบ (ภาษาไทยหรืออังกฤษตามฉลาก)
+- expiryDate: วันหมดอายุเท่านั้น (EXP, BBD, Best Before, ควรบริโภคก่อน, หมดอายุ) ห้ามใช้วันผลิต (MFD, MFG). แปลงเป็น ค.ศ. รูปแบบ YYYY-MM-DD ถ้าไม่พบให้ใส่ null อย่าเดา
+- category: วิเคราะห์จากประเภทอาหาร
+  * "Proteins": เนื้อสัตว์, หมู, ไก่, ปลา, กุ้ง, ไข่, ไส้กรอก, แฮม, เบคอน, เต้าหู้, ลูกชิ้น
+  * "Veggies": ผักสด, ผลไม้สด, เห็ด
+  * "Beverages": นม, น้ำดื่ม, น้ำผลไม้, ชา, กาแฟ, โซดา, เครื่องดื่ม
+  * "Meals": อาหารปรุงสำเร็จ, ข้าวกล่อง, ข้าว, ก๋วยเตี๋ยว, แกง, ต้ม, ผัด, พาสต้า, พิซซ่า, แซนด์วิช, เบอร์เกอร์
+  * "Sauces": ซอส, เครื่องปรุงรส, น้ำจิ้ม, ซีอิ๊ว, น้ำปลา, น้ำมัน, มายองเนส, แยม
+- storage: ส่วนใหญ่แช่ตู้เย็นปกติ "Fridge" ยกเว้นสินค้าแช่แข็งหรือไอศกรีมให้เป็น "Freezer"
+- unit: หน่วยที่เหมาะสมของบรรจุภัณฑ์ เช่น "pack" สำหรับไส้กรอก/เนื้อสัตว์, "bottle" สำหรับเครื่องดื่ม, "box" สำหรับอาหารกล่อง, "bag" สำหรับผักถุง, หรือ "pieces"`;
 
 async function scanLabel(buffer, mimeType) {
   let model = (process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite').replace(/^["']|["']$/g, '');

@@ -73,17 +73,7 @@ class AiRepository {
           );
         }
 
-        final foodName = rawName.trim();
-        DateTime? expiryDate;
-        if (data['expiryDate'] != null) {
-          expiryDate = DateTime.tryParse(data['expiryDate'].toString());
-        }
-
-        return _categorizeFood(
-          foodName,
-          expiryDate ?? DateTime.now().add(const Duration(days: 7)),
-          name,
-        );
+        return _buildResultFromApi(data, name, name);
       }
       return _smartFallbackBytes(bytes, name);
     } catch (_) {
@@ -127,17 +117,7 @@ class AiRepository {
           );
         }
 
-        final foodName = rawName.trim();
-        DateTime? expiryDate;
-        if (data['expiryDate'] != null) {
-          expiryDate = DateTime.tryParse(data['expiryDate'].toString());
-        }
-
-        return _categorizeFood(
-          foodName,
-          expiryDate ?? DateTime.now().add(const Duration(days: 7)),
-          imageFile.path,
-        );
+        return _buildResultFromApi(data, fileName, imageFile.path);
       }
     } catch (_) {
       // Graceful fallback for offline, emulator, or local testing
@@ -146,11 +126,79 @@ class AiRepository {
     return _smartFallback(imageFile.path);
   }
 
-  AiScanResult _categorizeFood(String foodName, DateTime expiryDate, String imagePath) {
+  static const _validCategories = {'Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'};
+  static const _validUnits = {'pieces', 'bag', 'punnet', 'bottle', 'box', 'can', 'pack', 'g', 'kg'};
+  static const _validStorages = {'Fridge', 'Freezer'};
+
+  AiScanResult _buildResultFromApi(Map<String, dynamic> data, String filename, String imagePath) {
+    final foodName = (data['foodName'] as String).trim();
+    DateTime? expiryDate;
+    if (data['expiryDate'] != null) {
+      expiryDate = DateTime.tryParse(data['expiryDate'].toString());
+    }
+
+    String? category;
+    if (data['category'] != null) {
+      final rawCat = data['category'].toString().trim();
+      final match = _validCategories.firstWhere(
+        (c) => c.toLowerCase() == rawCat.toLowerCase(),
+        orElse: () => '',
+      );
+      if (match.isNotEmpty) category = match;
+    }
+
+    String? unit;
+    if (data['unit'] != null) {
+      final rawUnit = data['unit'].toString().trim();
+      final match = _validUnits.firstWhere(
+        (u) => u.toLowerCase() == rawUnit.toLowerCase(),
+        orElse: () => '',
+      );
+      if (match.isNotEmpty) unit = match;
+    }
+
+    String? storage;
+    if (data['storage'] != null) {
+      final rawStorage = data['storage'].toString().trim();
+      final match = _validStorages.firstWhere(
+        (s) => s.toLowerCase() == rawStorage.toLowerCase(),
+        orElse: () => '',
+      );
+      if (match.isNotEmpty) storage = match;
+    }
+
+    if (category != null) {
+      return AiScanResult(
+        isDetected: true,
+        foodName: foodName,
+        expiryDate: expiryDate ?? DateTime.now().add(const Duration(days: 7)),
+        category: category,
+        unit: unit ?? (category == 'Beverages' ? 'bottle' : category == 'Proteins' ? 'pack' : 'pieces'),
+        storage: storage ?? 'Fridge',
+        imagePath: imagePath,
+      );
+    }
+
+    return _categorizeFood(
+      foodName,
+      expiryDate ?? DateTime.now().add(const Duration(days: 7)),
+      imagePath,
+      suggestedUnit: unit,
+      suggestedStorage: storage,
+    );
+  }
+
+  AiScanResult _categorizeFood(
+    String foodName,
+    DateTime expiryDate,
+    String imagePath, {
+    String? suggestedUnit,
+    String? suggestedStorage,
+  }) {
     final lower = foodName.toLowerCase();
     String category = 'Veggies';
-    String unit = 'pieces';
-    String storage = 'Fridge';
+    String unit = suggestedUnit ?? 'pieces';
+    String storage = suggestedStorage ?? 'Fridge';
 
     if (lower.contains('milk') ||
         lower.contains('juice') ||
@@ -159,9 +207,16 @@ class AiRepository {
         lower.contains('coffee') ||
         lower.contains('water') ||
         lower.contains('smoothie') ||
-        lower.contains('soda')) {
+        lower.contains('soda') ||
+        lower.contains('นม') ||
+        lower.contains('น้ำ') ||
+        lower.contains('ชา') ||
+        lower.contains('กาแฟ') ||
+        lower.contains('โซดา') ||
+        lower.contains('มิลค์') ||
+        lower.contains('เครื่องดื่ม')) {
       category = 'Beverages';
-      unit = 'bottle';
+      unit = suggestedUnit ?? 'bottle';
     } else if (lower.contains('egg') ||
         lower.contains('beef') ||
         lower.contains('chicken') ||
@@ -171,36 +226,92 @@ class AiRepository {
         lower.contains('meat') ||
         lower.contains('steak') ||
         lower.contains('tofu') ||
-        lower.contains('shrimp')) {
+        lower.contains('shrimp') ||
+        lower.contains('sausage') ||
+        lower.contains('bacon') ||
+        lower.contains('ham') ||
+        lower.contains('meatball') ||
+        lower.contains('หมู') ||
+        lower.contains('ไก่') ||
+        lower.contains('เนื้อ') ||
+        lower.contains('ปลา') ||
+        lower.contains('กุ้ง') ||
+        lower.contains('ไข่') ||
+        lower.contains('ไส้กรอก') ||
+        lower.contains('ค็อกเทล') ||
+        lower.contains('เบคอน') ||
+        lower.contains('แฮม') ||
+        lower.contains('ลูกชิ้น') ||
+        lower.contains('เต้าหู้') ||
+        lower.contains('แซลมอน') ||
+        lower.contains('หมูสับ') ||
+        lower.contains('อกไก่') ||
+        lower.contains('โบโลน่า') ||
+        lower.contains('ปูอัด') ||
+        lower.contains('หมูยอ')) {
       category = 'Proteins';
-      unit = 'pack';
+      unit = suggestedUnit ?? 'pack';
     } else if (lower.contains('pasta') ||
         lower.contains('curry') ||
         lower.contains('soup') ||
         lower.contains('meal') ||
         lower.contains('pizza') ||
         lower.contains('rice') ||
-        lower.contains('sandwich')) {
+        lower.contains('sandwich') ||
+        lower.contains('noodle') ||
+        lower.contains('burger') ||
+        lower.contains('dumpling') ||
+        lower.contains('ข้าว') ||
+        lower.contains('ก๋วยเตี๋ยว') ||
+        lower.contains('แกง') ||
+        lower.contains('ต้ม') ||
+        lower.contains('ผัด') ||
+        lower.contains('พาสต้า') ||
+        lower.contains('สปาเก็ตตี้') ||
+        lower.contains('พิซซ่า') ||
+        lower.contains('แซนด์วิช') ||
+        lower.contains('ซุป') ||
+        lower.contains('บะหมี่') ||
+        lower.contains('เกี๊ยว') ||
+        lower.contains('เบอร์เกอร์')) {
       category = 'Meals';
-      unit = 'box';
+      unit = suggestedUnit ?? 'box';
     } else if (lower.contains('sauce') ||
         lower.contains('ketchup') ||
         lower.contains('mayo') ||
         lower.contains('mustard') ||
         lower.contains('dressing') ||
         lower.contains('oil') ||
-        lower.contains('vinegar')) {
+        lower.contains('vinegar') ||
+        lower.contains('ซอส') ||
+        lower.contains('น้ำจิ้ม') ||
+        lower.contains('น้ำปลา') ||
+        lower.contains('ซีอิ๊ว') ||
+        lower.contains('ซอสมะเขือเทศ') ||
+        lower.contains('มายองเนส') ||
+        lower.contains('น้ำมัน') ||
+        lower.contains('น้ำส้มสายชู') ||
+        lower.contains('น้ำสลัด')) {
       category = 'Sauces';
-      unit = 'bottle';
+      unit = suggestedUnit ?? 'bottle';
     } else {
       category = 'Veggies';
-      if (lower.contains('spinach') || lower.contains('cabbage') || lower.contains('lettuce')) {
-        unit = 'bag';
-      } else if (lower.contains('strawberr') || lower.contains('berry')) {
-        unit = 'punnet';
+      if (lower.contains('spinach') || lower.contains('cabbage') || lower.contains('lettuce') || lower.contains('ผัก')) {
+        unit = suggestedUnit ?? 'bag';
+      } else if (lower.contains('strawberr') || lower.contains('berry') || lower.contains('สตรอว์เบอร์รี่')) {
+        unit = suggestedUnit ?? 'punnet';
       } else {
-        unit = 'pieces';
+        unit = suggestedUnit ?? 'pieces';
       }
+    }
+
+    if (lower.contains('freezer') ||
+        lower.contains('frozen') ||
+        lower.contains('ice cream') ||
+        lower.contains('แช่แข็ง') ||
+        lower.contains('ไอศกรีม') ||
+        lower.contains('ไอติม')) {
+      storage = 'Freezer';
     }
 
     return AiScanResult(
