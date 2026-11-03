@@ -3,7 +3,6 @@ class UserModel {
   final String username;
   final String email;
   final String? avatarUrl;
-  final DateTime? lastUsernameChange;
   final DateTime updatedAt;
 
   const UserModel({
@@ -11,30 +10,16 @@ class UserModel {
     required this.username,
     required this.email,
     this.avatarUrl,
-    this.lastUsernameChange,
     required this.updatedAt,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: (json['id'] ?? json['ID'] ?? '').toString(),
-      username: (json['username'] ?? json['USERNAME'] ?? '').toString(),
-      email: (json['email'] ?? json['EMAIL'] ?? '').toString(),
-      avatarUrl: (json['avatar_url'] ?? json['avatarUrl'] ?? json['AVATAR_URL']) as String?,
-      lastUsernameChange: json['last_username_change'] != null
-          ? DateTime.tryParse(json['last_username_change'].toString())
-          : (json['lastUsernameChange'] != null
-              ? DateTime.tryParse(json['lastUsernameChange'].toString())
-              : (json['LAST_USERNAME_CHANGE'] != null
-                  ? DateTime.tryParse(json['LAST_USERNAME_CHANGE'].toString())
-                  : null)),
-      updatedAt: json['updated_at'] != null
-          ? (DateTime.tryParse(json['updated_at'].toString()) ?? DateTime.now())
-          : (json['updatedAt'] != null
-              ? (DateTime.tryParse(json['updatedAt'].toString()) ?? DateTime.now())
-              : (json['UPDATED_AT'] != null
-                  ? (DateTime.tryParse(json['UPDATED_AT'].toString()) ?? DateTime.now())
-                  : DateTime.now())),
+      id: json['id'] as String,
+      username: json['username'] as String,
+      email: json['email'] as String,
+      avatarUrl: json['avatar_url'] as String?,
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
@@ -44,27 +29,8 @@ class UserModel {
       'username': username,
       'email': email,
       'avatar_url': avatarUrl,
-      'last_username_change': lastUsernameChange?.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
   }
-
-  UserModel copyWith({
-    String? id,
-    String? username,
-    String? email,
-    String? avatarUrl,
-    bool clearAvatar = false,
-    DateTime? lastUsernameChange,
-    DateTime? updatedAt,
-  }) {
-    return UserModel(
-      id: id ?? this.id,
-      username: username ?? this.username,
-      email: email ?? this.email,
-      avatarUrl: clearAvatar ? null : (avatarUrl ?? this.avatarUrl),
-      lastUsernameChange: lastUsernameChange ?? this.lastUsernameChange,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
 }
+

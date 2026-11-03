@@ -1,385 +1,45 @@
-const crypto = require('crypto');
-const db = require('../config/db');
-
+// TODO(service fridge): Implement multiple fridges CRUD, member role management (owner/member), and invitation flow
 class FridgeService {
-  /**
-   * Helper: verify if user is member or owner of the fridge
-   * @param {object} conn 
-   * @param {string} fridgeId 
-   * @param {string} userId 
-   * @returns {Promise<{ isMember: boolean, role: string|null }>}
-   */
-  async checkUserAccess(conn, fridgeId, userId) {
-    const sql = `
-      SELECT role FROM fridge_members 
-      WHERE fridge_id = :fridgeId AND user_id = :userId
-    `;
-    const result = await conn.execute(sql, [fridgeId, userId]);
-    if (result.rows && result.rows.length > 0) {
-      return { isMember: true, role: result.rows[0][0] };
-    }
-    return { isMember: false, role: null };
-  }
-
-  /**
-   * List all fridges user has access to (owned or member)
-   * @param {string} userId 
-   */
   async getFridgesForUser(userId) {
-    let conn;
-    try {
-      conn = await db.getDbConnection();
-      const sql = `
-        SELECT 
-          f.id,
-          f.name,
-          f.description,
-          f.owner_id,
-          fm.role,
-          f.created_at,
-          f.updated_at,
-          (SELECT COUNT(*) FROM fridge_members WHERE fridge_id = f.id) AS member_count,
-          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id) AS item_count,
-          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id AND TRUNC(expiry_date) <= TRUNC(CURRENT_DATE)) AS expiring_today_count
-        FROM fridges f
-        JOIN fridge_members fm ON f.id = fm.fridge_id
-        WHERE fm.user_id = :userId
-        ORDER BY f.created_at DESC
-      `;
-      const result = await conn.execute(sql, [userId]);
-      return result.rows.map(row => ({
-        id: row[0],
-        name: row[1],
-        description: row[2] || '',
-        ownerId: row[3],
-        role: row[4],
-        createdAt: row[5],
-        updatedAt: row[6],
-        memberCount: Number(row[7]) || 1,
-        itemCount: Number(row[8]) || 0,
-        expiringTodayCount: Number(row[9]) || 0,
-      }));
-    } finally {
-      if (conn) {
-        try { await conn.close(); } catch (_) {}
-      }
-    }
+    // TODO: Query fridges where user is owner or in fridge_members
+    throw new Error('Not implemented');
   }
 
-  /**
-   * Create a new fridge and assign creator as 'owner'
-   * @param {string} userId 
-   * @param {{ name: string, description?: string, id?: string }} data 
-   */
   async createFridge(userId, data) {
-    const { name, description = '', id } = data;
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      const err = new Error('Fridge name is required');
-      err.statusCode = 400;
-      throw err;
-    }
-
-    const fridgeId = id || crypto.randomUUID();
-    const cleanName = name.trim();
-    const cleanDesc = (description || '').trim();
-
-    let conn;
-    try {
-      conn = await db.getDbConnection();
-
-      // 1. Insert into fridges
-      await conn.execute(
-        `INSERT INTO fridges (id, name, description, owner_id, is_synced, created_at, updated_at)
-         VALUES (:id, :name, :description, :ownerId, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-        [fridgeId, cleanName, cleanDesc, userId]
-      );
-
-      // 2. Insert into fridge_members as owner
-      await conn.execute(
-        `INSERT INTO fridge_members (fridge_id, user_id, role, created_at, updated_at)
-         VALUES (:fridgeId, :userId, 'owner', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-        [fridgeId, userId]
-      );
-
-      await conn.commit();
-
-      return {
-        id: fridgeId,
-        name: cleanName,
-        description: cleanDesc,
-        ownerId: userId,
-        role: 'owner',
-        memberCount: 1,
-        itemCount: 0,
-        expiringTodayCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-    } catch (err) {
-      if (conn) {
-        try { await conn.rollback(); } catch (_) {}
-      }
-      throw err;
-    } finally {
-      if (conn) {
-        try { await conn.close(); } catch (_) {}
-      }
-    }
+    // TODO: Create fridge, assign userId as 'owner' in fridge_members
+    throw new Error('Not implemented');
   }
 
-  /**
-   * Get single fridge details with member list
-   * @param {string} fridgeId 
-   * @param {string} userId 
-   */
-  async getFridgeById(fridgeId, userId) {
-    let conn;
-    try {
-      conn = await db.getDbConnection();
-      const access = await this.checkUserAccess(conn, fridgeId, userId);
-      if (!access.isMember) {
-        const err = new Error('Fridge not found or access denied');
-        err.statusCode = 404;
-        throw err;
-      }
-
-      const fridgeSql = `
-        SELECT 
-          f.id, f.name, f.description, f.owner_id, fm.role, f.created_at, f.updated_at,
-          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id) AS item_count,
-          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id AND TRUNC(expiry_date) <= TRUNC(CURRENT_DATE)) AS expiring_today_count
-        FROM fridges f
-        JOIN fridge_members fm ON f.id = fm.fridge_id
-        WHERE f.id = :fridgeId AND fm.user_id = :userId
-      `;
-      const result = await conn.execute(fridgeSql, [fridgeId, userId]);
-      if (!result.rows || result.rows.length === 0) {
-        const err = new Error('Fridge not found');
-        err.statusCode = 404;
-        throw err;
-      }
-
-      const row = result.rows[0];
-
-      // Fetch members
-      const members = await this.getMembers(fridgeId, userId, conn);
-
-      return {
-        id: row[0],
-        name: row[1],
-        description: row[2] || '',
-        ownerId: row[3],
-        role: row[4],
-        createdAt: row[5],
-        updatedAt: row[6],
-        memberCount: members.length,
-        itemCount: Number(row[7]) || 0,
-        expiringTodayCount: Number(row[8]) || 0,
-        members,
-      };
-    } finally {
-      if (conn) {
-        try { await conn.close(); } catch (_) {}
-      }
-    }
-  }
-
-  /**
-   * Update fridge details (owner or member)
-   * @param {string} fridgeId 
-   * @param {string} userId 
-   * @param {{ name?: string, description?: string }} data 
-   */
   async updateFridge(fridgeId, userId, data) {
-    let conn;
-    try {
-      conn = await db.getDbConnection();
-      const access = await this.checkUserAccess(conn, fridgeId, userId);
-      if (!access.isMember) {
-        const err = new Error('Fridge not found or access denied');
-        err.statusCode = 404;
-        throw err;
-      }
-
-      const updates = [];
-      const params = [];
-
-      if (data.name !== undefined) {
-        if (!data.name || typeof data.name !== 'string' || !data.name.trim()) {
-          const err = new Error('Fridge name cannot be empty');
-          err.statusCode = 400;
-          throw err;
-        }
-        updates.push(`name = :name`);
-        params.push(data.name.trim());
-      }
-
-      if (data.description !== undefined) {
-        updates.push(`description = :description`);
-        params.push((data.description || '').trim());
-      }
-
-      if (updates.length === 0) {
-        const err = new Error('No fields provided to update');
-        err.statusCode = 400;
-        throw err;
-      }
-
-      updates.push(`updated_at = CURRENT_TIMESTAMP`);
-      params.push(fridgeId);
-
-      const updateSql = `UPDATE fridges SET ${updates.join(', ')} WHERE id = :fridgeId`;
-      await conn.execute(updateSql, params);
-      await conn.commit();
-
-      return await this.getFridgeById(fridgeId, userId);
-    } catch (err) {
-      if (conn) {
-        try { await conn.rollback(); } catch (_) {}
-      }
-      throw err;
-    } finally {
-      if (conn) {
-        try { await conn.close(); } catch (_) {}
-      }
-    }
+    // TODO: Verify owner permission and update name/description
+    throw new Error('Not implemented');
   }
 
-  /**
-   * Delete fridge (Only Owner can delete)
-   * @param {string} fridgeId 
-   * @param {string} userId 
-   */
   async deleteFridge(fridgeId, userId) {
-    let conn;
-    try {
-      conn = await db.getDbConnection();
-      const access = await this.checkUserAccess(conn, fridgeId, userId);
-      if (!access.isMember) {
-        const err = new Error('Fridge not found or access denied');
-        err.statusCode = 404;
-        throw err;
-      }
-
-      if (access.role !== 'owner') {
-        const err = new Error('Only the fridge owner can delete this fridge');
-        err.statusCode = 403;
-        throw err;
-      }
-
-      // Delete cascade will handle items, members, history, and invites
-      await conn.execute(`DELETE FROM fridges WHERE id = :fridgeId`, [fridgeId]);
-      await conn.commit();
-
-      return { success: true, message: 'Fridge deleted successfully' };
-    } catch (err) {
-      if (conn) {
-        try { await conn.rollback(); } catch (_) {}
-      }
-      throw err;
-    } finally {
-      if (conn) {
-        try { await conn.close(); } catch (_) {}
-      }
-    }
+    // TODO: Verify owner permission and cascade delete
+    throw new Error('Not implemented');
   }
 
-  /**
-   * List members of a fridge
-   * @param {string} fridgeId 
-   * @param {string} userId 
-   * @param {object} [existingConn] 
-   */
-  async getMembers(fridgeId, userId, existingConn = null) {
-    const conn = existingConn || await db.getDbConnection();
-    try {
-      if (!existingConn) {
-        const access = await this.checkUserAccess(conn, fridgeId, userId);
-        if (!access.isMember) {
-          const err = new Error('Fridge not found or access denied');
-          err.statusCode = 404;
-          throw err;
-        }
-      }
-
-      const sql = `
-        SELECT 
-          u.id,
-          u.username,
-          u.email,
-          u.avatar_url,
-          fm.role,
-          fm.created_at
-        FROM fridge_members fm
-        JOIN users u ON fm.user_id = u.id
-        WHERE fm.fridge_id = :fridgeId
-        ORDER BY CASE WHEN fm.role = 'owner' THEN 0 ELSE 1 END, fm.created_at ASC
-      `;
-      const result = await conn.execute(sql, [fridgeId]);
-      return result.rows.map(r => ({
-        id: r[0],
-        username: r[1],
-        email: r[2],
-        avatarUrl: r[3] || null,
-        role: r[4],
-        joinedAt: r[5],
-      }));
-    } finally {
-      if (!existingConn && conn) {
-        try { await conn.close(); } catch (_) {}
-      }
-    }
+  async getMembers(fridgeId) {
+    // TODO: Query fridge_members with user profile details
+    throw new Error('Not implemented');
   }
 
-  /**
-   * Remove a member or leave fridge
-   * @param {string} fridgeId 
-   * @param {string} currentUserId 
-   * @param {string} targetUserId 
-   */
   async removeMember(fridgeId, currentUserId, targetUserId) {
-    let conn;
-    try {
-      conn = await db.getDbConnection();
-      const access = await this.checkUserAccess(conn, fridgeId, currentUserId);
-      if (!access.isMember) {
-        const err = new Error('Fridge not found or access denied');
-        err.statusCode = 404;
-        throw err;
-      }
+    // TODO: Ensure owner can remove member, but cannot remove self directly
+    throw new Error('Not implemented');
+  }
 
-      // If removing someone else, must be owner
-      if (currentUserId !== targetUserId && access.role !== 'owner') {
-        const err = new Error('Only the owner can remove other members');
-        err.statusCode = 403;
-        throw err;
-      }
+  async inviteMember(fridgeId, fromUserId, targetUsername) {
+    // TODO: Find target user by username, create fridge_invites record, push in-app notification
+    throw new Error('Not implemented');
+  }
 
-      // Owner cannot leave or remove self without transferring ownership / deleting fridge
-      if (currentUserId === targetUserId && access.role === 'owner') {
-        const err = new Error('Fridge owner cannot leave the fridge. Delete the fridge or transfer ownership first.');
-        err.statusCode = 400;
-        throw err;
-      }
-
-      await conn.execute(
-        `DELETE FROM fridge_members WHERE fridge_id = :fridgeId AND user_id = :targetUserId`,
-        [fridgeId, targetUserId]
-      );
-      await conn.commit();
-
-      return { success: true, message: 'Member removed successfully' };
-    } catch (err) {
-      if (conn) {
-        try { await conn.rollback(); } catch (_) {}
-      }
-      throw err;
-    } finally {
-      if (conn) {
-        try { await conn.close(); } catch (_) {}
-      }
-    }
+  async handleInvite(inviteId, userId, action) {
+    // TODO: Update invite status (accepted|declined), if accepted add to fridge_members
+    throw new Error('Not implemented');
   }
 }
 
 module.exports = new FridgeService();
+

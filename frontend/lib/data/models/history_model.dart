@@ -1,5 +1,3 @@
-import '../local/app_database.dart';
-
 class HistoryModel {
   final String id;
   final String fridgeId;
@@ -28,26 +26,6 @@ class HistoryModel {
   });
 
   bool get isConsumed => kind == 'consumed';
-
-  factory HistoryModel.fromEntry(ItemHistoryData entry, {String? username}) {
-    final cleanUsername = username ??
-        (entry.byUserId.startsWith('@')
-            ? entry.byUserId.substring(1)
-            : entry.byUserId);
-    return HistoryModel(
-      id: entry.id,
-      fridgeId: entry.fridgeId,
-      itemId: entry.itemId,
-      itemName: entry.itemName,
-      imagePath: entry.imagePath,
-      kind: entry.kind,
-      quantityChanged: entry.quantityChanged,
-      quantityLeft: entry.quantityLeft,
-      unit: entry.unit,
-      byUsername: cleanUsername.isEmpty ? 'user' : cleanUsername,
-      createdAt: entry.createdAt,
-    );
-  }
 
   factory HistoryModel.fromJson(Map<String, dynamic> json) {
     return HistoryModel(

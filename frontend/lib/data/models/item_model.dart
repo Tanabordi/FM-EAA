@@ -1,5 +1,4 @@
 import '../../core/theme/freshness_colors.dart';
-import '../local/app_database.dart';
 
 class ItemModel {
   final String id;
@@ -38,6 +37,7 @@ class ItemModel {
     if (diffDays < 0) {
       return FreshnessStatus.expired;
     } else if (diffDays <= 2) {
+      // TODO(open question): Confirm exact threshold for useSoon (currently <= 2 days based on Figma examples)
       return FreshnessStatus.useSoon;
     } else {
       return FreshnessStatus.fresh;
@@ -62,100 +62,19 @@ class ItemModel {
     }
   }
 
-  /// Formatted quantity text helper (e.g. "1 carton", "2.5 kg", "500g · 2 pieces")
-  String get formattedQuantity {
-    final qtyStr = quantity == quantity.toInt() ? quantity.toInt().toString() : quantity.toString();
-    if (unit.contains('·') || unit.contains('pieces')) {
-      return quantity > 0 ? '$qtyStr $unit'.trim() : unit.trim();
-    }
-    return '$qtyStr $unit'.trim();
-  }
-
-  ItemModel copyWith({
-    String? id,
-    String? fridgeId,
-    String? name,
-    String? category,
-    String? zone,
-    double? quantity,
-    String? unit,
-    DateTime? expiryDate,
-    String? imagePath,
-    bool? isSynced,
-    DateTime? updatedAt,
-  }) {
-    return ItemModel(
-      id: id ?? this.id,
-      fridgeId: fridgeId ?? this.fridgeId,
-      name: name ?? this.name,
-      category: category ?? this.category,
-      zone: zone ?? this.zone,
-      quantity: quantity ?? this.quantity,
-      unit: unit ?? this.unit,
-      expiryDate: expiryDate ?? this.expiryDate,
-      imagePath: imagePath ?? this.imagePath,
-      isSynced: isSynced ?? this.isSynced,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
-
-  factory ItemModel.fromEntry(ItemEntry entry) {
-    return ItemModel(
-      id: entry.id,
-      fridgeId: entry.fridgeId,
-      name: entry.name,
-      category: entry.category,
-      zone: entry.zone,
-      quantity: entry.quantity,
-      unit: entry.unit,
-      expiryDate: entry.expiryDate,
-      imagePath: entry.imagePath,
-      isSynced: entry.isSynced,
-      updatedAt: entry.updatedAt,
-    );
-  }
-
   factory ItemModel.fromJson(Map<String, dynamic> json) {
-    final rawExpiry = json['expiryDate'] ?? json['expiry_date'];
-    DateTime parsedExpiry;
-    if (rawExpiry is DateTime) {
-      parsedExpiry = rawExpiry;
-    } else if (rawExpiry != null) {
-      parsedExpiry = DateTime.tryParse(rawExpiry.toString()) ?? DateTime.now();
-    } else {
-      parsedExpiry = DateTime.now();
-    }
-
-    final rawUpdated = json['updatedAt'] ?? json['updated_at'];
-    DateTime parsedUpdated;
-    if (rawUpdated is DateTime) {
-      parsedUpdated = rawUpdated;
-    } else if (rawUpdated != null) {
-      parsedUpdated = DateTime.tryParse(rawUpdated.toString()) ?? DateTime.now();
-    } else {
-      parsedUpdated = DateTime.now();
-    }
-
-    final rawQuantity = json['quantity'];
-    double qty = 1.0;
-    if (rawQuantity is num) {
-      qty = rawQuantity.toDouble();
-    } else if (rawQuantity != null) {
-      qty = double.tryParse(rawQuantity.toString()) ?? 1.0;
-    }
-
     return ItemModel(
-      id: json['id']?.toString() ?? '',
-      fridgeId: (json['fridgeId'] ?? json['fridge_id'] ?? '').toString(),
-      name: json['name']?.toString() ?? '',
-      category: json['category']?.toString() ?? 'meals',
-      zone: json['zone']?.toString() ?? 'fridge',
-      quantity: qty,
-      unit: json['unit']?.toString() ?? 'pieces',
-      expiryDate: parsedExpiry,
-      imagePath: (json['imagePath'] ?? json['image_path'])?.toString(),
-      isSynced: json['isSynced'] == true || (json['is_synced'] as int? ?? 1) == 1,
-      updatedAt: parsedUpdated,
+      id: json['id'] as String,
+      fridgeId: json['fridge_id'] as String,
+      name: json['name'] as String,
+      category: json['category'] as String,
+      zone: json['zone'] as String,
+      quantity: (json['quantity'] as num).toDouble(),
+      unit: json['unit'] as String,
+      expiryDate: DateTime.parse(json['expiry_date'] as String),
+      imagePath: json['image_path'] as String?,
+      isSynced: (json['is_synced'] as int? ?? 1) == 1,
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
@@ -175,3 +94,4 @@ class ItemModel {
     };
   }
 }
+

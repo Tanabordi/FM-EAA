@@ -3,13 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Centralized Dio API Client for communicating with the Node.js backend.
 class ApiClient {
-  /// Centralized API Base URL. Defaults to Render Cloud Production Backend.
-  static String get baseUrl {
-    const envUrl = String.fromEnvironment('API_BASE_URL');
-    if (envUrl.isNotEmpty) return envUrl;
-    return 'https://fm-eaa-backend.onrender.com/api';
-  }
-
+  static const String baseUrl = 'http://localhost:5000/api';
   final Dio dio;
   final FlutterSecureStorage storage;
 
@@ -23,18 +17,19 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          try {
-            final token = await storage.read(key: 'jwt_token');
-            if (token != null && token.isNotEmpty) {
-              options.headers['Authorization'] = 'Bearer $token';
-            }
-          } catch (_) {}
+          // TODO(auth token): Attach Bearer token from secure storage
+          final token = await storage.read(key: 'jwt_token');
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
           return handler.next(options);
         },
         onError: (DioException error, handler) {
+          // TODO(error handling): Handle 401 Unauthorized token refresh
           return handler.next(error);
         },
       ),
     );
   }
 }
+

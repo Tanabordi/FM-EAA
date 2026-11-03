@@ -16,22 +16,8 @@ const app = express();
 
 // Middlewares
 app.use(cors());
-app.use((req, res, next) => {
-  console.log(`[HTTP] ${req.method} ${req.originalUrl}`);
-  next();
-});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Root Endpoint
-app.get('/', (req, res) => {
-  res.status(200).json({
-    name: 'FM-EAA Backend API',
-    status: 'running',
-    message: 'Backend API is running. Access the Flutter frontend at http://localhost:8080',
-    health: '/health',
-  });
-});
 
 // Health Check Endpoint (Required 200 OK)
 app.get('/health', (req, res) => {
