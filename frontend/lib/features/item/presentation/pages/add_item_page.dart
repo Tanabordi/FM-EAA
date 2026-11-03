@@ -327,10 +327,31 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       }
     } catch (e) {
       if (mounted) {
+        final errStr = e.toString().toLowerCase();
+        String message;
+        if (errStr.contains('camera_access_denied') ||
+            errStr.contains('cameraaccessdenied') ||
+            (errStr.contains('camera') && errStr.contains('denied'))) {
+          message = 'Camera permission was denied. Please allow camera access in Settings.';
+        } else if (errStr.contains('photo_access_denied') ||
+            errStr.contains('permission_denied') ||
+            (errStr.contains('gallery') && errStr.contains('denied')) ||
+            (errStr.contains('photo') && errStr.contains('denied'))) {
+          message = 'Photo access was denied. Please allow gallery access in Settings.';
+        } else if (errStr.contains('permission')) {
+          message = source == ImageSource.camera
+              ? 'Camera permission was denied. Please allow camera access in Settings.'
+              : 'Gallery access was denied. Please allow photo access in Settings.';
+        } else {
+          message = source == ImageSource.camera
+              ? 'Unable to open camera. Please try again.'
+              : 'Unable to open gallery. Please try again.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Unable to select photo: $e'),
-            duration: const Duration(seconds: 2),
+            content: Text(message),
+            duration: const Duration(seconds: 3),
           ),
         );
       }

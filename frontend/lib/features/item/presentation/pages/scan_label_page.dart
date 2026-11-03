@@ -243,8 +243,12 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       }
     } catch (e) {
       if (!mounted) return;
+      final errStr = e.toString().toLowerCase();
+      final msg = (errStr.contains('camera_access_denied') || errStr.contains('permission'))
+          ? 'Camera permission was denied. Please allow camera access in Settings.'
+          : 'Unable to open camera. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to open camera: $e')),
+        SnackBar(content: Text(msg)),
       );
     }
   }
@@ -294,8 +298,12 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       }
     } catch (e) {
       if (!mounted) return;
+      final errStr = e.toString().toLowerCase();
+      final msg = (errStr.contains('photo_access_denied') || errStr.contains('permission'))
+          ? 'Photo library permission was denied. Please allow gallery access in Settings.'
+          : 'Unable to pick image. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to pick image: $e')),
+        SnackBar(content: Text(msg)),
       );
     }
   }
