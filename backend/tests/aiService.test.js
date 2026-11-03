@@ -30,3 +30,4 @@ describe('AI Service Quota & Recipe Logic', () => {
     expect(recipes[1].title).toContain('ค็อกเทลรมควัน');
   });
 });
+
