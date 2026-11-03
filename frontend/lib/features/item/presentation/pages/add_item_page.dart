@@ -7,8 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
 import '../../../../shared/widgets/app_back_button.dart';
-import '../../../../shared/widgets/app_text_field.dart';
-import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 import '../../../fridges/providers/fridges_provider.dart';
 import 'scan_label_page.dart';
@@ -42,53 +40,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   String? _pickedFileName;
   bool _hasAnalyzed = false;
   bool _isScanning = false;
-  String? _foodNameError;
-  bool _forceExit = false;
-
-  bool get _hasUnsavedChanges {
-    if (_forceExit) return false;
-    return _foodNameController.text.trim().isNotEmpty ||
-        _quantityController.text.trim().isNotEmpty ||
-        _selectedCategory != null ||
-        _selectedUnit != null ||
-        _selectedStorage != null ||
-        _expirationDate != null ||
-        _imagePath != null ||
-        _imageBytes != null;
-  }
-
-  void _handleBack() {
-    if (_hasUnsavedChanges) {
-      showDialog(
-        context: context,
-        builder: (dialogContext) => ConfirmDialog(
-          title: 'Discard changes?',
-          message: 'You have unsaved changes. Are you sure you want to discard them?',
-          confirmLabel: 'Discard',
-          cancelLabel: 'Keep editing',
-          isDestructive: true,
-          onConfirm: () {
-            setState(() => _forceExit = true);
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              try {
-                context.pop();
-              } catch (_) {}
-            }
-          },
-        ),
-      );
-    } else {
-      if (Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      } else {
-        try {
-          context.pop();
-        } catch (_) {}
-      }
-    }
-  }
 
   final _categories = ['Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'];
   final _units = ['pieces', 'bag', 'punnet', 'bottle', 'box', 'can', 'pack', 'g', 'kg'];
@@ -126,7 +77,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       _expirationDate = result.expiryDate;
     }
     _hasAnalyzed = true;
-    _foodNameError = null;
   }
 
   @override
@@ -177,7 +127,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       _selectedUnit = null;
       _selectedStorage = null;
       _expirationDate = null;
-      _foodNameError = null;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -190,10 +139,23 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
   Future<void> _onSave() async {
     final name = _foodNameController.text.trim();
+    if (!_hasAnalyzed && name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('กรุณาวิเคราะห์ด้วย AI หรือกรอกข้อมูลอาหารก่อนบันทึก'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     if (name.isEmpty) {
-      setState(() {
-        _foodNameError = 'Food name is required';
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('กรุณากรอกชื่ออาหารก่อนบันทึก'),
+          duration: Duration(seconds: 2),
+        ),
+      );
       return;
     }
 
@@ -224,7 +186,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       ),
     );
 
-    setState(() => _forceExit = true);
     if (Navigator.canPop(context)) {
       Navigator.pop(context);
     } else {
@@ -700,35 +661,29 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: !_hasUnsavedChanges,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        _handleBack();
-      },
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF6FBF3),
-        body: SafeArea(
-          child: Column(
-            children: [
-              // Top Navigation Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                child: Row(
-                  children: [
-                    AppBackButton(onPressed: _handleBack),
-                    const SizedBox(width: 14),
-                    const Text(
-                      'Add items',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF181D17),
-                      ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6FBF3),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Navigation Bar
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Row(
+                children: [
+                  AppBackButton(),
+                  SizedBox(width: 14),
+                  Text(
+                    'Add items',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF181D17),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
             // Form Content
             Expanded(
               child: SingleChildScrollView(
@@ -826,17 +781,14 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                     ),
                     const SizedBox(height: 18),
                     // Food Name Field
-                    AppTextField(
+                    TextFormField(
                       controller: _foodNameController,
-                      labelText: 'Food Name',
-                      hintText: 'Enter food name',
-                      errorText: _foodNameError,
-                      textInputAction: TextInputAction.next,
-                      onChanged: (val) {
-                        if (_foodNameError != null && val.trim().isNotEmpty) {
-                          setState(() => _foodNameError = null);
-                        }
-                      },
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF181D17),
+                        fontWeight: FontWeight.w400,
+                      ),
+                      decoration: _inputDecoration(hintText: 'Food Name'),
                     ),
                     const SizedBox(height: 14),
                     // Category Dropdown
@@ -1034,7 +986,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
           ],
         ),
       ),
-    ),
     );
   }
 }
