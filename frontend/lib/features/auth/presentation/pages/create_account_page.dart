@@ -267,6 +267,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                 controller: _usernameController,
                 labelText: 'Username',
                 hintText: '',
+                helperText: '3–20 characters (letters, numbers, underscores)',
                 errorText: _usernameError,
                 onChanged: (_) {
                   if (_usernameError != null) setState(() => _usernameError = null);
