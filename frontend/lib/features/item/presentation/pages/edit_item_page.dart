@@ -316,7 +316,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
     );
   }
 
-  void _onSave() {
+  Future<void> _onSave() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -341,7 +341,9 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       imagePath: _imagePath,
       updatedAt: DateTime.now(),
     );
-    ref.read(fridgeItemsProvider(widget.fridgeId).notifier).updateItem(updated);
+    await ref.read(fridgeItemsProvider(widget.fridgeId).notifier).updateItem(updated);
+
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

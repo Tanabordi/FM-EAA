@@ -26,8 +26,21 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
     ),
   ];
 
-  FridgesNotifier([this._repository, bool startEmpty = false])
-      : super(startEmpty ? [] : defaultFridges);
+  FridgesNotifier([this._repository, bool? startEmpty])
+      : super((startEmpty ?? (_repository != null)) ? [] : defaultFridges) {
+    if (_repository != null) {
+      loadFridges();
+    }
+  }
+
+  Future<void> loadFridges() async {
+    try {
+      final fridges = await _repository?.getFridges();
+      if (fridges != null) {
+        state = fridges;
+      }
+    } catch (_) {}
+  }
 
   void loadMockData() {
     state = defaultFridges;
@@ -35,29 +48,27 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
 
   List<FridgeModel> get currentFridges => state;
 
-  /// Optimistic UI: Updates local state immediately, then asynchronously persists to Drift SQLite with rollback protection
+  /// Creates fridge via repository (Cloud DB + local Drift) and updates state
   Future<void> addFridge(String name, String description, {String? userId}) async {
     final previousState = state;
-    final newFridge = FridgeModel(
-      id: 'fridge_${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
-      description: description,
-      ownerId: userId ?? 'user_1',
-      memberCount: 1,
-      itemCount: 0,
-      isSynced: false,
-      updatedAt: DateTime.now(),
-    );
-    state = [...state, newFridge];
-
-    // Asynchronous local SQLite persistence with rollback protection
     try {
-      await _repository?.createFridge(
-        name,
-        description,
-        id: newFridge.id,
-        ownerId: userId ?? 'user_1',
-      );
+      if (_repository != null) {
+        final created = await _repository.createFridge(
+          name,
+          description,
+          ownerId: userId ?? 'user_1',
+        );
+        state = [...state.where((f) => f.id != created.id), created];
+      } else {
+        final newFridge = FridgeModel(
+          id: 'fridge_${DateTime.now().millisecondsSinceEpoch}',
+          name: name,
+          description: description,
+          ownerId: userId ?? 'user_1',
+          updatedAt: DateTime.now(),
+        );
+        state = [...state, newFridge];
+      }
     } catch (e) {
       state = previousState;
       rethrow;
@@ -115,5 +126,5 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
 
 final fridgesProvider = StateNotifierProvider<FridgesNotifier, List<FridgeModel>>((ref) {
   final repo = ref.watch(fridgeRepositoryProvider);
-  return FridgesNotifier(repo);
+  return FridgesNotifier(repo, true);
 });

@@ -9,17 +9,6 @@ final itemDetailProvider = Provider.family<ItemModel?, String>((ref, itemId) {
   try {
     return items.firstWhere((item) => item.id == itemId);
   } catch (_) {
-    return ItemModel(
-      id: itemId,
-      fridgeId: 'fridge_kitchen',
-      name: 'Strawberries',
-      category: 'veggies',
-      zone: 'fridge',
-      quantity: 1,
-      unit: 'punnet · 250 g',
-      expiryDate: DateTime.now().add(const Duration(days: 2)),
-      imagePath: 'assets/images/food_strawberries.png',
-      updatedAt: DateTime.now(),
-    );
+    return null;
   }
 });

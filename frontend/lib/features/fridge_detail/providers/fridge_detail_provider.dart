@@ -59,15 +59,40 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
 
   void _init() {
     if (_repository != null) {
-      _repository.watchItems(fridgeId).listen((sqliteItems) {
-        final initial = getInitialFridgeItems(fridgeId);
-        final sqliteIds = sqliteItems.map((e) => e.id).toSet();
-        final remainingInitial = initial.where(
-          (it) => !sqliteIds.contains(it.id) && !_consumedIds.contains(it.id),
-        );
-        state = [...sqliteItems, ...remainingInitial];
-      });
+      _loadItemsFromApi();
+      try {
+        _repository.watchItems(fridgeId).listen((sqliteItems) {
+          final isMock = fridgeId == 'fridge_kitchen' ||
+              fridgeId == 'fridge_studio' ||
+              fridgeId == 'fridge_demo' ||
+              fridgeId == 'fridge_main' ||
+              fridgeId == 'fridge_1' ||
+              fridgeId == 'fridge_2';
+          if (sqliteItems.isNotEmpty || !isMock) {
+            state = sqliteItems;
+          } else {
+            final initial = getInitialFridgeItems(fridgeId);
+            final remainingInitial = initial.where(
+              (it) => !_consumedIds.contains(it.id),
+            );
+            state = remainingInitial.toList();
+          }
+        }, onError: (_) {});
+      } catch (_) {}
     }
+  }
+
+  Future<void> _loadItemsFromApi() async {
+    try {
+      final items = await _repository?.getItems(fridgeId);
+      if (items != null) {
+        state = items;
+      }
+    } catch (_) {}
+  }
+
+  Future<void> loadItems() async {
+    await _loadItemsFromApi();
   }
 
   ItemModel? _lastConsumedItem;
@@ -83,26 +108,44 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
     }
   }
 
-  void addItem(ItemModel item) {
+  Future<ItemModel> addItem(ItemModel item) async {
     state = [item, ...state];
-    _repository?.addItem(item);
+    if (_repository != null) {
+      try {
+        final serverItem = await _repository.addItem(item);
+        state = [
+          for (final it in state)
+            if (it.id == item.id) serverItem else it,
+        ];
+        return serverItem;
+      } catch (_) {}
+    }
+    return item;
   }
 
-  void updateItem(ItemModel updated) {
+  Future<void> updateItem(ItemModel updated) async {
     state = [
       for (final item in state)
         if (item.id == updated.id) updated else item,
     ];
-    _repository?.updateItem(updated);
+    if (_repository != null) {
+      try {
+        await _repository.updateItem(updated);
+      } catch (_) {}
+    }
   }
 
-  void deleteItem(String id) {
+  Future<void> deleteItem(String id) async {
     _consumedIds.add(id);
     state = state.where((item) => item.id != id).toList();
-    _repository?.deleteItem(id);
+    if (_repository != null) {
+      try {
+        await _repository.deleteItem(id);
+      } catch (_) {}
+    }
   }
 
-  void consumeItem(String id, double amount, bool finishedAll) {
+  Future<void> consumeItem(String id, double amount, bool finishedAll) async {
     final index = state.indexWhere((item) => item.id == id);
     if (index == -1) return;
 
@@ -131,28 +174,33 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
       ];
     }
 
-    _repository?.consumeItem(id, amount, finishedAll: finishedAll);
+    if (_repository != null) {
+      try {
+        await _repository.consumeItem(id, amount, finishedAll: finishedAll);
+      } catch (_) {}
+    }
   }
 
-  void undoConsume() {
+  Future<void> undoConsume() async {
     if (_lastConsumedItem == null) return;
-    _consumedIds.remove(_lastConsumedItem!.id);
+    final itemToRestore = _lastConsumedItem!;
+    _consumedIds.remove(itemToRestore.id);
 
     if (_lastFinishedAll == true ||
         (_lastConsumedAmount != null &&
-            _lastConsumedItem!.quantity <= _lastConsumedAmount!)) {
+            itemToRestore.quantity <= _lastConsumedAmount!)) {
       final idx = (_lastConsumedIndex != null &&
               _lastConsumedIndex! <= state.length)
           ? _lastConsumedIndex!
           : state.length;
       final newList = List<ItemModel>.from(state);
-      newList.insert(idx, _lastConsumedItem!);
+      newList.insert(idx, itemToRestore);
       state = newList;
     } else if (_lastConsumedAmount != null) {
-      final id = _lastConsumedItem!.id;
+      final id = itemToRestore.id;
       state = [
         for (final item in state)
-          if (item.id == id) _lastConsumedItem! else item,
+          if (item.id == id) itemToRestore else item,
       ];
     }
 
@@ -160,6 +208,12 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
     _lastConsumedIndex = null;
     _lastConsumedAmount = null;
     _lastFinishedAll = null;
+
+    if (_repository != null) {
+      try {
+        await _repository.undoConsume(itemToRestore.id);
+      } catch (_) {}
+    }
   }
 }
 
@@ -189,6 +243,16 @@ final allFridgeItemsProvider =
 
 /// Default initial mockup items computed dynamically against real-time
 List<ItemModel> getInitialFridgeItems(String fridgeId) {
+  final isMock = fridgeId == 'fridge_kitchen' ||
+      fridgeId == 'fridge_studio' ||
+      fridgeId == 'fridge_demo' ||
+      fridgeId == 'fridge_main' ||
+      fridgeId == 'fridge_1' ||
+      fridgeId == 'fridge_2';
+  if (!isMock) {
+    return const [];
+  }
+
   final now = DateTime.now();
 
   return [
