@@ -53,7 +53,7 @@ void main() {
       await tester.tap(find.text('Save'));
       await tester.pump();
       expect(find.text('Add items'), findsOneWidget); // still on Add items page, does not pop
-      expect(find.text('กรุณากรอกชื่ออาหารก่อนบันทึก'), findsOneWidget);
+      expect(find.text('Please enter a food name before saving'), findsOneWidget);
     });
 
     testWidgets('Screen #11: Tapping Scan Label with AI card opens ScanLabelPage directly and supports saving item', (tester) async {
@@ -175,7 +175,7 @@ void main() {
       expect(find.text('Avocados · 2 pieces in fridge'), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.text('of 2 pieces'), findsOneWidget);
-      expect(find.text('ให้ Gemini AI แนะนำเมนูอาหาร'), findsOneWidget);
+      expect(find.text('Ask Gemini AI for recipe ideas'), findsOneWidget);
 
       // Test Stepper [+]
       await tester.tap(find.byIcon(Icons.add));

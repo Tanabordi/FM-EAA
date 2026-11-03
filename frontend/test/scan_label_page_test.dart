@@ -47,7 +47,7 @@ void main() {
     );
 
     expect(find.text('AI Label Scanner'), findsOneWidget);
-    expect(find.textContaining('จัดวางฉลากอาหารให้อยู่ในกรอบ'), findsOneWidget);
+    expect(find.textContaining('Align food packaging label'), findsOneWidget);
     expect(find.byKey(const Key('scan_label_camera_btn')), findsOneWidget);
     expect(find.byKey(const Key('scan_label_gallery_btn')), findsOneWidget);
     // Analyze button appears after an image is captured or selected
@@ -63,7 +63,7 @@ void main() {
       ),
     );
 
-    final torchBtn = find.byTooltip('เปิด/ปิดแฟลช');
+    final torchBtn = find.byTooltip('Toggle Flash');
     expect(torchBtn, findsOneWidget);
 
     await tester.tap(torchBtn);
