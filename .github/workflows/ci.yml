@@ -30,7 +30,7 @@ jobs:
       - name: Run Backend Tests
         env:
           PORT: ${{ secrets.PORT }}
-          NODE_ENV: ${{ secrets.NODE_ENV }}
+          NODE_ENV: test
           # ส่งครอบคลุมทั้ง 2 รูปแบบชื่อตัวแปร
           ORACLE_USER: ${{ secrets.ORACLE_DB_USER }}
           ORACLE_PASSWORD: ${{ secrets.ORACLE_DB_PASSWORD }}

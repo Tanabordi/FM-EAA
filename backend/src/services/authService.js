@@ -673,8 +673,8 @@ class AuthService {
         success: true,
         message: 'Password reset code has been sent',
         email: cleanEmail,
-        // Only include OTP in automated Jest test runs
-        ...(process.env.NODE_ENV === 'test' && { otp }),
+        // Only include OTP in automated Jest test runs / CI
+        ...((process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined || Boolean(process.env.CI)) && { otp }),
       };
     } finally {
       if (conn) {
