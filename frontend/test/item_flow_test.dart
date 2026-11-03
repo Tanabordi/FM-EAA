@@ -364,5 +364,45 @@ void main() {
       expect(countAfterUndo, initialCount);
       expect(container.read(fridgeItemsProvider('fridge_kitchen')).any((it) => it.id == 'item_milk'), true);
     });
+
+    testWidgets('Screen #11: AddItemPage allows typing expiration date manually with keyboard', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddItemPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+
+      final dateFinder = find.byKey(const Key('add_item_expiration_date'));
+      expect(dateFinder, findsOneWidget);
+
+      // User types a date using keyboard
+      await tester.enterText(dateFinder, '25/12/2026');
+      await tester.pumpAndSettle();
+
+      expect(find.text('25/12/2026'), findsOneWidget);
+    });
+
+    testWidgets('Screen #13: EditItemPage allows editing expiration date manually with keyboard', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: EditItemPage(fridgeId: 'fridge_kitchen', itemId: 'item_strawberries'),
+          ),
+        ),
+      );
+
+      // Find the date field which initially has pre-filled date
+      final dateFinder = find.byKey(const Key('edit_item_expiration_date'));
+      expect(dateFinder, findsOneWidget);
+
+      // User types a new date
+      await tester.enterText(dateFinder, '2026-11-30');
+      await tester.pumpAndSettle();
+
+      expect(find.text('2026-11-30'), findsOneWidget);
+    });
   });
 }
+
