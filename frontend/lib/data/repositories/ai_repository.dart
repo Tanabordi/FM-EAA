@@ -132,9 +132,10 @@ class AiRepository {
     String mainIngredient, {
     List<String>? fridgeIngredients,
     String language = 'th',
+    int offset = 0,
   }) async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
-      return _generateSmartFallbackRecipes(mainIngredient, language: language);
+      return _generateSmartFallbackRecipes(mainIngredient, language: language, offset: offset);
     }
 
     try {
@@ -166,10 +167,10 @@ class AiRepository {
       if (e.toString().contains('วันนี้คุณได้ไอเดีย')) rethrow;
     }
 
-    return _generateSmartFallbackRecipes(mainIngredient, language: language);
+    return _generateSmartFallbackRecipes(mainIngredient, language: language, offset: offset);
   }
 
-  List<RecipeModel> _generateSmartFallbackRecipes(String ingredient, {String language = 'th'}) {
+  List<RecipeModel> _generateSmartFallbackRecipes(String ingredient, {String language = 'th', int offset = 0}) {
     final lower = ingredient.toLowerCase();
 
     if (lower.contains('spinach')) {
@@ -589,8 +590,8 @@ class AiRepository {
       ];
     }
 
-    // Default 6 zero-waste recipes specifically tailored to `ingredient` (e.g. ค็อกเทลรมควัน, chicken, egg, pork, etc.)
-    return [
+    // Default 12 zero-waste recipes specifically tailored to `ingredient` (e.g. ค็อกเทลรมควัน, chicken, egg, pork, etc.)
+    final defaultPool = [
       RecipeModel(
         id: 'recipe_quick_1',
         title: 'ผัดกระเทียมพริกไทย$ingredient',
@@ -719,7 +720,142 @@ class AiRepository {
           'ประกบขนมปัง หั่นครึ่ง พร้อมรับประทาน',
         ],
       ),
+      RecipeModel(
+        id: 'recipe_quick_7',
+        title: 'ผัดกะเพรารสเด็ดใส่$ingredient',
+        description: 'เผ็ดร้อนหอมกลิ่นใบกะเพรา เมนูยอดฮิตทำง่ายสุดๆ',
+        imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_lasagna.png',
+        cookingTime: '10 min',
+        difficulty: 'Easy',
+        expiringIngredient: ingredient,
+        ingredients: [
+          ingredient,
+          'ใบกะเพรา 1 กำมือ',
+          'พริกขี้หนูและกระเทียมสับ',
+          'น้ำมันหอยและซีอิ๊วขาว',
+        ],
+        steps: [
+          'โขลกพริกกระเทียมลงผัดในน้ำมันจนหอมฉุน',
+          'ใส่$ingredientลงไปผัด ปรุงรสด้วยน้ำมันหอยและซีอิ๊ว',
+          'ใส่ใบกะเพรา ปิดไฟ ผัดเคล้าให้เข้ากัน เสิร์ฟพร้อมข้าวสวย',
+        ],
+      ),
+      RecipeModel(
+        id: 'recipe_quick_8',
+        title: 'ข้าวไข่ข้นลาวาหน้า$ingredient',
+        description: 'ไข่ข้นเยิ้มๆ นุ่มละมุนลิ้น เข้ากันกับ$ingredient',
+        imageUrl: 'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_eggs.png',
+        cookingTime: '8 min',
+        difficulty: 'Very easy',
+        expiringIngredient: ingredient,
+        ingredients: [
+          ingredient,
+          'ไข่ไก่ 2 ฟอง',
+          'นมสด 2 ช้อนโต๊ะ',
+          'เนยสดหรือน้ำมันพืช',
+        ],
+        steps: [
+          'ตีไข่กับนมสดและซีอิ๊วขาวเบาๆ',
+          'ตั้งกระทะใส่เนย ใช้ไฟอ่อน เทไข่ลงไปใช้ตะหลิวดันเข้าตรงกลาง',
+          'วาง$ingredientลงไปด้านบน พอไข่ด้านล่างเซ็ตตัวแต่ด้านบนเยิ้มๆ ตักราดข้าวทันที',
+        ],
+      ),
+      RecipeModel(
+        id: 'recipe_quick_9',
+        title: '$ingredientคั่วพริกเกลือกรอบ',
+        description: 'คั่วแห้งๆ หอมกระเทียมพริกสด รสเค็มเผ็ดกลมกล่อม',
+        imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_nuggets.png',
+        cookingTime: '10 min',
+        difficulty: 'Very easy',
+        expiringIngredient: ingredient,
+        ingredients: [
+          ingredient,
+          'กระเทียมสับ 4 กลีบ',
+          'พริกแดงจินดาซอย',
+          'เกลือและพริกไทยป่น',
+        ],
+        steps: [
+          'ทอดหรือจี่$ingredientในกระทะจนผิวกรอบสวย พักไว้',
+          'เจียวกระเทียมและพริกซอยให้เหลืองหอม',
+          'ใส่$ingredientกลับลงไป โรยเกลือพริกไทย คั่วแห้งไฟแรง 1 นาที',
+        ],
+      ),
+      RecipeModel(
+        id: 'recipe_quick_10',
+        title: 'มะกะโรนีผัดซอสใส่$ingredient',
+        description: 'เมนูเด็กหอทำง่าย ซอสมะเขือเทศฉ่ำๆ หวานอมเปรี้ยว',
+        imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281699?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_lasagna.png',
+        cookingTime: '15 min',
+        difficulty: 'Easy',
+        expiringIngredient: ingredient,
+        ingredients: [
+          ingredient,
+          'มะกะโรนีหรือเส้นพาสต้าต้มสุก 1 ถ้วย',
+          'ไข่ไก่ 1 ฟอง',
+          'ซอสมะเขือเทศ 2 ช้อนโต๊ะ',
+          'หอมใหญ่สับ',
+        ],
+        steps: [
+          'ผัดหอมใหญ่กับน้ำมัน ตอกไข่ใส่ยีพอสุก',
+          'ใส่$ingredientและมะกะโรนีลงไปผัด',
+          'ปรุงรสด้วยซอสมะเขือเทศ ผัดคลุกเคล้าให้เข้ากัน',
+        ],
+      ),
+      RecipeModel(
+        id: 'recipe_quick_11',
+        title: 'ยำวุ้นเส้นทรงเครื่องใส่$ingredient',
+        description: 'ยำรสแซ่บ เปรี้ยว เผ็ด เค็ม ครบรส ปลุกความสดชื่น',
+        imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_spinach.png',
+        cookingTime: '12 min',
+        difficulty: 'Very easy',
+        expiringIngredient: ingredient,
+        ingredients: [
+          ingredient,
+          'วุ้นเส้นลวก 1 ถ้วย',
+          'น้ำมะนาว 2 ช้อนโต๊ะ',
+          'น้ำปลา 1.5 ช้อนโต๊ะ',
+          'พริกขี้หนูซอยและขึ้นฉ่าย',
+        ],
+        steps: [
+          'ผสมน้ำยำ: น้ำมะนาว น้ำปลา น้ำตาล และพริกซอยในชามผสม',
+          'ใส่วุ้นเส้นและ$ingredientลงไป',
+          'โรยขึ้นฉ่าย คลุกเคล้าเบาๆ ให้เข้าเนื้อ พร้อมรับประทาน',
+        ],
+      ),
+      RecipeModel(
+        id: 'recipe_quick_12',
+        title: 'บะหมี่ต้มยำทรงเครื่องใส่$ingredient',
+        description: 'เส้นเหนียวนุ่ม ซุปต้มยำแซ่บจี๊ดถึงใจ ทานร้อนๆ ฟินสุดๆ',
+        imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_lasagna.png',
+        cookingTime: '10 min',
+        difficulty: 'Very easy',
+        expiringIngredient: ingredient,
+        ingredients: [
+          ingredient,
+          'บะหมี่หรือเส้นก๋วยเตี๋ยว 1 ก้อน',
+          'น้ำพริกเผา 1 ช้อนโต๊ะ',
+          'น้ำมะนาว 1 ช้อนโต๊ะ',
+          'น้ำซุป 1.5 ถ้วย',
+        ],
+        steps: [
+          'ต้มน้ำซุปให้เดือด ใส่น้ำพริกเผาและ$ingredientลงไป',
+          'ลวกเส้นบะหมี่ใส่ชาม',
+          'บีบน้ำมะนาว เทน้ำซุปร้อนๆ ราดบนเส้น พร้อมเสิร์ฟ',
+        ],
+      ),
     ];
+
+    if (offset > 0 && defaultPool.length > 3) {
+      final shift = (offset * 3) % defaultPool.length;
+      return [...defaultPool.sublist(shift), ...defaultPool.sublist(0, shift)];
+    }
+    return defaultPool;
   }
 
   static const _validCategories = {'Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'};

@@ -30,6 +30,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   List<RecipeModel> _cachedBatch = [];
   List<RecipeModel> _recipes = [];
   int _currentBatchIndex = 0; // 0 = showing items 0-2, 1 = showing items 3-5
+  int _generationCount = 0;
   bool _isRegenerating = false;
 
   // Anti-Spam Cooldown (3 seconds)
@@ -427,9 +428,11 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       final allItems = await itemRepo.getItems(widget.fridgeId);
       final fridgeItemNames = allItems.map((i) => i.name).toList();
 
+      _generationCount++;
       final freshResults = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
         fridgeIngredients: fridgeItemNames,
+        offset: _generationCount,
       );
 
       if (!mounted) return;
