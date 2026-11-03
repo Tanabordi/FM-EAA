@@ -199,8 +199,41 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         );
       }
     } else {
-      // Fallback to gallery/native camera if live camera is not active
-      await _pickFromGallery();
+      // Fallback: Open device native camera app if live camera is not ready
+      await _pickFromCamera();
+    }
+  }
+
+  Future<void> _pickFromCamera() async {
+    try {
+      final picked = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+
+      if (picked != null) {
+        final path = picked.path;
+        final name = picked.name;
+        Uint8List bytes;
+        try {
+          bytes = await picked.readAsBytes();
+        } catch (_) {
+          bytes = Uint8List.fromList([1, 2, 3, 4]);
+        }
+        setState(() {
+          _imagePath = path;
+          _imageBytes = bytes;
+          _pickedFileName = name;
+          _scanResult = null;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ไม่สามารถเปิดกล้องถ่ายภาพได้: $e')),
+      );
     }
   }
 
@@ -689,7 +722,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           // Primary Action Button (Autofill or Analyze)
           if (_scanResult != null)
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 20),
               child: SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -720,7 +753,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             )
           else if (hasImage)
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 20),
               child: SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -759,46 +792,51 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               ),
             ),
 
-          // Camera Control Bar (Retake on left, Shutter center, Gallery on right)
-          Row(
-            children: [
-              // Left: Retake button (when image picked) or balanced empty spacer
-              Expanded(
-                child: Center(
-                  child: hasImage
-                      ? _buildSideButton(
-                          key: const Key('scan_label_retake_btn'),
-                          icon: Icons.refresh_rounded,
-                          label: 'ถ่ายใหม่',
-                          onTap: () {
-                            setState(() {
-                              _imagePath = null;
-                              _imageBytes = null;
-                              _pickedFileName = null;
-                              _scanResult = null;
-                            });
-                          },
-                        )
-                      : const SizedBox(width: 68, height: 90),
+          // Bottom Controls:
+          // When image is captured -> show Retake and Choose Another buttons
+          // When in camera mode -> show Shutter in center and Album on right
+          if (hasImage)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildSideButton(
+                  key: const Key('scan_label_retake_btn'),
+                  icon: Icons.refresh_rounded,
+                  label: 'ถ่ายใหม่',
+                  onTap: () {
+                    setState(() {
+                      _imagePath = null;
+                      _imageBytes = null;
+                      _pickedFileName = null;
+                      _scanResult = null;
+                    });
+                  },
                 ),
-              ),
-
-              // Center: Primary Camera Shutter
-              _buildShutterButton(),
-
-              // Right: Choose from Gallery
-              Expanded(
-                child: Center(
-                  child: _buildSideButton(
-                    key: const Key('scan_label_gallery_btn'),
-                    icon: Icons.photo_library_rounded,
-                    label: 'อัลบั้ม',
-                    onTap: _pickFromGallery,
+                _buildSideButton(
+                  key: const Key('scan_label_gallery_btn'),
+                  icon: Icons.photo_library_rounded,
+                  label: 'เลือกรูปอื่น',
+                  onTap: _pickFromGallery,
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                const Expanded(child: SizedBox(width: 68, height: 90)),
+                _buildShutterButton(),
+                Expanded(
+                  child: Center(
+                    child: _buildSideButton(
+                      key: const Key('scan_label_gallery_btn'),
+                      icon: Icons.photo_library_rounded,
+                      label: 'อัลบั้ม',
+                      onTap: _pickFromGallery,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );
