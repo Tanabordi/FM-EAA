@@ -217,7 +217,7 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                       ),
                       const SizedBox(width: 10),
                       const Text(
-                        'ให้ Gemini AI แนะนำเมนูอาหาร',
+                        'Ask Gemini AI for recipe ideas',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,

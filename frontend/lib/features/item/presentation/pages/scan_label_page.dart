@@ -99,7 +99,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         if (mounted) {
           setState(() {
             _isCameraError = true;
-            _cameraErrorMessage = 'ไม่พบกล้องในอุปกรณ์นี้';
+            _cameraErrorMessage = 'No camera found on this device';
           });
         }
         return;
@@ -129,7 +129,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       if (mounted) {
         setState(() {
           _isCameraError = true;
-          _cameraErrorMessage = 'ไม่สามารถเปิดกล้องสดได้: $e';
+          _cameraErrorMessage = 'Unable to start camera: $e';
         });
       }
     }
@@ -195,7 +195,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ไม่สามารถถ่ายภาพได้: $e')),
+          SnackBar(content: Text('Failed to capture photo: $e')),
         );
       }
     } else {
@@ -232,7 +232,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ไม่สามารถเปิดกล้องถ่ายภาพได้: $e')),
+        SnackBar(content: Text('Unable to open camera: $e')),
       );
     }
   }
@@ -283,7 +283,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ไม่สามารถเลือกรูปภาพได้: $e')),
+        SnackBar(content: Text('Unable to pick image: $e')),
       );
     }
   }
@@ -291,7 +291,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   Future<void> _analyzeLabel() async {
     if (_imageBytes == null && (_imagePath == null || _imagePath!.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาถ่ายภาพหรือเลือกภาพฉลากอาหารก่อนทำการวิเคราะห์')),
+        const SnackBar(content: Text('Please capture or select a label photo before analyzing')),
       );
       return;
     }
@@ -325,14 +325,14 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       if (result.isDetected && result.foodName != null && result.foodName!.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✨ ตรวจพบฉลาก: "${result.foodName}" เรียบร้อยแล้ว!'),
+            content: Text('Detected label: "${result.foodName}"'),
             backgroundColor: const Color(0xFF2D6A4F),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('📸 โหลดรูปแล้ว แต่อาจไม่พบข้อความฉลากที่ชัดเจน สามารถแก้ไขข้อมูลเพิ่มเติมได้'),
+            content: Text('Photo loaded, but label text was unclear. You can edit the details.'),
           ),
         );
       }
@@ -342,7 +342,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         _isAnalyzing = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาดในการวิเคราะห์: $e')),
+        SnackBar(content: Text('Analysis failed: $e')),
       );
     }
   }
@@ -416,7 +416,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 _torchEnabled ? Icons.flash_on : Icons.flash_off,
                 color: _torchEnabled ? const Color(0xFFFFD166) : Colors.white70,
               ),
-              tooltip: 'เปิด/ปิดแฟลช',
+              tooltip: 'Toggle Flash',
               onPressed: _toggleTorch,
             ),
           ),
@@ -430,8 +430,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
               child: Text(
                 _imageBytes != null
-                    ? 'ตรวจสอบภาพฉลาก แล้วกด "วิเคราะห์ฉลากด้วย Gemini AI"'
-                    : 'จัดวางฉลากอาหารให้อยู่ในกรอบสี่เหลี่ยมเพื่อสแกน',
+                    ? 'Review label photo, then tap "Analyze Label with Gemini AI"'
+                    : 'Align food packaging label within the frame to scan',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Color(0xFFE2E8F0),
@@ -559,7 +559,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                       ),
                       SizedBox(height: 16),
                       Text(
-                        '✨ Google Gemini AI\nกำลังอ่านและวิเคราะห์ฉลากอาหาร...',
+                        'Google Gemini AI\nAnalyzing food label...',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
@@ -598,8 +598,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           const SizedBox(height: 16),
           Text(
             _isCameraError
-                ? (_cameraErrorMessage ?? 'ไม่สามารถเปิดกล้องได้')
-                : 'เล็งกล้องไปที่ฉลากอาหาร หรือวันหมดอายุ',
+                ? (_cameraErrorMessage ?? 'Unable to start camera')
+                : 'Point camera at food label or expiration date',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 15,
@@ -612,8 +612,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Text(
               _isCameraError
-                  ? 'คุณสามารถเลือกภาพจากอัลบั้มเพื่อวิเคราะห์แทนได้'
-                  : 'หากชื่อสินค้าและวันหมดอายุอยู่คนละจุด ถ่ายจุดที่ต้องการ ให้ AI ช่วยกรอก แล้วระบุส่วนที่เหลือในฟอร์มได้',
+                  ? 'You can select a photo from your gallery instead'
+                  : 'If food name and expiration date are on different sides, capture one and fill in the rest in the form.',
               style: const TextStyle(
                 color: Color(0xFF94A3B8),
                 fontSize: 12,
@@ -629,10 +629,10 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
   Widget _buildResultCard() {
     final res = _scanResult!;
-    final name = res.foodName ?? 'ไม่พบชื่ออาหาร (กรอกในฟอร์มได้)';
+    final name = res.foodName ?? 'Food name not detected (editable in form)';
     final dateStr = res.expiryDate != null
         ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}'
-        : 'ไม่ระบุ';
+        : 'Not specified';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -651,7 +651,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
-                  'ผลการวิเคราะห์ฉลากด้วย AI',
+                  'AI Label Scan Results',
                   style: TextStyle(
                     color: Color(0xFFD8F3DC),
                     fontWeight: FontWeight.w700,
@@ -701,7 +701,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                   const Icon(Icons.event_outlined, color: Colors.white70, size: 15),
                   const SizedBox(width: 4),
                   Text(
-                    'วันหมดอายุ: $dateStr',
+                    'Expiry: $dateStr',
                     style: const TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ],
@@ -712,7 +712,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                   const Icon(Icons.kitchen_outlined, color: Colors.white70, size: 15),
                   const SizedBox(width: 4),
                   Text(
-                    'เก็บที่: ${res.storage}',
+                    'Storage: ${res.storage}',
                     style: const TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ],
@@ -760,7 +760,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                       Icon(Icons.check_circle_rounded, size: 20),
                       SizedBox(width: 8),
                       Text(
-                        'นำข้อมูลไปใส่ในแบบฟอร์ม (Autofill)',
+                        'Autofill Form Details',
                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -800,7 +800,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                             Icon(Icons.document_scanner_rounded, size: 20),
                             SizedBox(width: 8),
                             Text(
-                              'วิเคราะห์ฉลากด้วย Gemini AI',
+                              'Analyze Label with Gemini AI',
                               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                             ),
                           ],
@@ -819,7 +819,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 _buildSideButton(
                   key: const Key('scan_label_retake_btn'),
                   icon: Icons.refresh_rounded,
-                  label: 'ถ่ายใหม่',
+                  label: 'Retake',
                   onTap: () {
                     setState(() {
                       _imagePath = null;
@@ -832,7 +832,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 _buildSideButton(
                   key: const Key('scan_label_gallery_btn'),
                   icon: Icons.photo_library_rounded,
-                  label: 'เลือกรูปอื่น',
+                  label: 'Choose Other',
                   onTap: _pickFromGallery,
                 ),
               ],
@@ -847,7 +847,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                     child: _buildSideButton(
                       key: const Key('scan_label_gallery_btn'),
                       icon: Icons.photo_library_rounded,
-                      label: 'อัลบั้ม',
+                      label: 'Gallery',
                       onTap: _pickFromGallery,
                     ),
                   ),
@@ -894,7 +894,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           ),
           const SizedBox(height: 6),
           const Text(
-            'ถ่ายภาพ',
+            'Capture',
             style: TextStyle(
               color: Colors.white,
               fontSize: 12,

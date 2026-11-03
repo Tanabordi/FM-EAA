@@ -33,7 +33,7 @@ class AiScanResult {
       foodName: null,
       expiryDate: null,
       imagePath: imagePath,
-      message: message ?? 'ไม่พบฉลากอาหารหรือวัตถุดิบในภาพ',
+      message: message ?? 'No food label or ingredients detected in image',
     );
   }
 }
@@ -69,7 +69,7 @@ class AiRepository {
         if (rawName == null || rawName.trim().isEmpty || rawName.trim().toLowerCase() == 'null') {
           return AiScanResult.notDetected(
             imagePath: name,
-            message: 'ไม่พบฉลากอาหารหรือวัตถุดิบในภาพ',
+            message: 'No food label or ingredients detected in image',
           );
         }
 
@@ -123,7 +123,7 @@ class AiRepository {
         if (rawName == null || rawName.trim().isEmpty || rawName.trim().toLowerCase() == 'null') {
           return AiScanResult.notDetected(
             imagePath: imageFile.path,
-            message: 'ไม่พบฉลากอาหารหรือวัตถุดิบในภาพ',
+            message: 'No food label or ingredients detected in image',
           );
         }
 
@@ -251,7 +251,7 @@ class AiRepository {
     if (name == null) {
       return AiScanResult.notDetected(
         imagePath: filename,
-        message: 'ไม่พบฉลากอาหารหรือวัตถุดิบในภาพ',
+        message: 'No food label or ingredients detected in image',
       );
     }
     return _categorizeFood(
@@ -266,7 +266,7 @@ class AiRepository {
     if (name == null) {
       return AiScanResult.notDetected(
         imagePath: imagePath,
-        message: 'ไม่พบฉลากอาหารหรือวัตถุดิบในภาพ',
+        message: 'No food label or ingredients detected in image',
       );
     }
     return _categorizeFood(

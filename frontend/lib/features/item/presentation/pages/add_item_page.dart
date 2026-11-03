@@ -138,7 +138,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('กรุณากรอกชื่ออาหารก่อนบันทึก'),
+          content: Text('Please enter a food name before saving'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -165,7 +165,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('เพิ่ม "${newItem.name}" เรียบร้อยแล้ว'),
+        content: Text('Added "${newItem.name}" successfully'),
         duration: const Duration(seconds: 2),
       ),
     );
