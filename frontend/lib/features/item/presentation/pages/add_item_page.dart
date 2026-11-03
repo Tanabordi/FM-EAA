@@ -366,6 +366,116 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     });
   }
 
+  void _showRemoveOptionsSheet() {
+    final hasFormData = _foodNameController.text.trim().isNotEmpty ||
+        _selectedCategory != null ||
+        _quantityController.text.trim().isNotEmpty ||
+        _selectedUnit != null ||
+        _selectedStorage != null ||
+        _expirationDate != null;
+
+    if (!hasFormData) {
+      _removePhoto();
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDDE4DC),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Remove Photo or Reset Form?',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF181D17),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAEFE8),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.photo_outlined, color: Color(0xFF2E6A44), size: 22),
+                ),
+                title: const Text(
+                  'Remove photo only',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF181D17),
+                  ),
+                ),
+                subtitle: const Text(
+                  'Keep entered details and delete only the photo',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF5C665F)),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _removePhoto();
+                },
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.delete_sweep_outlined, color: Color(0xFFDC2626), size: 22),
+                ),
+                title: const Text(
+                  'Clear all and reset form',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFDC2626),
+                  ),
+                ),
+                subtitle: const Text(
+                  'Delete photo and reset all food details',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF5C665F)),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _clearAllData();
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showChangePhotoSheet() {
     showModalBottomSheet(
       context: context,
@@ -407,7 +517,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 title: const Text('Remove Photo', style: TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _removePhoto();
+                  _showRemoveOptionsSheet();
                 },
               ),
             ],
@@ -569,7 +679,8 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                   top: 8,
                   right: 8,
                   child: InkWell(
-                    onTap: _removePhoto,
+                    key: const Key('add_item_remove_photo_btn'),
+                    onTap: _showRemoveOptionsSheet,
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
                       padding: const EdgeInsets.all(6),

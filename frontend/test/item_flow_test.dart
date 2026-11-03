@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fm_eaa/data/repositories/ai_repository.dart';
 import 'package:fm_eaa/features/fridge_detail/providers/fridge_detail_provider.dart';
 import 'package:fm_eaa/features/item/presentation/pages/add_item_page.dart';
 import 'package:fm_eaa/features/item/presentation/pages/edit_item_page.dart';
@@ -88,6 +89,45 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Discard changes?'), findsNothing);
       expect(find.text('Add items'), findsOneWidget);
+    });
+
+    testWidgets('Screen #11: Tapping ✕ on photo shows action sheet with Remove photo only and Clear all options', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AddItemPage(
+            fridgeId: 'fridge_kitchen',
+            initialScanResult: AiScanResult(
+              isDetected: true,
+              foodName: 'Avocado',
+              category: 'Veggies',
+              unit: 'pieces',
+              storage: 'Fridge',
+              expiryDate: DateTime(2026, 11, 10),
+              imagePath: 'assets/images/food_avocados.png',
+            ),
+          ),
+        ),
+      );
+
+      // Verify photo and form are populated
+      expect(find.text('Avocado'), findsWidgets);
+      expect(find.byKey(const Key('add_item_remove_photo_btn')), findsOneWidget);
+
+      // Tap ✕ on photo
+      await tester.tap(find.byKey(const Key('add_item_remove_photo_btn')));
+      await tester.pumpAndSettle();
+
+      // Action sheet appears
+      expect(find.text('Remove Photo or Reset Form?'), findsOneWidget);
+      expect(find.text('Remove photo only'), findsOneWidget);
+      expect(find.text('Clear all and reset form'), findsOneWidget);
+
+      // Tap Remove photo only
+      await tester.tap(find.text('Remove photo only'));
+      await tester.pumpAndSettle();
+
+      // Form data is preserved!
+      expect(find.text('Avocado'), findsOneWidget);
     });
 
     testWidgets('Screen #11: Tapping Scan Label with AI card opens ScanLabelPage directly and supports saving item', (tester) async {
