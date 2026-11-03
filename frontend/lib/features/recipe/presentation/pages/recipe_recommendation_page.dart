@@ -507,36 +507,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    // Orange Highlight Banner
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFA8B28),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.auto_awesome,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'AI found ${_recipes.length} recipes using $_currentIngredient',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     // Recipe Cards or Loading Shimmer
                     if (_isRegenerating)
                       const Padding(

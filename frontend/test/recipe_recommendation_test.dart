@@ -38,10 +38,6 @@ void main() {
       // Top bar
       expect(find.text('AI Suggested Recipes'), findsOneWidget);
 
-      // Orange banner
-      expect(find.text('AI found 3 recipes using Strawberries'), findsOneWidget);
-      expect(find.byIcon(Icons.auto_awesome), findsOneWidget);
-
       // Recipe Cards
       expect(find.text('Fluffy Strawberry Pancakes'), findsOneWidget);
       expect(find.text('Strawberry Yogurt Smoothie'), findsOneWidget);
@@ -76,7 +72,6 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('AI found 3 recipes using Baby spinach'), findsOneWidget);
       expect(find.text('Creamy Garlic Spinach Pasta'), findsOneWidget);
       expect(find.text('Strawberry & Spinach Salad'), findsOneWidget);
       expect(find.text('Green Power Spinach Smoothie'), findsOneWidget);
@@ -98,7 +93,6 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('AI found 3 recipes using ค็อกเทลรมควัน'), findsOneWidget);
       expect(find.text('ผัดกระเทียมพริกไทยค็อกเทลรมควัน'), findsOneWidget);
       expect(find.text('ไข่เจียวทรงเครื่องใส่ค็อกเทลรมควัน'), findsOneWidget);
       expect(find.text('ข้าวผัดโบราณใส่ค็อกเทลรมควัน'), findsOneWidget);
