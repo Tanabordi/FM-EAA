@@ -417,7 +417,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     hintText: 'Enter your name',
                     helperText: isUsernameLocked
                         ? 'You can change your username again in $usernameCooldownDays day${usernameCooldownDays > 1 ? 's' : ''}'
-                        : '3–20 characters (letters, numbers, underscores)',
+                        : '• 3–20 characters (letters, numbers, underscores)\n• Can be changed once every 14 days',
                     errorText: _nameError,
                     readOnly: isUsernameLocked,
                     keyboardType: TextInputType.name,
