@@ -74,6 +74,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     super.dispose();
   }
 
+  bool get _hasNewPasswordMinLength =>
+      _newPasswordController.text.length >= 8 && _newPasswordController.text.length <= 64;
+  bool get _hasNewPasswordLetter => RegExp(r'[a-zA-Z]').hasMatch(_newPasswordController.text);
+  bool get _hasNewPasswordNumber => RegExp(r'[0-9]').hasMatch(_newPasswordController.text);
+
   bool get _hasUnsavedChanges {
     if (_forceExit) return false;
     final user = ref.read(userProfileProvider);
@@ -255,6 +260,12 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       } else if (newPassword.length < 8) {
         setState(() => _passwordError = 'New password must be at least 8 characters long');
         hasError = true;
+      } else if (newPassword.length > 64) {
+        setState(() => _passwordError = 'New password must not exceed 64 characters');
+        hasError = true;
+      } else if (!RegExp(r'[a-zA-Z]').hasMatch(newPassword) || !RegExp(r'[0-9]').hasMatch(newPassword)) {
+        setState(() => _passwordError = 'New password must contain both letters and numbers');
+        hasError = true;
       }
     }
 
@@ -372,6 +383,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     focusNode: _nameFocus,
                     labelText: 'Name',
                     hintText: 'Enter your name',
+                    helperText: '3–20 characters (letters, numbers, underscores)',
                     errorText: _nameError,
                     keyboardType: TextInputType.name,
                     textInputAction: TextInputAction.next,
@@ -461,8 +473,35 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
                     ),
                     onChanged: (_) {
-                      if (_passwordError != null) setState(() => _passwordError = null);
+                      setState(() {
+                        if (_passwordError != null) _passwordError = null;
+                      });
                     },
+                  ),
+                  const SizedBox(height: 8),
+                  // Real-time password requirement checklist
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildRequirementItem(
+                          isMet: _hasNewPasswordMinLength,
+                          label: 'At least 8 characters (8–64 characters)',
+                          colorScheme: theme.colorScheme,
+                        ),
+                        _buildRequirementItem(
+                          isMet: _hasNewPasswordLetter,
+                          label: 'Contains letters (a-z, A-Z)',
+                          colorScheme: theme.colorScheme,
+                        ),
+                        _buildRequirementItem(
+                          isMet: _hasNewPasswordNumber,
+                          label: 'Contains numbers (0-9)',
+                          colorScheme: theme.colorScheme,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 36),
 
@@ -477,6 +516,34 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRequirementItem({
+    required bool isMet,
+    required String label,
+    required ColorScheme colorScheme,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4.0),
+      child: Row(
+        children: [
+          Icon(
+            isMet ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            size: 15,
+            color: isMet ? Colors.green.shade600 : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              color: isMet ? Colors.green.shade700 : colorScheme.onSurfaceVariant,
+              fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
       ),
     );
   }

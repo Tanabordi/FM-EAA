@@ -230,7 +230,11 @@ void main() {
       expect(find.text('Alex Lee'), findsOneWidget);
       expect(find.text('alex.lee@example.com'), findsOneWidget);
       expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      expect(find.text('3–20 characters (letters, numbers, underscores)'), findsOneWidget);
       expect(find.text('Change password'), findsOneWidget);
+      expect(find.text('At least 8 characters (8–64 characters)'), findsOneWidget);
+      expect(find.text('Contains letters (a-z, A-Z)'), findsOneWidget);
+      expect(find.text('Contains numbers (0-9)'), findsOneWidget);
       expect(find.text('Save Changes'), findsOneWidget);
     });
 
