@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -343,13 +345,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
             child: SizedBox(
               width: 70,
               height: 70,
-              child: item.imagePath != null && item.imagePath!.startsWith('http')
-                  ? Image.network(
-                      item.imagePath!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildFallbackThumbnail(item),
-                    )
-                  : _buildFallbackThumbnail(item),
+              child: _buildFoodThumbnail(item),
             ),
           ),
           const SizedBox(width: 14),
@@ -404,6 +400,78 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
         ],
       ),
     );
+  }
+
+  Widget _buildFoodThumbnail(HistoryModel item) {
+    final imagePath = item.imagePath;
+    if (imagePath != null && imagePath.isNotEmpty) {
+      if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        return Image.network(
+          imagePath,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildFallbackThumbnail(item),
+        );
+      } else if (imagePath.startsWith('assets/')) {
+        return Image.asset(
+          imagePath,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildFallbackThumbnail(item),
+        );
+      } else if (!kIsWeb) {
+        return Image.file(
+          File(imagePath),
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildFallbackThumbnail(item),
+        );
+      }
+    }
+
+    final guessedAsset = _guessAssetByName(item.itemName);
+    if (guessedAsset != null) {
+      return Image.asset(
+        guessedAsset,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildFallbackThumbnail(item),
+      );
+    }
+
+    return _buildFallbackThumbnail(item);
+  }
+
+  String? _guessAssetByName(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('avocado')) return 'assets/images/food_avocados.png';
+    if (lower.contains('spinach') || lower.contains('cabbage') || lower.contains('veggie')) {
+      return 'assets/images/food_spinach.png';
+    }
+    if (lower.contains('strawberr') || lower.contains('berry') || lower.contains('fruit')) {
+      return 'assets/images/food_strawberries.png';
+    }
+    if (lower.contains('tomato')) return 'assets/images/food_cherry_tomatoes.png';
+    if (lower.contains('chicken') || lower.contains('meat') || lower.contains('beef') || lower.contains('pork')) {
+      return 'assets/images/food_chicken_breasts.png';
+    }
+    if (lower.contains('egg')) return 'assets/images/food_eggs.png';
+    if (lower.contains('salmon') || lower.contains('fish') || lower.contains('seafood')) {
+      return 'assets/images/food_salmon_fillets.png';
+    }
+    if (lower.contains('tofu')) return 'assets/images/food_firm_tofu.png';
+    if (lower.contains('whole milk')) return 'assets/images/food_whole_milk.png';
+    if (lower.contains('milk') || lower.contains('dairy') || lower.contains('yogurt')) {
+      return 'assets/images/food_milk.png';
+    }
+    if (lower.contains('pizza')) return 'assets/images/food_pizza.png';
+    if (lower.contains('lasagna') || lower.contains('pasta')) return 'assets/images/food_lasagna.png';
+    if (lower.contains('dumpling')) return 'assets/images/food_dumplings.png';
+    if (lower.contains('nugget')) return 'assets/images/food_nuggets.png';
+    if (lower.contains('juice') || lower.contains('orange')) return 'assets/images/food_orange_juice.png';
+    if (lower.contains('cold brew') || lower.contains('coffee')) return 'assets/images/food_cold_brew.png';
+    if (lower.contains('kombucha')) return 'assets/images/food_kombucha.png';
+    if (lower.contains('olive oil') || lower.contains('oil')) return 'assets/images/food_olive_oil.png';
+    if (lower.contains('soy sauce') || lower.contains('sauce')) return 'assets/images/food_soy_sauce.png';
+    if (lower.contains('mayo')) return 'assets/images/food_mayo.png';
+    if (lower.contains('sriracha') || lower.contains('chili')) return 'assets/images/food_sriracha.png';
+    return null;
   }
 
   Widget _buildFallbackThumbnail(HistoryModel item) {

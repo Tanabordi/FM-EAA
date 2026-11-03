@@ -15,6 +15,7 @@ class HistoryRepository {
 
   /// Optimistic Stream: Watches history audit records from Drift SQLite
   Stream<List<HistoryModel>> watchHistory(String fridgeId, {String? kind}) {
+    database.itemDao.autoRecordExpiredItems(fridgeId);
     return database.itemDao
         .watchHistoryByFridge(fridgeId, kind: kind)
         .map((entries) => entries.map(HistoryModel.fromEntry).toList());
@@ -22,6 +23,7 @@ class HistoryRepository {
 
   /// Get history records for a fridge from Drift SQLite
   Future<List<HistoryModel>> getHistory(String fridgeId, [String? kind]) async {
+    await database.itemDao.autoRecordExpiredItems(fridgeId);
     final entries = await database.itemDao.getHistoryByFridge(fridgeId, kind: kind);
     return entries.map(HistoryModel.fromEntry).toList();
   }

@@ -1,9 +1,10 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
+import '../../../../shared/utils/date_input_formatter.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 
@@ -28,10 +29,12 @@ class EditItemPage extends ConsumerStatefulWidget {
 class _EditItemPageState extends ConsumerState<EditItemPage> {
   late TextEditingController _nameController;
   late TextEditingController _quantityController;
+  late TextEditingController _expirationDateController;
   late String _category;
   late String _unit;
   late String _storage;
   late DateTime _expirationDate;
+  String? _expirationDateError;
   String? _imagePath;
   Uint8List? _imageBytes;
   bool _initialized = false;
@@ -60,8 +63,88 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
   }
 
   String _formatDate(DateTime date) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$m/$d/${date.year}';
+  }
+
+  DateTime? _tryParseDate(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+
+    final iso = DateTime.tryParse(trimmed);
+    if (iso != null) return iso;
+
+    final mdyMatch = RegExp(r'^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$').firstMatch(trimmed);
+    if (mdyMatch != null) {
+      final p1 = int.tryParse(mdyMatch.group(1)!);
+      final p2 = int.tryParse(mdyMatch.group(2)!);
+      var year = int.tryParse(mdyMatch.group(3)!);
+      if (p1 != null && p2 != null && year != null) {
+        if (year < 100) year += 2000;
+        // Priority 1: MM/DD/YYYY (e.g. 10/28/2026)
+        if (p1 >= 1 && p1 <= 12 && p2 >= 1 && p2 <= 31) {
+          try {
+            final dt = DateTime(year, p1, p2);
+            if (dt.year == year && dt.month == p1 && dt.day == p2) return dt;
+          } catch (_) {}
+        }
+        // Priority 2: Fallback to DD/MM/YYYY (if day > 12)
+        if (p2 >= 1 && p2 <= 12 && p1 >= 1 && p1 <= 31) {
+          try {
+            final dt = DateTime(year, p2, p1);
+            if (dt.year == year && dt.month == p2 && dt.day == p1) return dt;
+          } catch (_) {}
+        }
+      }
+    }
+
+    final monthsMap = {
+      'jan': 1, 'january': 1,
+      'feb': 2, 'february': 2,
+      'mar': 3, 'march': 3,
+      'apr': 4, 'april': 4,
+      'may': 5,
+      'jun': 6, 'june': 6,
+      'jul': 7, 'july': 7,
+      'aug': 8, 'august': 8,
+      'sep': 9, 'september': 9,
+      'oct': 10, 'october': 10,
+      'nov': 11, 'november': 11,
+      'dec': 12, 'december': 12,
+    };
+
+    final wordsMatch = RegExp(r'^(\d{1,2})\s+([A-Za-z]+),?\s+(\d{2,4})$').firstMatch(trimmed);
+    if (wordsMatch != null) {
+      final day = int.tryParse(wordsMatch.group(1)!);
+      final monthName = wordsMatch.group(2)!.toLowerCase();
+      var year = int.tryParse(wordsMatch.group(3)!);
+      final month = monthsMap[monthName];
+      if (day != null && month != null && year != null) {
+        if (year < 100) year += 2000;
+        try {
+          final dt = DateTime(year, month, day);
+          if (dt.year == year && dt.month == month && dt.day == day) return dt;
+        } catch (_) {}
+      }
+    }
+
+    final monthFirstMatch = RegExp(r'^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{2,4})$').firstMatch(trimmed);
+    if (monthFirstMatch != null) {
+      final monthName = monthFirstMatch.group(1)!.toLowerCase();
+      final day = int.tryParse(monthFirstMatch.group(2)!);
+      var year = int.tryParse(monthFirstMatch.group(3)!);
+      final month = monthsMap[monthName];
+      if (day != null && month != null && year != null) {
+        if (year < 100) year += 2000;
+        try {
+          final dt = DateTime(year, month, day);
+          if (dt.year == year && dt.month == month && dt.day == day) return dt;
+        } catch (_) {}
+      }
+    }
+
+    return null;
   }
 
   @override
@@ -100,6 +183,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       _unit = _normalizeUnit(item.unit);
       _storage = item.zone.toLowerCase() == 'freezer' ? 'Freezer' : 'Fridge';
       _expirationDate = item.expiryDate;
+      _expirationDateController = TextEditingController(text: _formatDate(item.expiryDate));
       _imagePath = item.imagePath;
       _initialized = true;
     }
@@ -109,6 +193,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
   void dispose() {
     _nameController.dispose();
     _quantityController.dispose();
+    _expirationDateController.dispose();
     super.dispose();
   }
 
@@ -322,6 +407,19 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter a food name before saving'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final dateParsed = _tryParseDate(_expirationDateController.text);
+    if (dateParsed != null) {
+      _expirationDate = dateParsed;
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid expiration date (e.g. MM/DD/YYYY)'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -563,65 +661,101 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                       },
                     ),
                     const SizedBox(height: 14),
-                    // Expiration Date Picker
-                    InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: _expirationDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2035),
-                          builder: (context, child) {
-                            return Theme(
-                              data: Theme.of(context).copyWith(
-                                colorScheme: const ColorScheme.light(
-                                  primary: Color(0xFF2E6A44),
-                                  onPrimary: Colors.white,
-                                  onSurface: Color(0xFF181D17),
-                                ),
-                              ),
-                              child: child!,
-                            );
-                          },
-                        );
-                        if (picked != null) {
-                          setState(() => _expirationDate = picked);
-                        }
-                      },
-                      child: Container(
-                        height: 54,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF6FBF3),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF717971), width: 1.0),
+                    // Expiration Date Field (Typeable & Date Picker)
+                    TextFormField(
+                      key: const Key('edit_item_expiration_date'),
+                      controller: _expirationDateController,
+                      keyboardType: TextInputType.datetime,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9/]')),
+                        DateInputFormatter(),
+                      ],
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF181D17),
+                        fontWeight: FontWeight.w400,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Expiration Date (MM/DD/YYYY)',
+                        hintStyle: const TextStyle(
+                          color: Color(0xFF717971),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w400,
                         ),
-                        child: Row(
-                          children: [
-                            Text(
-                              _formatDate(_expirationDate),
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: Color(0xFF181D17),
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                            const Spacer(),
-                            const Icon(
-                              Icons.calendar_today_outlined,
-                              size: 20,
-                              color: Color(0xFF414941),
-                            ),
-                          ],
+                        errorText: _expirationDateError,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        filled: true,
+                        fillColor: const Color(0xFFF6FBF3),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: _expirationDateError != null
+                                ? const Color(0xFFBA1A1A)
+                                : const Color(0xFF717971),
+                            width: 1.0,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: _expirationDateError != null
+                                ? const Color(0xFFBA1A1A)
+                                : const Color(0xFF2E6A44),
+                            width: 1.5,
+                          ),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: const Icon(
+                            Icons.calendar_month_outlined,
+                            size: 22,
+                            color: Color(0xFF414941),
+                          ),
+                          tooltip: 'Choose date',
+                          onPressed: () async {
+                            final initial = _tryParseDate(_expirationDateController.text) ?? _expirationDate;
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: initial,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2035),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF2E6A44),
+                                      onPrimary: Colors.white,
+                                      onSurface: Color(0xFF181D17),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _expirationDate = picked;
+                                _expirationDateController.text = _formatDate(picked);
+                                _expirationDateError = null;
+                              });
+                            }
+                          },
                         ),
                       ),
+                      onChanged: (val) {
+                        final parsed = _tryParseDate(val);
+                        if (parsed != null) {
+                          setState(() {
+                            _expirationDate = parsed;
+                            _expirationDateError = null;
+                          });
+                        }
+                      },
                     ),
                     const SizedBox(height: 6),
                     const Padding(
                       padding: EdgeInsets.only(left: 12.0),
                       child: Text(
-                        'Use-by or best-before date',
+                        'Use-by or best-before date (MM/DD/YYYY)',
                         style: TextStyle(fontSize: 12, color: Color(0xFF414941)),
                       ),
                     ),

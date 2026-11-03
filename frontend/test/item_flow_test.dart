@@ -39,8 +39,8 @@ void main() {
       expect(find.text('Quantity'), findsOneWidget);
       expect(find.text('Unit'), findsOneWidget);
       expect(find.text('Storage Location'), findsOneWidget);
-      expect(find.text('Expiration Date'), findsOneWidget);
-      expect(find.text('Use-by or best-before date'), findsOneWidget);
+      expect(find.textContaining('Expiration Date'), findsOneWidget);
+      expect(find.textContaining('Use-by or best-before date'), findsOneWidget);
       expect(find.text('Save'), findsOneWidget);
     });
 
@@ -364,5 +364,45 @@ void main() {
       expect(countAfterUndo, initialCount);
       expect(container.read(fridgeItemsProvider('fridge_kitchen')).any((it) => it.id == 'item_milk'), true);
     });
+
+    testWidgets('Screen #11: AddItemPage allows typing expiration date manually with keyboard and auto-inserts slashes', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddItemPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+
+      final dateFinder = find.byKey(const Key('add_item_expiration_date'));
+      expect(dateFinder, findsOneWidget);
+
+      // User types raw digits without typing '/' manually
+      await tester.enterText(dateFinder, '12252026');
+      await tester.pumpAndSettle();
+
+      expect(find.text('12/25/2026'), findsOneWidget);
+    });
+
+    testWidgets('Screen #13: EditItemPage allows editing expiration date manually with keyboard and auto-inserts slashes', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: EditItemPage(fridgeId: 'fridge_kitchen', itemId: 'item_strawberries'),
+          ),
+        ),
+      );
+
+      // Find the date field which initially has pre-filled date
+      final dateFinder = find.byKey(const Key('edit_item_expiration_date'));
+      expect(dateFinder, findsOneWidget);
+
+      // User types a new date using raw digits
+      await tester.enterText(dateFinder, '11302026');
+      await tester.pumpAndSettle();
+
+      expect(find.text('11/30/2026'), findsOneWidget);
+    });
   });
 }
+

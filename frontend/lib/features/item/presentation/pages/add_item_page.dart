@@ -1,11 +1,12 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
+import '../../../../shared/utils/date_input_formatter.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
@@ -32,6 +33,7 @@ class AddItemPage extends ConsumerStatefulWidget {
 class _AddItemPageState extends ConsumerState<AddItemPage> {
   final _foodNameController = TextEditingController();
   final _quantityController = TextEditingController();
+  final _expirationDateController = TextEditingController();
   String? _selectedCategory;
   String? _selectedUnit;
   String? _selectedStorage;
@@ -53,10 +55,129 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   final _units = ['pieces', 'bag', 'punnet', 'bottle', 'box', 'can', 'pack', 'g', 'kg'];
   final _storages = ['Fridge', 'Freezer'];
 
+  String? _normalizeCategory(String? cat) {
+    if (cat == null || cat.trim().isEmpty) return null;
+    final lower = cat.trim().toLowerCase();
+    for (final c in _categories) {
+      if (c.toLowerCase() == lower) return c;
+    }
+    if (lower.contains('veg') || lower.contains('fruit')) return 'Veggies';
+    if (lower.contains('meat') || lower.contains('protein') || lower.contains('fish') || lower.contains('chicken') || lower.contains('beef')) return 'Proteins';
+    if (lower.contains('drink') || lower.contains('bever') || lower.contains('milk') || lower.contains('juice') || lower.contains('water')) return 'Beverages';
+    if (lower.contains('sauce') || lower.contains('condiment') || lower.contains('jam')) return 'Sauces';
+    if (lower.contains('meal') || lower.contains('food') || lower.contains('leftover')) return 'Meals';
+    return _categories.first;
+  }
+
+  String? _normalizeUnit(String? u) {
+    if (u == null || u.trim().isEmpty) return null;
+    final lower = u.trim().toLowerCase();
+    for (final unit in _units) {
+      if (unit.toLowerCase() == lower) return unit;
+    }
+    if (lower.contains('piece') || lower == 'pc' || lower == 'pcs') return 'pieces';
+    if (lower.contains('bottle')) return 'bottle';
+    if (lower.contains('bag')) return 'bag';
+    if (lower.contains('box')) return 'box';
+    if (lower.contains('can')) return 'can';
+    if (lower.contains('pack') || lower.contains('pkt')) return 'pack';
+    if (lower.contains('punnet')) return 'punnet';
+    if (lower == 'g' || lower.contains('gram')) return 'g';
+    if (lower == 'kg' || lower.contains('kilo')) return 'kg';
+    return _units.first;
+  }
+
+  String? _normalizeStorage(String? s) {
+    if (s == null || s.trim().isEmpty) return null;
+    final lower = s.trim().toLowerCase();
+    if (lower.contains('freez')) return 'Freezer';
+    return 'Fridge';
+  }
+
+  DateTime? _tryParseDate(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+
+    final iso = DateTime.tryParse(trimmed);
+    if (iso != null) return iso;
+
+    final mdyMatch = RegExp(r'^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$').firstMatch(trimmed);
+    if (mdyMatch != null) {
+      final p1 = int.tryParse(mdyMatch.group(1)!);
+      final p2 = int.tryParse(mdyMatch.group(2)!);
+      var year = int.tryParse(mdyMatch.group(3)!);
+      if (p1 != null && p2 != null && year != null) {
+        if (year < 100) year += 2000;
+        // Priority 1: MM/DD/YYYY (e.g. 10/28/2026)
+        if (p1 >= 1 && p1 <= 12 && p2 >= 1 && p2 <= 31) {
+          try {
+            final dt = DateTime(year, p1, p2);
+            if (dt.year == year && dt.month == p1 && dt.day == p2) return dt;
+          } catch (_) {}
+        }
+        // Priority 2: Fallback to DD/MM/YYYY (if day > 12)
+        if (p2 >= 1 && p2 <= 12 && p1 >= 1 && p1 <= 31) {
+          try {
+            final dt = DateTime(year, p2, p1);
+            if (dt.year == year && dt.month == p2 && dt.day == p1) return dt;
+          } catch (_) {}
+        }
+      }
+    }
+
+    final monthsMap = {
+      'jan': 1, 'january': 1,
+      'feb': 2, 'february': 2,
+      'mar': 3, 'march': 3,
+      'apr': 4, 'april': 4,
+      'may': 5,
+      'jun': 6, 'june': 6,
+      'jul': 7, 'july': 7,
+      'aug': 8, 'august': 8,
+      'sep': 9, 'september': 9,
+      'oct': 10, 'october': 10,
+      'nov': 11, 'november': 11,
+      'dec': 12, 'december': 12,
+    };
+
+    final wordsMatch = RegExp(r'^(\d{1,2})\s+([A-Za-z]+),?\s+(\d{2,4})$').firstMatch(trimmed);
+    if (wordsMatch != null) {
+      final day = int.tryParse(wordsMatch.group(1)!);
+      final monthName = wordsMatch.group(2)!.toLowerCase();
+      var year = int.tryParse(wordsMatch.group(3)!);
+      final month = monthsMap[monthName];
+      if (day != null && month != null && year != null) {
+        if (year < 100) year += 2000;
+        try {
+          final dt = DateTime(year, month, day);
+          if (dt.year == year && dt.month == month && dt.day == day) return dt;
+        } catch (_) {}
+      }
+    }
+
+    final monthFirstMatch = RegExp(r'^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{2,4})$').firstMatch(trimmed);
+    if (monthFirstMatch != null) {
+      final monthName = monthFirstMatch.group(1)!.toLowerCase();
+      final day = int.tryParse(monthFirstMatch.group(2)!);
+      var year = int.tryParse(monthFirstMatch.group(3)!);
+      final month = monthsMap[monthName];
+      if (day != null && month != null && year != null) {
+        if (year < 100) year += 2000;
+        try {
+          final dt = DateTime(year, month, day);
+          if (dt.year == year && dt.month == month && dt.day == day) return dt;
+        } catch (_) {}
+      }
+    }
+
+    return null;
+  }
+
   bool get _hasUnsavedChanges {
     if (_forceExit) return false;
     return _foodNameController.text.trim().isNotEmpty ||
         _quantityController.text.trim().isNotEmpty ||
+        _expirationDateController.text.trim().isNotEmpty ||
         _selectedCategory != null ||
         _selectedUnit != null ||
         _selectedStorage != null ||
@@ -120,18 +241,19 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
         }
       } catch (_) {}
     }
-    _selectedCategory = result.category;
+    _selectedCategory = _normalizeCategory(result.category);
     _categoryError = null;
     if (_quantityController.text.trim().isEmpty) {
       _quantityController.text = '2';
       _quantityError = null;
     }
-    _selectedUnit = result.unit;
+    _selectedUnit = _normalizeUnit(result.unit);
     _unitError = null;
-    _selectedStorage = result.storage;
+    _selectedStorage = _normalizeStorage(result.storage);
     _storageError = null;
     if (result.expiryDate != null) {
       _expirationDate = result.expiryDate;
+      _expirationDateController.text = _formatDate(result.expiryDate!);
       _expirationDateError = null;
     }
     _hasAnalyzed = true;
@@ -141,12 +263,14 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   void dispose() {
     _foodNameController.dispose();
     _quantityController.dispose();
+    _expirationDateController.dispose();
     super.dispose();
   }
 
   String _formatDate(DateTime date) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$m/$d/${date.year}';
   }
 
   InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon, String? errorText}) {
@@ -200,6 +324,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       _isScanning = false;
       _foodNameController.clear();
       _quantityController.clear();
+      _expirationDateController.clear();
       _selectedCategory = null;
       _selectedUnit = null;
       _selectedStorage = null;
@@ -247,8 +372,16 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     if (_selectedStorage == null || _selectedStorage!.isEmpty) {
       storageErr = 'Please select a storage location';
     }
-    if (_expirationDate == null) {
-      dateErr = 'Please select an expiration date';
+
+    final dateInput = _expirationDateController.text.trim();
+    if (_expirationDate == null && dateInput.isNotEmpty) {
+      _expirationDate = _tryParseDate(dateInput);
+    }
+
+    if (dateInput.isEmpty && _expirationDate == null) {
+      dateErr = 'Please enter or select an expiration date';
+    } else if (dateInput.isNotEmpty && _expirationDate == null) {
+      dateErr = 'Invalid date. Use MM/DD/YYYY (or YYYY-MM-DD)';
     }
 
     setState(() {
@@ -370,6 +503,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     final hasFormData = _foodNameController.text.trim().isNotEmpty ||
         _selectedCategory != null ||
         _quantityController.text.trim().isNotEmpty ||
+        _expirationDateController.text.trim().isNotEmpty ||
         _selectedUnit != null ||
         _selectedStorage != null ||
         _expirationDate != null;
@@ -954,7 +1088,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           flex: 1,
                           child: TextFormField(
                             controller: _quantityController,
-                            keyboardType: TextInputType.number,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             style: const TextStyle(
                               fontSize: 15,
                               color: Color(0xFF181D17),
@@ -1056,51 +1190,81 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                       },
                     ),
                     const SizedBox(height: 14),
-                    // Expiration Date Picker
-                    InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: _expirationDate ?? DateTime.now().add(const Duration(days: 7)),
-                          firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                          lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-                        );
-                        if (picked != null) {
+                    // Expiration Date Field (Typeable & Date Picker)
+                    TextFormField(
+                      key: const Key('add_item_expiration_date'),
+                      controller: _expirationDateController,
+                      keyboardType: TextInputType.datetime,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9/]')),
+                        DateInputFormatter(),
+                      ],
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF181D17),
+                        fontWeight: FontWeight.w400,
+                      ),
+                      decoration: _inputDecoration(
+                        hintText: 'Expiration Date (MM/DD/YYYY)',
+                        errorText: _expirationDateError,
+                        suffixIcon: IconButton(
+                          icon: const Icon(
+                            Icons.calendar_month_outlined,
+                            size: 22,
+                            color: Color(0xFF414941),
+                          ),
+                          tooltip: 'Choose date',
+                          onPressed: () async {
+                            final initial = _expirationDate ??
+                                _tryParseDate(_expirationDateController.text) ??
+                                DateTime.now().add(const Duration(days: 7));
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: initial,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2035),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF2E6A44),
+                                      onPrimary: Colors.white,
+                                      onSurface: Color(0xFF181D17),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _expirationDate = picked;
+                                _expirationDateController.text = _formatDate(picked);
+                                _expirationDateError = null;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      onChanged: (val) {
+                        final parsed = _tryParseDate(val);
+                        if (parsed != null) {
                           setState(() {
-                            _expirationDate = picked;
+                            _expirationDate = parsed;
                             _expirationDateError = null;
+                          });
+                        } else {
+                          setState(() {
+                            _expirationDate = null;
                           });
                         }
                       },
-                      child: InputDecorator(
-                        decoration: _inputDecoration(
-                          suffixIcon: const Icon(
-                            Icons.calendar_month_outlined,
-                            size: 20,
-                            color: Color(0xFF414941),
-                          ),
-                          errorText: _expirationDateError,
-                        ),
-                        child: Text(
-                          _expirationDate != null
-                              ? _formatDate(_expirationDate!)
-                              : 'Expiration Date',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
-                            color: _expirationDate != null
-                                ? const Color(0xFF181D17)
-                                : const Color(0xFF717971),
-                          ),
-                        ),
-                      ),
                     ),
                     const SizedBox(height: 6),
                     const Padding(
                       padding: EdgeInsets.only(left: 12.0),
                       child: Text(
-                        'Use-by or best-before date',
+                        'Use-by or best-before date (MM/DD/YYYY)',
                         style: TextStyle(fontSize: 12, color: Color(0xFF414941)),
                       ),
                     ),
