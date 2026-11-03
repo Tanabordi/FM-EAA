@@ -44,7 +44,7 @@ describe('Auth API Integration Tests', () => {
         password: '123',
       });
       expect(res.statusCode).toBe(400);
-      expect(res.body.error).toMatch(/at least 6 characters/i);
+      expect(res.body.error).toMatch(/at least 8 characters/i);
     });
 
     it('successfully registers a new user', async () => {
