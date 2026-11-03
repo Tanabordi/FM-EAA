@@ -8,6 +8,7 @@ import 'package:fm_eaa/features/item/presentation/pages/item_details_page.dart';
 import 'package:fm_eaa/features/item/presentation/widgets/delete_item_dialog.dart';
 import 'package:fm_eaa/features/item/presentation/widgets/finish_all_snackbar.dart';
 import 'package:fm_eaa/features/item/presentation/widgets/mark_consumed_sheet.dart';
+import 'package:fm_eaa/shared/widgets/app_back_button.dart';
 
 void main() {
   group('Screens #11-16: Ingredient Form and Consumption Flow Tests', () {
@@ -54,6 +55,36 @@ void main() {
       await tester.pump();
       expect(find.text('Add items'), findsOneWidget); // still on Add items page, does not pop
       expect(find.text('Please enter a food name before saving'), findsOneWidget);
+    });
+
+    testWidgets('Screen #11: Back button with unsaved changes shows Discard changes dialog', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddItemPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+
+      // Type some text in Food Name
+      await tester.enterText(find.widgetWithText(TextFormField, 'Food Name'), 'Avocado');
+      await tester.pump();
+
+      // Tap back button
+      await tester.tap(find.byType(AppBackButton));
+      await tester.pumpAndSettle();
+
+      // Verify ConfirmDialog appears with Discard and Keep editing
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.text('You have unsaved changes. Are you sure you want to discard them?'), findsOneWidget);
+      expect(find.text('Keep editing'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+
+      // Tap Keep editing -> dialog closes, stays on page
+      await tester.tap(find.text('Keep editing'));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.text('Add items'), findsOneWidget);
     });
 
     testWidgets('Screen #11: Tapping Scan Label with AI card opens ScanLabelPage directly and supports saving item', (tester) async {

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
 import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 import '../../../fridges/providers/fridges_provider.dart';
 import 'scan_label_page.dart';
@@ -38,10 +39,63 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   Uint8List? _imageBytes;
   bool _hasAnalyzed = false;
   bool _isScanning = false;
+  bool _forceExit = false;
+
+  String? _foodNameError;
+  String? _categoryError;
+  String? _quantityError;
+  String? _unitError;
+  String? _storageError;
+  String? _expirationDateError;
 
   final _categories = ['Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'];
   final _units = ['pieces', 'bag', 'punnet', 'bottle', 'box', 'can', 'pack', 'g', 'kg'];
   final _storages = ['Fridge', 'Freezer'];
+
+  bool get _hasUnsavedChanges {
+    if (_forceExit) return false;
+    return _foodNameController.text.trim().isNotEmpty ||
+        _quantityController.text.trim().isNotEmpty ||
+        _selectedCategory != null ||
+        _selectedUnit != null ||
+        _selectedStorage != null ||
+        _expirationDate != null ||
+        _imagePath != null ||
+        _imageBytes != null;
+  }
+
+  void _handleBack() {
+    if (_hasUnsavedChanges) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => ConfirmDialog(
+          title: 'Discard changes?',
+          message: 'You have unsaved changes. Are you sure you want to discard them?',
+          confirmLabel: 'Discard',
+          cancelLabel: 'Keep editing',
+          isDestructive: true,
+          onConfirm: () {
+            setState(() => _forceExit = true);
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              try {
+                context.pop();
+              } catch (_) {}
+            }
+          },
+        ),
+      );
+    } else {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      } else {
+        try {
+          context.pop();
+        } catch (_) {}
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -54,6 +108,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   void _applyScanResult(AiScanResult result) {
     if (result.foodName != null && result.foodName!.trim().isNotEmpty) {
       _foodNameController.text = result.foodName!;
+      _foodNameError = null;
     }
     if (result.imagePath != null && result.imagePath!.isNotEmpty) {
       _imagePath = result.imagePath;
@@ -65,13 +120,18 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       } catch (_) {}
     }
     _selectedCategory = result.category;
+    _categoryError = null;
     if (_quantityController.text.trim().isEmpty) {
       _quantityController.text = '2';
+      _quantityError = null;
     }
     _selectedUnit = result.unit;
+    _unitError = null;
     _selectedStorage = result.storage;
+    _storageError = null;
     if (result.expiryDate != null) {
       _expirationDate = result.expiryDate;
+      _expirationDateError = null;
     }
     _hasAnalyzed = true;
   }
@@ -88,12 +148,18 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
-  InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon}) {
+  InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon, String? errorText}) {
     return InputDecoration(
       hintText: hintText,
       hintStyle: const TextStyle(
         color: Color(0xFF717971),
         fontSize: 15,
+        fontWeight: FontWeight.w400,
+      ),
+      errorText: errorText,
+      errorStyle: const TextStyle(
+        color: Color(0xFFBA1A1A),
+        fontSize: 12,
         fontWeight: FontWeight.w400,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -102,11 +168,25 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       suffixIcon: suffixIcon,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF717971), width: 1.0),
+        borderSide: BorderSide(
+          color: errorText != null ? const Color(0xFFBA1A1A) : const Color(0xFF717971),
+          width: errorText != null ? 1.5 : 1.0,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF2E6A44), width: 1.5),
+        borderSide: BorderSide(
+          color: errorText != null ? const Color(0xFFBA1A1A) : const Color(0xFF2E6A44),
+          width: 1.5,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFBA1A1A), width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFBA1A1A), width: 1.5),
       ),
     );
   }
@@ -123,6 +203,12 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       _selectedUnit = null;
       _selectedStorage = null;
       _expirationDate = null;
+      _foodNameError = null;
+      _categoryError = null;
+      _quantityError = null;
+      _unitError = null;
+      _storageError = null;
+      _expirationDateError = null;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -135,26 +221,62 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
   void _onSave() {
     final name = _foodNameController.text.trim();
+    final qtyText = _quantityController.text.trim();
+    final parsedQty = double.tryParse(qtyText);
+
+    String? nameErr;
+    String? catErr;
+    String? qtyErr;
+    String? unitErr;
+    String? storageErr;
+    String? dateErr;
+
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a food name before saving'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      nameErr = 'Please enter a food name before saving';
+    }
+    if (_selectedCategory == null || _selectedCategory!.isEmpty) {
+      catErr = 'Please select a category';
+    }
+    if (qtyText.isEmpty || parsedQty == null || parsedQty <= 0) {
+      qtyErr = 'Please enter a valid quantity';
+    }
+    if (_selectedUnit == null || _selectedUnit!.isEmpty) {
+      unitErr = 'Please select a unit';
+    }
+    if (_selectedStorage == null || _selectedStorage!.isEmpty) {
+      storageErr = 'Please select a storage location';
+    }
+    if (_expirationDate == null) {
+      dateErr = 'Please select an expiration date';
+    }
+
+    setState(() {
+      _foodNameError = nameErr;
+      _categoryError = catErr;
+      _quantityError = qtyErr;
+      _unitError = unitErr;
+      _storageError = storageErr;
+      _expirationDateError = dateErr;
+    });
+
+    if (nameErr != null ||
+        catErr != null ||
+        qtyErr != null ||
+        unitErr != null ||
+        storageErr != null ||
+        dateErr != null) {
       return;
     }
 
-    final parsedQty = double.tryParse(_quantityController.text) ?? 1.0;
     final newItem = ItemModel(
       id: 'item_${DateTime.now().millisecondsSinceEpoch}',
       fridgeId: widget.fridgeId,
       name: name,
-      category: (_selectedCategory ?? 'Veggies').toLowerCase(),
-      zone: (_selectedStorage ?? 'Fridge').toLowerCase(),
-      quantity: parsedQty,
-      unit: _selectedUnit ?? 'pieces',
-      expiryDate: _expirationDate ?? DateTime.now().add(const Duration(days: 7)),
+      category: _selectedCategory!.toLowerCase(),
+      zone: _selectedStorage!.toLowerCase(),
+      quantity: parsedQty!,
+      unit: _selectedUnit!,
+      expiryDate: _expirationDate!,
       imagePath: _imagePath ?? 'assets/images/food_avocados.png',
       updatedAt: DateTime.now(),
     );
@@ -402,30 +524,38 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Navigation Bar
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  AppBackButton(),
-                  SizedBox(width: 14),
-                  Text(
-                    'Add items',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF181D17),
+    return PopScope(
+      canPop: !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF6FBF3),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top Navigation Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Row(
+                  children: [
+                    AppBackButton(
+                      onPressed: _handleBack,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 14),
+                    const Text(
+                      'Add items',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF181D17),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            // Form Content
+              // Form Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 24.0),
@@ -464,7 +594,15 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         color: Color(0xFF181D17),
                         fontWeight: FontWeight.w400,
                       ),
-                      decoration: _inputDecoration(hintText: 'Food Name'),
+                      decoration: _inputDecoration(
+                        hintText: 'Food Name',
+                        errorText: _foodNameError,
+                      ),
+                      onChanged: (_) {
+                        if (_foodNameError != null) {
+                          setState(() => _foodNameError = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 14),
                     // Category Dropdown
@@ -485,7 +623,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         ),
                       ),
                       icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
-                      decoration: _inputDecoration(),
+                      decoration: _inputDecoration(errorText: _categoryError),
                       items: _categories
                           .map((c) => DropdownMenuItem(
                                 value: c,
@@ -499,11 +637,17 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                                 ),
                               ))
                           .toList(),
-                      onChanged: (val) => setState(() => _selectedCategory = val),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedCategory = val;
+                          _categoryError = null;
+                        });
+                      },
                     ),
                     const SizedBox(height: 14),
                     // Quantity and Unit Row
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           flex: 1,
@@ -511,11 +655,19 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                             controller: _quantityController,
                             keyboardType: TextInputType.number,
                             style: const TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFF181D17),
-                        fontWeight: FontWeight.w400,
-                      ),
-                            decoration: _inputDecoration(hintText: 'Quantity'),
+                              fontSize: 15,
+                              color: Color(0xFF181D17),
+                              fontWeight: FontWeight.w400,
+                            ),
+                            decoration: _inputDecoration(
+                              hintText: 'Quantity',
+                              errorText: _quantityError,
+                            ),
+                            onChanged: (_) {
+                              if (_quantityError != null) {
+                                setState(() => _quantityError = null);
+                              }
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -538,7 +690,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                               ),
                             ),
                             icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
-                            decoration: _inputDecoration(),
+                            decoration: _inputDecoration(errorText: _unitError),
                             items: _units
                                 .map((u) => DropdownMenuItem(
                                       value: u,
@@ -552,7 +704,12 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                                       ),
                                     ))
                                 .toList(),
-                            onChanged: (val) => setState(() => _selectedUnit = val),
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedUnit = val;
+                                _unitError = null;
+                              });
+                            },
                           ),
                         ),
                       ],
@@ -576,7 +733,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         ),
                       ),
                       icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
-                      decoration: _inputDecoration(),
+                      decoration: _inputDecoration(errorText: _storageError),
                       items: _storages
                           .map((s) => DropdownMenuItem(
                                 value: s,
@@ -590,7 +747,12 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                                 ),
                               ))
                           .toList(),
-                      onChanged: (val) => setState(() => _selectedStorage = val),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedStorage = val;
+                          _storageError = null;
+                        });
+                      },
                     ),
                     const SizedBox(height: 14),
                     // Expiration Date Picker
@@ -604,7 +766,10 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
                         );
                         if (picked != null) {
-                          setState(() => _expirationDate = picked);
+                          setState(() {
+                            _expirationDate = picked;
+                            _expirationDateError = null;
+                          });
                         }
                       },
                       child: InputDecorator(
@@ -614,6 +779,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                             size: 20,
                             color: Color(0xFF414941),
                           ),
+                          errorText: _expirationDateError,
                         ),
                         child: Text(
                           _expirationDate != null
@@ -662,6 +828,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
