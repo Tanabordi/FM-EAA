@@ -45,7 +45,7 @@ router.post('/scan-label', authenticateToken, handleUpload, async (req, res, nex
 
 router.post('/recipes', authenticateToken, async (req, res, next) => {
   try {
-    const { mainIngredient, fridgeIngredients, language } = req.body;
+    const { mainIngredient, language, offset } = req.body;
     if (!mainIngredient || typeof mainIngredient !== 'string' || mainIngredient.trim().length === 0) {
       return res.status(400).json({ error: 'mainIngredient is required' });
     }
@@ -54,8 +54,8 @@ router.post('/recipes', authenticateToken, async (req, res, next) => {
     const result = await suggestRecipes({
       userId,
       mainIngredient: mainIngredient.trim(),
-      fridgeIngredients: Array.isArray(fridgeIngredients) ? fridgeIngredients : [],
       language: language || 'th',
+      offset: typeof offset === 'number' ? offset : 0,
     });
 
     res.json(result);

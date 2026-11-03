@@ -143,8 +143,8 @@ class AiRepository {
         '/ai/recipes',
         data: {
           'mainIngredient': mainIngredient,
-          'fridgeIngredients': fridgeIngredients ?? [],
           'language': language,
+          'offset': offset,
         },
       );
 

@@ -135,7 +135,6 @@ describe('AI Recipe Suggestion Routes (/api/ai/recipes)', () => {
       .set('Authorization', `Bearer ${validToken}`)
       .send({
         mainIngredient: 'ค็อกเทลรมควัน',
-        fridgeIngredients: ['ไข่ไก่', 'ข้าวสวย'],
       });
 
     expect(res.statusCode).toBe(200);
@@ -143,8 +142,8 @@ describe('AI Recipe Suggestion Routes (/api/ai/recipes)', () => {
     expect(aiService.suggestRecipes).toHaveBeenCalledWith({
       userId: 'user_chef_1',
       mainIngredient: 'ค็อกเทลรมควัน',
-      fridgeIngredients: ['ไข่ไก่', 'ข้าวสวย'],
       language: 'th',
+      offset: 0,
     });
   });
 

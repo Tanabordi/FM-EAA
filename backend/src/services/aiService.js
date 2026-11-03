@@ -46,102 +46,152 @@ function clearRecipeQuotaForTest() {
   recipeQuotaTracker.clear();
 }
 
-// Curated high quality food photos & assets
-const DISH_IMAGES = {
-  fried_rice: {
-    imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_lasagna.png',
-  },
-  omelet: {
-    imageUrl: 'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_eggs.png',
-  },
-  stir_fry: {
-    imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_lasagna.png',
-  },
-  soup: {
-    imageUrl: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_lasagna.png',
-  },
-  pasta: {
-    imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281699?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_lasagna.png',
-  },
-  noodles: {
-    imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_lasagna.png',
-  },
-  salad: {
-    imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_spinach.png',
-  },
-  sandwich: {
-    imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_lasagna.png',
-  },
-  sausage: {
-    imageUrl: 'https://images.unsplash.com/photo-1585325701165-351af916e581?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_nuggets.png',
-  },
-  pancake: {
-    imageUrl: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_strawberries.png',
-  },
-  smoothie: {
-    imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_strawberries.png',
-  },
-  chicken: {
-    imageUrl: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_chicken_breasts.png',
-  },
-  default: {
-    imageUrl: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80',
-    assetFallback: 'assets/images/food_lasagna.png',
-  },
+// Curated high-resolution food photo pools to ensure diverse, non-repeating photos
+const DISH_IMAGE_POOLS = {
+  carrot: [
+    'https://images.unsplash.com/photo-1447175008436-054170c2e979?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1598170845058-32b9d6a5c717?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1522184216316-3c25379f9760?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80',
+  ],
+  omelet: [
+    'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&w=800&q=80',
+  ],
+  fried_rice: [
+    'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1596560548464-f010549b84d7?auto=format&fit=crop&w=800&q=80',
+  ],
+  stir_fry: [
+    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1514944298352-78d12351be74?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=800&q=80',
+  ],
+  soup: [
+    'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1578020190125-f4f7c18bc9cb?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1607528971899-2e7a3f4e3c35?auto=format&fit=crop&w=800&q=80',
+  ],
+  salad: [
+    'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1505253758473-96b3015f27eb?auto=format&fit=crop&w=800&q=80',
+  ],
+  sausage: [
+    'https://images.unsplash.com/photo-1585325701165-351af916e581?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=800&q=80',
+  ],
+  pasta: [
+    'https://images.unsplash.com/photo-1621996346565-e3d5d6281699?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80',
+  ],
+  sandwich: [
+    'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80',
+  ],
+  pancake: [
+    'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1506084868230-bb9d95c24759?auto=format&fit=crop&w=800&q=80',
+  ],
+  smoothie: [
+    'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1610970881699-44a5587cabec?auto=format&fit=crop&w=800&q=80',
+  ],
+  chicken: [
+    'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=800&q=80',
+  ],
+  default: [
+    'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
+  ],
 };
 
-function attachRecipeImages(recipe, mainIngredient) {
+const DISH_FALLBACK_ASSETS = {
+  omelet: 'assets/images/food_eggs.png',
+  fried_rice: 'assets/images/food_lasagna.png',
+  stir_fry: 'assets/images/food_lasagna.png',
+  soup: 'assets/images/food_lasagna.png',
+  salad: 'assets/images/food_spinach.png',
+  sausage: 'assets/images/food_nuggets.png',
+  chicken: 'assets/images/food_chicken_breasts.png',
+  pancake: 'assets/images/food_strawberries.png',
+  smoothie: 'assets/images/food_strawberries.png',
+  default: 'assets/images/food_lasagna.png',
+};
+
+// Backwards compatibility
+const DISH_IMAGES = {
+  fried_rice: { imageUrl: DISH_IMAGE_POOLS.fried_rice[0], assetFallback: 'assets/images/food_lasagna.png' },
+  omelet: { imageUrl: DISH_IMAGE_POOLS.omelet[0], assetFallback: 'assets/images/food_eggs.png' },
+  stir_fry: { imageUrl: DISH_IMAGE_POOLS.stir_fry[0], assetFallback: 'assets/images/food_lasagna.png' },
+  soup: { imageUrl: DISH_IMAGE_POOLS.soup[0], assetFallback: 'assets/images/food_lasagna.png' },
+  salad: { imageUrl: DISH_IMAGE_POOLS.salad[0], assetFallback: 'assets/images/food_spinach.png' },
+  default: { imageUrl: DISH_IMAGE_POOLS.default[0], assetFallback: 'assets/images/food_lasagna.png' },
+};
+
+function attachRecipeImages(recipe, mainIngredient, index = 0) {
   const type = (recipe.dishType || '').toLowerCase();
   const lowerTitle = (recipe.title || '').toLowerCase();
   const lowerExp = (recipe.expiringIngredient || mainIngredient || '').toLowerCase();
 
-  let mapping = DISH_IMAGES[type];
-  if (!mapping) {
+  let pool = DISH_IMAGE_POOLS[type];
+  let fallbackAsset = DISH_FALLBACK_ASSETS[type] || DISH_FALLBACK_ASSETS.default;
+
+  if (lowerExp.includes('แครอท') || lowerExp.includes('carrot')) {
+    pool = DISH_IMAGE_POOLS.carrot;
+  } else if (!pool) {
     if (lowerTitle.includes('ไข่') || lowerTitle.includes('omelet') || lowerTitle.includes('egg')) {
-      mapping = DISH_IMAGES.omelet;
+      pool = DISH_IMAGE_POOLS.omelet;
+      fallbackAsset = DISH_FALLBACK_ASSETS.omelet;
     } else if (lowerTitle.includes('ข้าวผัด') || lowerTitle.includes('fried rice')) {
-      mapping = DISH_IMAGES.fried_rice;
+      pool = DISH_IMAGE_POOLS.fried_rice;
     } else if (lowerTitle.includes('ผัด') || lowerTitle.includes('stir')) {
-      mapping = DISH_IMAGES.stir_fry;
+      pool = DISH_IMAGE_POOLS.stir_fry;
     } else if (lowerTitle.includes('ซุป') || lowerTitle.includes('soup') || lowerTitle.includes('ต้ม')) {
-      mapping = DISH_IMAGES.soup;
+      pool = DISH_IMAGE_POOLS.soup;
     } else if (lowerTitle.includes('สลัด') || lowerTitle.includes('salad')) {
-      mapping = DISH_IMAGES.salad;
+      pool = DISH_IMAGE_POOLS.salad;
+      fallbackAsset = DISH_FALLBACK_ASSETS.salad;
     } else if (lowerTitle.includes('แซนด์วิช') || lowerTitle.includes('sandwich')) {
-      mapping = DISH_IMAGES.sandwich;
+      pool = DISH_IMAGE_POOLS.sandwich;
     } else if (lowerExp.includes('ไส้กรอก') || lowerExp.includes('sausage') || lowerExp.includes('ค็อกเทล')) {
-      mapping = DISH_IMAGES.sausage;
+      pool = DISH_IMAGE_POOLS.sausage;
+      fallbackAsset = DISH_FALLBACK_ASSETS.sausage;
     } else if (lowerExp.includes('ไก่') || lowerExp.includes('chicken')) {
-      mapping = DISH_IMAGES.chicken;
+      pool = DISH_IMAGE_POOLS.chicken;
+      fallbackAsset = DISH_FALLBACK_ASSETS.chicken;
     } else if (lowerExp.includes('strawberr') || lowerExp.includes('สตรอว์')) {
-      mapping = DISH_IMAGES.pancake;
+      pool = DISH_IMAGE_POOLS.pancake;
+      fallbackAsset = DISH_FALLBACK_ASSETS.pancake;
     } else {
-      mapping = DISH_IMAGES.default;
+      pool = DISH_IMAGE_POOLS.default;
     }
   }
 
+  // Pick unique photo from pool based on index to ensure every card in the list is distinct
+  const photoIndex = index % pool.length;
+  const chosenUrl = pool[photoIndex];
+
   return {
     ...recipe,
-    imageUrl: recipe.imageUrl || mapping.imageUrl,
-    assetFallback: recipe.assetFallback || mapping.assetFallback,
+    imageUrl: recipe.imageUrl || chosenUrl,
+    assetFallback: recipe.assetFallback || fallbackAsset,
   };
 }
 
-function generateFallbackRecipes(mainIngredient, language = 'th') {
+function generateFallbackRecipes(mainIngredient, language = 'th', offset = 0) {
   const isEn = language === 'en';
-  return [
+  const pool = [
     {
       id: 'recipe_fallback_1',
       title: isEn ? `Stir-fried ${mainIngredient} with Garlic` : `ผัดกระเทียมพริกไทย${mainIngredient}`,
@@ -264,7 +314,53 @@ function generateFallbackRecipes(mainIngredient, language = 'th') {
         isEn ? 'Cut in half diagonally and enjoy warm.' : 'ประกบขนมปัง หั่นครึ่ง พร้อมรับประทาน',
       ],
     },
+    {
+      id: 'recipe_fallback_7',
+      title: isEn ? `Spicy Basil Stir-fry with ${mainIngredient}` : `ผัดกะเพรารสเด็ดใส่${mainIngredient}`,
+      description: isEn ? 'Fiery and aromatic Thai holy basil stir fry.' : 'เผ็ดร้อนหอมกลิ่นใบกะเพรา เมนูยอดฮิตทำง่ายสุดๆ',
+      cookingTime: '10 min',
+      difficulty: 'Easy',
+      dishType: 'stir_fry',
+      expiringIngredient: mainIngredient,
+      ingredients: [
+        `${mainIngredient}`,
+        isEn ? 'Handful of fresh holy basil' : 'ใบกะเพรา 1 กำมือ',
+        isEn ? 'Chilies and garlic' : 'พริกขี้หนูและกระเทียมสับ',
+        isEn ? 'Oyster sauce and soy sauce' : 'น้ำมันหอยและซีอิ๊วขาว',
+      ],
+      steps: [
+        isEn ? 'Pound chilies and garlic, sauté in hot oil.' : 'โขลกพริกกระเทียมลงผัดในน้ำมันจนหอมฉุน',
+        isEn ? `Add ${mainIngredient} and season.` : `ใส่${mainIngredient}ลงไปผัด ปรุงรสด้วยน้ำมันหอยและซีอิ๊ว`,
+        isEn ? 'Toss in holy basil and serve over rice.' : 'ใส่ใบกะเพรา ปิดไฟ ผัดเคล้าให้เข้ากัน เสิร์ฟพร้อมข้าวสวย',
+      ],
+    },
+    {
+      id: 'recipe_fallback_8',
+      title: isEn ? `Creamy Lava Egg Bowl with ${mainIngredient}` : `ข้าวไข่ข้นลาวาหน้า${mainIngredient}`,
+      description: isEn ? 'Silky runny scrambled eggs topping warm rice.' : 'ไข่ข้นเยิ้มๆ นุ่มละมุนลิ้น เข้ากันดีเยี่ยม',
+      cookingTime: '8 min',
+      difficulty: 'Very easy',
+      dishType: 'omelet',
+      expiringIngredient: mainIngredient,
+      ingredients: [
+        `${mainIngredient}`,
+        isEn ? '2 eggs' : 'ไข่ไก่ 2 ฟอง',
+        isEn ? '2 tbsp milk' : 'นมสด 2 ช้อนโต๊ะ',
+        isEn ? 'Butter or oil' : 'เนยสดหรือน้ำมันพืช',
+      ],
+      steps: [
+        isEn ? 'Whisk eggs with milk.' : 'ตีไข่กับนมสดและซีอิ๊วขาวเบาๆ',
+        isEn ? 'Cook gently in butter until half set.' : 'ตั้งกระทะใส่เนย ใช้ไฟอ่อน เทไข่ลงไปใช้ตะหลิวดันเข้าตรงกลาง',
+        isEn ? `Top with ${mainIngredient} and pour over rice.` : `วาง${mainIngredient}ลงไปด้านบน พอไข่เยิ้มๆ ตักราดข้าวทันที`,
+      ],
+    },
   ];
+
+  if (offset > 0 && pool.length > 3) {
+    const shift = (offset * 3) % pool.length;
+    return [...pool.sublist(shift), ...pool.sublist(0, shift)];
+  }
+  return pool;
 }
 
 async function scanLabel(buffer, mimeType) {
@@ -297,7 +393,7 @@ async function scanLabel(buffer, mimeType) {
   }
 }
 
-async function suggestRecipes({ userId, mainIngredient, fridgeIngredients = [], language = 'th' }) {
+async function suggestRecipes({ userId, mainIngredient, language = 'th', offset = 0 }) {
   // Check daily rate limit (15 requests/day per user)
   let remainingQuota = DAILY_RECIPE_LIMIT;
   if (userId) {
@@ -313,15 +409,15 @@ async function suggestRecipes({ userId, mainIngredient, fridgeIngredients = [], 
 
   const langInstruction = language === 'en'
     ? 'All recipe titles, descriptions, ingredients, and instructions MUST be in English.'
-    : 'All recipe titles, descriptions, ingredients, and instructions MUST be in natural, friendly Thai (ภาษาไทยที่เข้าใจง่าย เป็นกันเอง).';
+    : 'All recipe titles, descriptions, ingredients, and instructions MUST be in natural, creative, and friendly Thai (ภาษาไทยที่น่ากิน เข้าใจง่าย เป็นกันเอง).';
 
-  const prompt = `คุณคือเชฟ AI ผู้เชี่ยวชาญการทำอาหาร เน้นทำง่าย ใช้เวลาน้อย (10-20 นาที) และใช้วัตถุดิบน้อย
-วัตถุดิบที่เลือกมาทำอาหาร: "${mainIngredient}"
+  const prompt = `คุณคือสุดยอดเชฟ AI ผู้เชี่ยวชาญการคิดเมนูอาหารที่สร้างสรรค์ ทำง่าย ใช้วัตถุดิบน้อย (10-20 นาที)
+วัตถุดิบที่ต้องการนำมาทำอาหาร: "${mainIngredient}"
 
-ข้อกำหนดสำคัญ:
-1. ทุกเมนูต้องโฟกัสเฉพาะ "${mainIngredient}" เป็นวัตถุดิบหลักเท่านั้น ห้ามใส่วัตถุดิบหลักชนิดอื่นที่ไม่เกี่ยวข้องลงไป (ไม่ต้องรวมกับของอย่างอื่นในตู้เย็น)
-2. วัตถุดิบเพิ่มเติมที่ใช้ร่วมได้ ต้องเป็นเครื่องปรุงหรือของสามัญประจำครัวเรือนทั่วไปเท่านั้น (เช่น ไข่ไก่, ข้าวสวย, น้ำมันพืช, กระเทียม, ซีอิ๊วขาว, น้ำปลา, เกลือ, พริกไทย, น้ำตาล, น้ำเปล่า) ห้ามใช้วัตถุดิบแปลกหรือของสดอื่นที่ต้องหาซื้อเพิ่ม
-3. แนะนำเมนูอาหารจำนวน 6 เมนู (3 เมนูแรก และอีก 3 เมนูเพื่อเป็นตัวเลือกสำรองที่หลากหลาย)
+ข้อกำหนดสำคัญมาก:
+1. ทุกเมนูต้องชูและโฟกัสเฉพาะ "${mainIngredient}" เป็นวัตถุดิบหลักเท่านั้น ห้ามใส่วัตถุดิบหลักอื่นที่ไม่เกี่ยวข้อง (ห้ามผสมเนื้อสัตว์หรือผักอื่นที่ไม่ได้เลือกมา)
+2. วัตถุดิบเสริมต้องเป็นเครื่องปรุงพื้นฐานประจำบ้านเท่านั้น (เช่น ไข่ไก่, ข้าวสวย, น้ำมัน, กระเทียม, ซีอิ๊ว, น้ำปลา, เกลือ, พริกไทย, น้ำตาล)
+3. เมนูทั้ง 6 ต้องมีความหลากหลายของกรรมวิธี (เช่น มีทั้งผัด, ทอด/ไข่, ต้ม/ซุป, ยำ/สลัด, ข้าว/เส้น, ของว่าง/หม้อทอด) ห้ามซ้ำแนวกัน
 4. เวลาปรุง 5-20 นาที ระดับความง่าย Easy หรือ Very easy
 5. ${langInstruction}
 
@@ -329,14 +425,14 @@ async function suggestRecipes({ userId, mainIngredient, fridgeIngredients = [], 
 [
   {
     "id": "recipe_1",
-    "title": "ชื่อเมนู",
-    "description": "คำอธิบายสั้นๆ 1 ประโยค",
+    "title": "ชื่อเมนูที่สร้างสรรค์และน่ากิน",
+    "description": "คำอธิบายความอร่อยสั้นๆ 1 ประโยค ดึงดูดให้อยากทำ",
     "cookingTime": "15 min",
     "difficulty": "Easy",
-    "dishType": "stir_fry",
+    "dishType": "stir_fry|omelet|soup|fried_rice|salad|sandwich|pasta",
     "expiringIngredient": "${mainIngredient}",
     "ingredients": ["วัตถุดิบพร้อมปริมาณ"],
-    "steps": ["ขั้นตอนการทำสั้นกระชับ"]
+    "steps": ["ขั้นตอนการทำสั้นกระชับเข้าใจง่าย"]
   }
 ]`;
 
@@ -351,7 +447,7 @@ async function suggestRecipes({ userId, mainIngredient, fridgeIngredients = [], 
     const res = await ai.models.generateContent({
       model,
       contents: [{ text: prompt }],
-      config: { responseMimeType: 'application/json', temperature: 0.3 },
+      config: { responseMimeType: 'application/json', temperature: 0.75 },
     });
 
     if (res.text) {
@@ -362,14 +458,14 @@ async function suggestRecipes({ userId, mainIngredient, fridgeIngredients = [], 
     }
   } catch (err) {
     // If Gemini fails or API key is not configured, fall back to smart dynamic recipes
-    recipes = generateFallbackRecipes(mainIngredient, language);
+    recipes = generateFallbackRecipes(mainIngredient, language, offset);
   }
 
   if (recipes.length === 0) {
-    recipes = generateFallbackRecipes(mainIngredient, language);
+    recipes = generateFallbackRecipes(mainIngredient, language, offset);
   }
 
-  // Ensure 6 recipes and attach image/fallback assets
+  // Ensure 6 recipes and attach unique non-repeating image assets
   const formattedRecipes = recipes.map((r, idx) => {
     return attachRecipeImages(
       {
@@ -383,7 +479,8 @@ async function suggestRecipes({ userId, mainIngredient, fridgeIngredients = [], 
         ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
         steps: Array.isArray(r.steps) ? r.steps : [],
       },
-      mainIngredient
+      mainIngredient,
+      idx + offset
     );
   });
 
@@ -400,4 +497,5 @@ module.exports = {
   clearRecipeQuotaForTest,
   generateFallbackRecipes,
   DISH_IMAGES,
+  DISH_IMAGE_POOLS,
 };
