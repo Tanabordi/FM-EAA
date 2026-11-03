@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -324,9 +325,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
+      String errorMsg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      if (e is DioException && e.response?.data is Map && e.response!.data['error'] != null) {
+        errorMsg = e.response!.data['error'].toString();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to update profile: $e'),
+          content: Text(errorMsg),
+          backgroundColor: Colors.red.shade700,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -340,6 +346,16 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     final theme = Theme.of(context);
     final user = ref.watch(userProfileProvider);
     final displayedAvatarUrl = _removeAvatar ? null : (_selectedAvatarPath ?? user.avatarUrl);
+
+    int? usernameCooldownDays;
+    if (user.lastUsernameChange != null) {
+      final nextAllowed = user.lastUsernameChange!.add(const Duration(days: 14));
+      final now = DateTime.now();
+      if (now.isBefore(nextAllowed)) {
+        usernameCooldownDays = nextAllowed.difference(now).inDays + 1;
+      }
+    }
+    final isUsernameLocked = usernameCooldownDays != null;
 
     return PopScope(
       canPop: !_hasUnsavedChanges,
@@ -399,11 +415,21 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     focusNode: _nameFocus,
                     labelText: 'Name',
                     hintText: 'Enter your name',
-                    helperText: '3–20 characters (letters, numbers, underscores)',
+                    helperText: isUsernameLocked
+                        ? 'You can change your username again in $usernameCooldownDays day${usernameCooldownDays > 1 ? 's' : ''}'
+                        : '3–20 characters (letters, numbers, underscores)',
                     errorText: _nameError,
+                    readOnly: isUsernameLocked,
                     keyboardType: TextInputType.name,
                     textInputAction: TextInputAction.next,
                     onSubmitted: (_) => _currentPasswordFocus.requestFocus(),
+                    suffixIcon: isUsernameLocked
+                        ? Icon(
+                            Icons.lock_outline,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            size: 20,
+                          )
+                        : null,
                     onChanged: (_) {
                       if (_nameError != null) setState(() => _nameError = null);
                     },

@@ -159,7 +159,7 @@ class AuthService {
       conn = await getDbConnection();
 
       const querySql = `
-        SELECT id, username, email, password_hash, avatar_url, created_at, updated_at
+        SELECT id, username, email, password_hash, avatar_url, last_username_change, created_at, updated_at
         FROM users
         WHERE LOWER(username) = LOWER(:identifier) OR LOWER(email) = LOWER(:identifier)
       `;
@@ -212,6 +212,7 @@ class AuthService {
           username: user.USERNAME,
           email: user.EMAIL,
           avatarUrl: user.AVATAR_URL,
+          lastUsernameChange: user.LAST_USERNAME_CHANGE || null,
         },
         token,
       };
@@ -232,7 +233,7 @@ class AuthService {
     try {
       conn = await getDbConnection();
       const sql = `
-        SELECT id, username, email, avatar_url, created_at, updated_at
+        SELECT id, username, email, avatar_url, last_username_change, created_at, updated_at
         FROM users
         WHERE id = :userId
       `;
@@ -254,6 +255,7 @@ class AuthService {
         username: user.USERNAME,
         email: user.EMAIL,
         avatarUrl: user.AVATAR_URL,
+        lastUsernameChange: user.LAST_USERNAME_CHANGE || null,
         createdAt: user.CREATED_AT,
         updatedAt: user.UPDATED_AT,
       };
@@ -275,7 +277,7 @@ class AuthService {
       conn = await getDbConnection();
 
       const existingSql = `
-        SELECT id, username, email, password_hash, avatar_url
+        SELECT id, username, email, password_hash, avatar_url, last_username_change
         FROM users
         WHERE id = :userId
       `;
@@ -314,6 +316,27 @@ class AuthService {
           const err = new Error('Username can only contain letters, numbers, and underscore');
           err.statusCode = 400;
           throw err;
+        }
+
+        // Check 14-day username change cooldown
+        const isChangingUsername = cleanUsername.toLowerCase() !== currentUser.USERNAME.toLowerCase();
+        if (isChangingUsername && currentUser.LAST_USERNAME_CHANGE) {
+          const lastChange = new Date(currentUser.LAST_USERNAME_CHANGE);
+          const now = new Date();
+          const diffMs = now.getTime() - lastChange.getTime();
+          const diffDays = diffMs / (1000 * 60 * 60 * 24);
+          const cooldownDays = 14;
+
+          if (diffDays < cooldownDays) {
+            const remainingDays = Math.ceil(cooldownDays - diffDays);
+            const nextAllowedDate = new Date(lastChange.getTime() + cooldownDays * 24 * 60 * 60 * 1000);
+            const formattedDate = nextAllowedDate.toLocaleDateString('en-GB');
+            const err = new Error(
+              `You can only change your username once every 14 days. You can change it again in ${remainingDays} day${remainingDays > 1 ? 's' : ''} (on ${formattedDate})`
+            );
+            err.statusCode = 400;
+            throw err;
+          }
         }
       }
 
@@ -381,12 +404,15 @@ class AuthService {
         newPasswordHash = await bcrypt.hash(newPassword, 10);
       }
 
+      const isChangingUsername = cleanUsername.toLowerCase() !== currentUser.USERNAME.toLowerCase();
+
       const updateSql = `
         UPDATE users
         SET username = :username,
             email = :email,
             avatar_url = :avatarUrl,
             password_hash = :passwordHash,
+            last_username_change = ${isChangingUsername ? 'CURRENT_TIMESTAMP' : 'last_username_change'},
             updated_at = CURRENT_TIMESTAMP
         WHERE id = :userId
       `;
@@ -407,6 +433,7 @@ class AuthService {
         username: cleanUsername,
         email: cleanEmail,
         avatarUrl: newAvatarUrl,
+        lastUsernameChange: isChangingUsername ? new Date() : (currentUser.LAST_USERNAME_CHANGE || null),
       };
     } finally {
       if (conn) {
@@ -511,7 +538,7 @@ class AuthService {
 
       // Check if user exists by google_id or email
       const findSql = `
-        SELECT id, username, email, avatar_url, google_id
+        SELECT id, username, email, avatar_url, google_id, last_username_change
         FROM users
         WHERE google_id = :googleId OR LOWER(email) = LOWER(:email)
       `;
@@ -569,6 +596,7 @@ class AuthService {
             username: user.USERNAME,
             email: user.EMAIL,
             avatarUrl: user.AVATAR_URL || picture,
+            lastUsernameChange: user.LAST_USERNAME_CHANGE || null,
           },
           token,
         };

@@ -413,6 +413,36 @@ void main() {
       expect(find.byType(EditProfilePage), findsNothing);
       expect(find.text('Open'), findsOneWidget);
     });
+
+    testWidgets('Locks Name field and displays cooldown countdown when within 14 days of last change', (tester) async {
+      final userWithCooldown = UserModel(
+        id: 'u123',
+        username: 'Alex Lee',
+        email: 'alex@example.com',
+        lastUsernameChange: DateTime.now().subtract(const Duration(days: 3)),
+        updatedAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            userProfileProvider.overrideWith(
+              (ref) => UserProfileNotifier(userWithCooldown, ref),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const EditProfilePage(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Two lock icons: one for email and one for locked username
+      expect(find.byIcon(Icons.lock_outline), findsNWidgets(2));
+      expect(find.textContaining('You can change your username again in 11 days'), findsOneWidget);
+    });
   });
 
   group('LogoutDialog (Screen #24) Widget Tests', () {

@@ -10,6 +10,7 @@ CREATE TABLE users (
     password_hash VARCHAR2(255),
     google_id VARCHAR2(255) UNIQUE,
     avatar_url VARCHAR2(1000),
+    last_username_change TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

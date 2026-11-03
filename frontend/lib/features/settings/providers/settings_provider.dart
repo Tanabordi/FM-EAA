@@ -54,20 +54,22 @@ class UserProfileNotifier extends StateNotifier<UserModel> {
 
     // Call backend API if user is authenticated
     if (_ref != null && _ref.read(authProvider).isAuthenticated) {
-      try {
-        final apiClient = _ref.read(authRepositoryProvider).apiClient;
-        await apiClient.dio.patch(
-          '/users/me',
-          data: {
-            'username': trimmedName,
-            'email': trimmedEmail,
-            if (avatarUrl != null) 'avatarUrl': avatarUrl,
-            if (currentPassword != null) 'currentPassword': currentPassword,
-            if (newPassword != null) 'newPassword': newPassword,
-          },
-        );
-      } catch (_) {
-        // Allow optimistic update
+      final apiClient = _ref.read(authRepositoryProvider).apiClient;
+      final response = await apiClient.dio.patch(
+        '/users/me',
+        data: {
+          'username': trimmedName,
+          'email': trimmedEmail,
+          if (avatarUrl != null) 'avatarUrl': avatarUrl,
+          if (currentPassword != null) 'currentPassword': currentPassword,
+          if (newPassword != null) 'newPassword': newPassword,
+        },
+      );
+      if (response.data != null && response.data['user'] != null) {
+        final serverUser = UserModel.fromJson(response.data['user'] as Map<String, dynamic>);
+        state = serverUser;
+        _ref.read(authProvider.notifier).updateUser(serverUser);
+        return;
       }
     }
 
