@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/freshness_colors.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/category_chips.dart';
@@ -151,9 +150,7 @@ class ItemDetailsPage extends ConsumerWidget {
                       alignment: Alignment.centerLeft,
                       child: StatusBadge(
                         status: item.status,
-                        customLabel: item.status == FreshnessStatus.useSoon
-                            ? 'Use soon in 2 Days'
-                            : item.statusText,
+                        customLabel: item.detailStatusLabel,
                       ),
                     ),
                     const SizedBox(height: 16),

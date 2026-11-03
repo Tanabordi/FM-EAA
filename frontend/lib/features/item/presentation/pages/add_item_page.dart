@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
 import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 import '../../../fridges/providers/fridges_provider.dart';
 import 'scan_label_page.dart';
@@ -37,13 +38,65 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   DateTime? _expirationDate;
   String? _imagePath;
   Uint8List? _imageBytes;
-  String? _pickedFileName;
   bool _hasAnalyzed = false;
   bool _isScanning = false;
+  bool _forceExit = false;
+
+  String? _foodNameError;
+  String? _categoryError;
+  String? _quantityError;
+  String? _unitError;
+  String? _storageError;
+  String? _expirationDateError;
 
   final _categories = ['Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'];
   final _units = ['pieces', 'bag', 'punnet', 'bottle', 'box', 'can', 'pack', 'g', 'kg'];
   final _storages = ['Fridge', 'Freezer'];
+
+  bool get _hasUnsavedChanges {
+    if (_forceExit) return false;
+    return _foodNameController.text.trim().isNotEmpty ||
+        _quantityController.text.trim().isNotEmpty ||
+        _selectedCategory != null ||
+        _selectedUnit != null ||
+        _selectedStorage != null ||
+        _expirationDate != null ||
+        _imagePath != null ||
+        _imageBytes != null;
+  }
+
+  void _handleBack() {
+    if (_hasUnsavedChanges) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => ConfirmDialog(
+          title: 'Discard changes?',
+          message: 'You have unsaved changes. Are you sure you want to discard them?',
+          confirmLabel: 'Discard',
+          cancelLabel: 'Keep editing',
+          isDestructive: true,
+          onConfirm: () {
+            setState(() => _forceExit = true);
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              try {
+                context.pop();
+              } catch (_) {}
+            }
+          },
+        ),
+      );
+    } else {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      } else {
+        try {
+          context.pop();
+        } catch (_) {}
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -56,6 +109,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   void _applyScanResult(AiScanResult result) {
     if (result.foodName != null && result.foodName!.trim().isNotEmpty) {
       _foodNameController.text = result.foodName!;
+      _foodNameError = null;
     }
     if (result.imagePath != null && result.imagePath!.isNotEmpty) {
       _imagePath = result.imagePath;
@@ -63,18 +117,22 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
         final f = File(result.imagePath!);
         if (f.existsSync()) {
           _imageBytes = f.readAsBytesSync();
-          _pickedFileName = f.path.split(Platform.pathSeparator).last;
         }
       } catch (_) {}
     }
     _selectedCategory = result.category;
+    _categoryError = null;
     if (_quantityController.text.trim().isEmpty) {
       _quantityController.text = '2';
+      _quantityError = null;
     }
     _selectedUnit = result.unit;
+    _unitError = null;
     _selectedStorage = result.storage;
+    _storageError = null;
     if (result.expiryDate != null) {
       _expirationDate = result.expiryDate;
+      _expirationDateError = null;
     }
     _hasAnalyzed = true;
   }
@@ -91,12 +149,18 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
-  InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon}) {
+  InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon, String? errorText}) {
     return InputDecoration(
       hintText: hintText,
       hintStyle: const TextStyle(
         color: Color(0xFF717971),
         fontSize: 15,
+        fontWeight: FontWeight.w400,
+      ),
+      errorText: errorText,
+      errorStyle: const TextStyle(
+        color: Color(0xFFBA1A1A),
+        fontSize: 12,
         fontWeight: FontWeight.w400,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -105,11 +169,25 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       suffixIcon: suffixIcon,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF717971), width: 1.0),
+        borderSide: BorderSide(
+          color: errorText != null ? const Color(0xFFBA1A1A) : const Color(0xFF717971),
+          width: errorText != null ? 1.5 : 1.0,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF2E6A44), width: 1.5),
+        borderSide: BorderSide(
+          color: errorText != null ? const Color(0xFFBA1A1A) : const Color(0xFF2E6A44),
+          width: 1.5,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFBA1A1A), width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFBA1A1A), width: 1.5),
       ),
     );
   }
@@ -118,7 +196,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     setState(() {
       _imagePath = null;
       _imageBytes = null;
-      _pickedFileName = null;
       _hasAnalyzed = false;
       _isScanning = false;
       _foodNameController.clear();
@@ -127,6 +204,12 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       _selectedUnit = null;
       _selectedStorage = null;
       _expirationDate = null;
+      _foodNameError = null;
+      _categoryError = null;
+      _quantityError = null;
+      _unitError = null;
+      _storageError = null;
+      _expirationDateError = null;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -139,36 +222,62 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
   Future<void> _onSave() async {
     final name = _foodNameController.text.trim();
-    if (!_hasAnalyzed && name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณาวิเคราะห์ด้วย AI หรือกรอกข้อมูลอาหารก่อนบันทึก'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
+    final qtyText = _quantityController.text.trim();
+    final parsedQty = double.tryParse(qtyText);
+
+    String? nameErr;
+    String? catErr;
+    String? qtyErr;
+    String? unitErr;
+    String? storageErr;
+    String? dateErr;
 
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณากรอกชื่ออาหารก่อนบันทึก'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      nameErr = 'Please enter a food name before saving';
+    }
+    if (_selectedCategory == null || _selectedCategory!.isEmpty) {
+      catErr = 'Please select a category';
+    }
+    if (qtyText.isEmpty || parsedQty == null || parsedQty <= 0) {
+      qtyErr = 'Please enter a valid quantity';
+    }
+    if (_selectedUnit == null || _selectedUnit!.isEmpty) {
+      unitErr = 'Please select a unit';
+    }
+    if (_selectedStorage == null || _selectedStorage!.isEmpty) {
+      storageErr = 'Please select a storage location';
+    }
+    if (_expirationDate == null) {
+      dateErr = 'Please select an expiration date';
+    }
+
+    setState(() {
+      _foodNameError = nameErr;
+      _categoryError = catErr;
+      _quantityError = qtyErr;
+      _unitError = unitErr;
+      _storageError = storageErr;
+      _expirationDateError = dateErr;
+    });
+
+    if (nameErr != null ||
+        catErr != null ||
+        qtyErr != null ||
+        unitErr != null ||
+        storageErr != null ||
+        dateErr != null) {
       return;
     }
 
-    final parsedQty = double.tryParse(_quantityController.text) ?? 1.0;
     final newItem = ItemModel(
       id: 'item_${DateTime.now().millisecondsSinceEpoch}',
       fridgeId: widget.fridgeId,
       name: name,
-      category: (_selectedCategory ?? 'Veggies').toLowerCase(),
-      zone: (_selectedStorage ?? 'Fridge').toLowerCase(),
-      quantity: parsedQty,
-      unit: _selectedUnit ?? 'pieces',
-      expiryDate: _expirationDate ?? DateTime.now().add(const Duration(days: 7)),
+      category: _selectedCategory!.toLowerCase(),
+      zone: _selectedStorage!.toLowerCase(),
+      quantity: parsedQty!,
+      unit: _selectedUnit!,
+      expiryDate: _expirationDate!,
       imagePath: _imagePath ?? 'assets/images/food_avocados.png',
       updatedAt: DateTime.now(),
     );
@@ -181,7 +290,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('เพิ่ม "${newItem.name}" เรียบร้อยแล้ว'),
+        content: Text('Added "${newItem.name}" successfully'),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -195,263 +304,240 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     }
   }
 
-  Future<void> _onScanWithGemini() async {
-    // Must select or capture an image first; if no image loaded, do nothing
-    if ((_imagePath == null || _imagePath!.isEmpty) && _imageBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณาเลือกหรือถ่ายรูปภาพก่อนทำการวิเคราะห์'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
 
-    if (_isScanning) return;
+  final ImagePicker _imagePicker = ImagePicker();
 
-    setState(() {
-      _isScanning = true;
-    });
-
+  Future<void> _pickManualPhoto(ImageSource source) async {
     try {
-      final aiRepo = ref.read(aiRepositoryProvider);
-      final AiScanResult result;
-      if (_imageBytes != null) {
-        result = await aiRepo.scanLabelBytes(
-          _imageBytes!,
-          filename: _pickedFileName ?? _imagePath?.split(Platform.pathSeparator).last ?? 'photo.jpg',
-        );
-      } else {
-        final File file = File(_imagePath!);
-        result = await aiRepo.scanLabel(file);
+      final picked = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        if (mounted) {
+          setState(() {
+            _imageBytes = bytes;
+            _imagePath = picked.path;
+            _hasAnalyzed = false;
+          });
+        }
       }
-
-      if (!mounted) return;
-
-      if (result.isDetected && result.foodName != null && result.foodName!.trim().isNotEmpty) {
-        setState(() {
-          _foodNameController.text = result.foodName!;
-          _selectedCategory = result.category;
-          if (_quantityController.text.trim().isEmpty) {
-            _quantityController.text = '2';
-          }
-          _selectedUnit = result.unit;
-          _selectedStorage = result.storage;
-          if (result.expiryDate != null) {
-            _expirationDate = result.expiryDate;
-          }
-          _hasAnalyzed = true;
-          _isScanning = false;
-        });
+    } catch (e) {
+      if (mounted) {
+        final errStr = e.toString().toLowerCase();
+        String message;
+        if (errStr.contains('camera_access_denied') ||
+            errStr.contains('cameraaccessdenied') ||
+            (errStr.contains('camera') && errStr.contains('denied'))) {
+          message = 'Camera permission was denied. Please allow camera access in Settings.';
+        } else if (errStr.contains('photo_access_denied') ||
+            errStr.contains('permission_denied') ||
+            (errStr.contains('gallery') && errStr.contains('denied')) ||
+            (errStr.contains('photo') && errStr.contains('denied'))) {
+          message = 'Photo access was denied. Please allow gallery access in Settings.';
+        } else if (errStr.contains('permission')) {
+          message = source == ImageSource.camera
+              ? 'Camera permission was denied. Please allow camera access in Settings.'
+              : 'Gallery access was denied. Please allow photo access in Settings.';
+        } else {
+          message = source == ImageSource.camera
+              ? 'Unable to open camera. Please try again.'
+              : 'Unable to open gallery. Please try again.';
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✨ Gemini AI: ตรวจพบ ${result.foodName} เรียบร้อยแล้ว!'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      } else {
-        setState(() {
-          _hasAnalyzed = true;
-          _isScanning = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('📸 โหลดรูปภาพแล้ว! กรุณากรอกชื่อและข้อมูลอาหารเพื่อบันทึก'),
-            duration: Duration(seconds: 2),
+            content: Text(message),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _hasAnalyzed = true;
-        _isScanning = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('📸 โหลดรูปภาพแล้ว! กรุณากรอกชื่อและข้อมูลอาหารเพื่อบันทึก'),
-          duration: Duration(seconds: 2),
-        ),
-      );
     }
   }
 
-  Future<void> _showScanSourceSheet() async {
-    await showModalBottomSheet<void>(
+  void _removePhoto() {
+    setState(() {
+      _imagePath = null;
+      _imageBytes = null;
+      _hasAnalyzed = false;
+    });
+  }
+
+  void _showRemoveOptionsSheet() {
+    final hasFormData = _foodNameController.text.trim().isNotEmpty ||
+        _selectedCategory != null ||
+        _quantityController.text.trim().isNotEmpty ||
+        _selectedUnit != null ||
+        _selectedStorage != null ||
+        _expirationDate != null;
+
+    if (!hasFormData) {
+      _removePhoto();
+      return;
+    }
+
+    showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (bottomSheetContext) {
-        return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDDE4DC),
-                      borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDDE4DC),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Remove Photo or Reset Form?',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF181D17),
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.auto_awesome, color: Color(0xFF2E6A44), size: 22),
-                      SizedBox(width: 8),
-                      Text(
-                        'Scan Label with AI',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF181D17),
-                        ),
-                      ),
-                    ],
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAEFE8),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.photo_outlined, color: Color(0xFF2E6A44), size: 22),
+                ),
+                title: const Text(
+                  'Remove photo only',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF181D17),
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(8, 4, 8, 14),
-                  child: Text(
-                    'Capture or select an image to let Gemini AI extract food name and expiry date.',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF717971)),
+                subtitle: const Text(
+                  'Keep entered details and delete only the photo',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF5C665F)),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _removePhoto();
+                },
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.delete_sweep_outlined, color: Color(0xFFDC2626), size: 22),
+                ),
+                title: const Text(
+                  'Clear all and reset form',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFDC2626),
                   ),
                 ),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFD8F3DC),
-                    child: Icon(Icons.document_scanner_outlined, color: Color(0xFF2D6A4F)),
-                  ),
-                  title: const Text(
-                    'Open AI Label Scanner',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  subtitle: const Text('Interactive viewfinder & real-time scanner page'),
-                  onTap: () async {
-                    Navigator.of(bottomSheetContext).pop();
-                    final result = await Navigator.push<AiScanResult>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ScanLabelPage(fridgeId: widget.fridgeId),
-                      ),
-                    );
-                    if (result != null && mounted) {
-                      setState(() {
-                        _applyScanResult(result);
-                      });
-                    }
-                  },
+                subtitle: const Text(
+                  'Delete photo and reset all food details',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF5C665F)),
                 ),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFEAEFE8),
-                    child: Icon(Icons.photo_camera_outlined, color: Color(0xFF2E6A44)),
-                  ),
-                  title: const Text(
-                    'Take Photo with Camera',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  subtitle: const Text('Capture label directly using camera'),
-                  onTap: () {
-                    Navigator.of(bottomSheetContext).pop();
-                    _pickImage(ImageSource.camera);
-                  },
-                ),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFEAEFE8),
-                    child: Icon(Icons.photo_library_outlined, color: Color(0xFF2E6A44)),
-                  ),
-                  title: const Text(
-                    'Choose from Gallery',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  subtitle: const Text('Select a photo of food packaging'),
-                  onTap: () {
-                    Navigator.of(bottomSheetContext).pop();
-                    _pickImage(ImageSource.gallery);
-                  },
-                ),
-              ],
-            ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _clearAllData();
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final picker = ImagePicker();
-      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
-
-      final XFile? picked;
-      if (isTest) {
-        picked = await picker
-            .pickImage(
-              source: source,
-              maxWidth: 1024,
-              maxHeight: 1024,
-              imageQuality: 85,
-            )
-            .timeout(const Duration(milliseconds: 300), onTimeout: () => null);
-      } else {
-        picked = await picker.pickImage(
-          source: source,
-          maxWidth: 1024,
-          maxHeight: 1024,
-          imageQuality: 85,
-        );
-      }
-
-      if (!mounted) return;
-
-      if (picked != null) {
-        final bytes = await picked.readAsBytes();
-        if (!mounted) return;
-        setState(() {
-          _imagePath = picked!.path;
-          _imageBytes = bytes;
-          _pickedFileName = picked.name;
-          _hasAnalyzed = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('📸 ได้รูปภาพแล้ว! กด "ให้ Gemini AI Vision Engine วิเคราะห์" ด้านล่าง'),
-            duration: Duration(seconds: 2),
+  void _showChangePhotoSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.auto_awesome, color: Color(0xFF2E6A44)),
+                title: const Text('Scan Label with AI'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openScanLabelScanner();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFF2E6A44)),
+                title: const Text('Take Photo (Manual)'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickManualPhoto(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: Color(0xFF2E6A44)),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickManualPhoto(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Remove Photo', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showRemoveOptionsSheet();
+                },
+              ),
+            ],
           ),
-        );
-      } else if (isTest) {
-        setState(() {
-          _imagePath = 'assets/images/food_avocados.png';
-          _imageBytes = null;
-          _hasAnalyzed = false;
-        });
-      }
-    } catch (_) {
-      if (!mounted) return;
-      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
-      if (isTest) {
-        setState(() {
-          _imagePath = 'assets/images/food_avocados.png';
-          _imageBytes = null;
-          _hasAnalyzed = false;
-        });
-      }
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openScanLabelScanner() async {
+    final result = await Navigator.push<AiScanResult>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ScanLabelPage(fridgeId: widget.fridgeId),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _applyScanResult(result);
+      });
     }
   }
 
@@ -516,144 +602,230 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     }
 
     if (_imageBytes != null || (_imagePath != null && _imagePath!.isNotEmpty)) {
-      return Column(
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: SizedBox(
-                  height: 130,
-                  width: double.infinity,
-                  child: _imageBytes != null
-                      ? Image.memory(
-                          _imageBytes!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Center(
-                            child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
-                          ),
-                        )
-                      : (_imagePath!.startsWith('assets/')
-                          ? Image.asset(
-                              _imagePath!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Center(
-                                child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
-                              ),
-                            )
-                          : Image.file(
-                              File(_imagePath!),
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Center(
-                                child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
-                              ),
-                            )),
-                ),
-              ),
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _hasAnalyzed ? Icons.check_circle_rounded : Icons.photo_camera_rounded,
-                        color: const Color(0xFF2E6A44),
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _hasAnalyzed ? 'Label Scanned with AI' : 'Photo Selected',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E6A44),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: InkWell(
-                  onTap: _clearAllData,
+      return InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: _showChangePhotoSheet,
+        child: Column(
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.close, color: Colors.white, size: 16),
+                  child: SizedBox(
+                    height: 130,
+                    width: double.infinity,
+                    child: _imageBytes != null
+                        ? Image.memory(
+                            _imageBytes!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Center(
+                              child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                            ),
+                          )
+                        : (_imagePath!.startsWith('assets/')
+                            ? Image.asset(
+                                _imagePath!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Center(
+                                  child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                                ),
+                              )
+                            : Image.file(
+                                File(_imagePath!),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Center(
+                                  child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                                ),
+                              )),
                   ),
                 ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _hasAnalyzed ? Icons.check_circle_rounded : Icons.photo_camera_rounded,
+                          color: const Color(0xFF2E6A44),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _hasAnalyzed ? 'Label Scanned with AI' : 'Photo Attached',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2E6A44),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: InkWell(
+                    key: const Key('add_item_remove_photo_btn'),
+                    onTap: _showRemoveOptionsSheet,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _hasAnalyzed && _foodNameController.text.isNotEmpty
+                  ? 'Detected: ${_foodNameController.text}'
+                  : (_foodNameController.text.isNotEmpty
+                      ? _foodNameController.text
+                      : 'Food photo attached'),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF181D17),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            _hasAnalyzed && _foodNameController.text.isNotEmpty
-                ? 'Detected: ${_foodNameController.text}'
-                : 'Photo Loaded',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF181D17),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _hasAnalyzed
-                ? 'Tap card to retake or change photo'
-                : 'Tap card to change photo, or tap ✕ to remove',
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF414941),
+            const SizedBox(height: 4),
+            const Text(
+              'Tap card to change photo, or tap ✕ to remove',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF414941),
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       );
     }
 
-    // Default Card (Matching media_1793560538466_0ad00275.png exact design)
-    return const Column(
+    // Default Card: AI Scan & Manual Photo Options
+    return Column(
       children: [
-        Icon(
+        const Icon(
           Icons.camera_alt_outlined,
           size: 32,
           color: Color(0xFF181D17),
         ),
-        SizedBox(height: 10),
-        Text(
-          'Scan Label with AI',
+        const SizedBox(height: 8),
+        const Text(
+          'Add Photo or Scan Label',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Color(0xFF181D17),
           ),
         ),
-        SizedBox(height: 4),
-        Text(
-          "Capture the label. We'll fill in the details.",
+        const SizedBox(height: 4),
+        const Text(
+          "Scan label to autofill details, or take/upload a photo",
           style: TextStyle(
             fontSize: 13,
             color: Color(0xFF414941),
           ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        // Primary action: Scan Label with AI
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            key: const Key('add_item_scan_ai_btn'),
+            onPressed: _openScanLabelScanner,
+            icon: const Icon(Icons.auto_awesome, size: 18, color: Colors.white),
+            label: const Text(
+              'Scan Label with AI',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E6A44),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: 0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Secondary actions: Take Photo & Gallery
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                key: const Key('add_item_take_photo_btn'),
+                onPressed: () => _pickManualPhoto(ImageSource.camera),
+                icon: const Icon(Icons.camera_alt_outlined, size: 16, color: Color(0xFF2E6A44)),
+                label: const Text(
+                  'Take Photo',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF181D17),
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.8),
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                key: const Key('add_item_gallery_btn'),
+                onPressed: () => _pickManualPhoto(ImageSource.gallery),
+                icon: const Icon(Icons.photo_library_outlined, size: 16, color: Color(0xFF2E6A44)),
+                label: const Text(
+                  'Gallery',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF181D17),
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.8),
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -661,125 +833,60 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Navigation Bar
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  AppBackButton(),
-                  SizedBox(width: 14),
-                  Text(
-                    'Add items',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF181D17),
+    return PopScope(
+      canPop: !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF6FBF3),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top Navigation Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Row(
+                  children: [
+                    AppBackButton(
+                      onPressed: _handleBack,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 14),
+                    const Text(
+                      'Add items',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF181D17),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            // Form Content
+              // Form Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // AI Label Scan Card matching media_1793560538466_0ad00275.png
-                    Material(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(24),
-                      child: InkWell(
+                    // Top Photo / Scan Card
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAEFE8),
                         borderRadius: BorderRadius.circular(24),
-                        onTap: _isScanning ? null : _showScanSourceSheet,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEAEFE8),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: (_imagePath != null || _imageBytes != null)
-                                  ? const Color(0xFF2E6A44).withValues(alpha: 0.3)
-                                  : Colors.transparent,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: _buildScanCardContent(),
+                        border: Border.all(
+                          color: (_imagePath != null || _imageBytes != null)
+                              ? const Color(0xFF2E6A44).withValues(alpha: 0.3)
+                              : Colors.transparent,
+                          width: 1.5,
                         ),
                       ),
+                      child: _buildScanCardContent(),
                     ),
-                    const SizedBox(height: 14),
-                    // Gemini AI Vision Engine Button (Separate floating button with shadow)
-                    InkWell(
-                      borderRadius: BorderRadius.circular(28),
-                      onTap: _onScanWithGemini,
-                      child: Container(
-                        height: 52,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEAEFE8),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(
-                            color: const Color(0xFF717971),
-                            width: 1.0,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.22),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: ShaderMask(
-                                  shaderCallback: (bounds) => const SweepGradient(
-                                    colors: [
-                                      Color(0xFF4285F4),
-                                      Color(0xFF9B72CF),
-                                      Color(0xFFEA4335),
-                                      Color(0xFFFBBC04),
-                                      Color(0xFF4285F4),
-                                    ],
-                                  ).createShader(bounds),
-                                  child: const Icon(
-                                    Icons.auto_awesome,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            const Text(
-                              'ให้ Gemini AI Vision Engine วิเคราะห์',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF181D17),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
                     // Food Name Field
                     TextFormField(
                       controller: _foodNameController,
@@ -788,7 +895,15 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         color: Color(0xFF181D17),
                         fontWeight: FontWeight.w400,
                       ),
-                      decoration: _inputDecoration(hintText: 'Food Name'),
+                      decoration: _inputDecoration(
+                        hintText: 'Food Name',
+                        errorText: _foodNameError,
+                      ),
+                      onChanged: (_) {
+                        if (_foodNameError != null) {
+                          setState(() => _foodNameError = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 14),
                     // Category Dropdown
@@ -809,7 +924,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         ),
                       ),
                       icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
-                      decoration: _inputDecoration(),
+                      decoration: _inputDecoration(errorText: _categoryError),
                       items: _categories
                           .map((c) => DropdownMenuItem(
                                 value: c,
@@ -823,11 +938,17 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                                 ),
                               ))
                           .toList(),
-                      onChanged: (val) => setState(() => _selectedCategory = val),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedCategory = val;
+                          _categoryError = null;
+                        });
+                      },
                     ),
                     const SizedBox(height: 14),
                     // Quantity and Unit Row
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           flex: 1,
@@ -835,11 +956,19 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                             controller: _quantityController,
                             keyboardType: TextInputType.number,
                             style: const TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFF181D17),
-                        fontWeight: FontWeight.w400,
-                      ),
-                            decoration: _inputDecoration(hintText: 'Quantity'),
+                              fontSize: 15,
+                              color: Color(0xFF181D17),
+                              fontWeight: FontWeight.w400,
+                            ),
+                            decoration: _inputDecoration(
+                              hintText: 'Quantity',
+                              errorText: _quantityError,
+                            ),
+                            onChanged: (_) {
+                              if (_quantityError != null) {
+                                setState(() => _quantityError = null);
+                              }
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -862,7 +991,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                               ),
                             ),
                             icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
-                            decoration: _inputDecoration(),
+                            decoration: _inputDecoration(errorText: _unitError),
                             items: _units
                                 .map((u) => DropdownMenuItem(
                                       value: u,
@@ -876,7 +1005,12 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                                       ),
                                     ))
                                 .toList(),
-                            onChanged: (val) => setState(() => _selectedUnit = val),
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedUnit = val;
+                                _unitError = null;
+                              });
+                            },
                           ),
                         ),
                       ],
@@ -900,7 +1034,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         ),
                       ),
                       icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
-                      decoration: _inputDecoration(),
+                      decoration: _inputDecoration(errorText: _storageError),
                       items: _storages
                           .map((s) => DropdownMenuItem(
                                 value: s,
@@ -914,7 +1048,12 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                                 ),
                               ))
                           .toList(),
-                      onChanged: (val) => setState(() => _selectedStorage = val),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedStorage = val;
+                          _storageError = null;
+                        });
+                      },
                     ),
                     const SizedBox(height: 14),
                     // Expiration Date Picker
@@ -928,7 +1067,10 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
                         );
                         if (picked != null) {
-                          setState(() => _expirationDate = picked);
+                          setState(() {
+                            _expirationDate = picked;
+                            _expirationDateError = null;
+                          });
                         }
                       },
                       child: InputDecorator(
@@ -938,6 +1080,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                             size: 20,
                             color: Color(0xFF414941),
                           ),
+                          errorText: _expirationDateError,
                         ),
                         child: Text(
                           _expirationDate != null
@@ -986,6 +1129,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

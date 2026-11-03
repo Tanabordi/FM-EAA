@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Scan food packaging labels and expiration dates with camera</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Camera usage for scanning food labels</string>
 </dict>
 </plist>
