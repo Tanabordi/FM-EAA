@@ -5,6 +5,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../remote/api_client.dart';
 import '../../features/recipe/data/models/recipe_model.dart';
 
+/// Result holding AI recommended recipes along with daily generation quota usage
+class RecipeSuggestionResult {
+  final List<RecipeModel> recipes;
+  final int usedDailyQuota;
+  final int maxDailyQuota;
+  final int remainingDailyQuota;
+
+  const RecipeSuggestionResult({
+    required this.recipes,
+    this.usedDailyQuota = 1,
+    this.maxDailyQuota = 10,
+    this.remainingDailyQuota = 9,
+  });
+}
+
 /// Scanned result from Gemini AI Vision analysis
 class AiScanResult {
   final bool isDetected;
@@ -127,15 +142,20 @@ class AiRepository {
     return _smartFallback(imageFile.path);
   }
 
-  /// Fetches 6 AI suggested recipes for mainIngredient (zero-waste, quick & easy)
-  Future<List<RecipeModel>> getSuggestedRecipes(
+  /// Fetches 3 AI suggested recipes for mainIngredient with daily quota tracking
+  Future<RecipeSuggestionResult> getSuggestedRecipes(
     String mainIngredient, {
-    List<String>? fridgeIngredients,
     String language = 'th',
     int offset = 0,
   }) async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
-      return _generateSmartFallbackRecipes(mainIngredient, language: language, offset: offset);
+      final list = _generateSmartFallbackRecipes(mainIngredient, language: language, offset: offset);
+      return RecipeSuggestionResult(
+        recipes: list.take(3).toList(),
+        usedDailyQuota: (offset + 1).clamp(1, 10),
+        maxDailyQuota: 10,
+        remainingDailyQuota: (9 - offset).clamp(0, 10),
+      );
     }
 
     try {
@@ -151,23 +171,40 @@ class AiRepository {
       if (response.statusCode == 200 && response.data is Map) {
         final data = response.data as Map<String, dynamic>;
         final list = data['recipes'] as List<dynamic>?;
+        final used = (data['usedDailyQuota'] as num?)?.toInt() ?? (offset + 1).clamp(1, 10);
+        final max = (data['maxDailyQuota'] as num?)?.toInt() ?? 10;
+        final remaining = (data['remainingDailyQuota'] as num?)?.toInt() ?? (max - used).clamp(0, max);
+
         if (list != null && list.isNotEmpty) {
-          return list
+          final recipes = list
               .map((item) => RecipeModel.fromJson(item as Map<String, dynamic>, defaultExpiring: mainIngredient))
+              .take(3)
               .toList();
+          return RecipeSuggestionResult(
+            recipes: recipes,
+            usedDailyQuota: used,
+            maxDailyQuota: max,
+            remainingDailyQuota: remaining,
+          );
         }
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 429) {
         final msg = e.response?.data?['error']?.toString() ??
-            'วันนี้คุณได้ไอเดียไปเยอะแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ!';
+            'วันนี้คุณใช้โควตาครบ 10 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨';
         throw Exception(msg);
       }
     } catch (e) {
-      if (e.toString().contains('วันนี้คุณได้ไอเดีย')) rethrow;
+      if (e.toString().contains('วันนี้คุณ')) rethrow;
     }
 
-    return _generateSmartFallbackRecipes(mainIngredient, language: language, offset: offset);
+    final fallback = _generateSmartFallbackRecipes(mainIngredient, language: language, offset: offset);
+    return RecipeSuggestionResult(
+      recipes: fallback.take(3).toList(),
+      usedDailyQuota: (offset + 1).clamp(1, 10),
+      maxDailyQuota: 10,
+      remainingDailyQuota: (9 - offset).clamp(0, 10),
+    );
   }
 
   List<RecipeModel> _generateSmartFallbackRecipes(String ingredient, {String language = 'th', int offset = 0}) {

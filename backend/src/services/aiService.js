@@ -21,8 +21,8 @@ const PROMPT = `อ่านฉลากอาหารในรูปนี้ 
 - storage: ส่วนใหญ่แช่ตู้เย็นปกติ "Fridge" ยกเว้นสินค้าแช่แข็งหรือไอศกรีมให้เป็น "Freezer"
 - unit: หน่วยที่เหมาะสมของบรรจุภัณฑ์ เช่น "pack" สำหรับไส้กรอก/เนื้อสัตว์, "bottle" สำหรับเครื่องดื่ม, "box" สำหรับอาหารกล่อง, "bag" สำหรับผักถุง, หรือ "pieces"`;
 
-// Daily in-memory quota tracking per user: 15 generations per day
-const DAILY_RECIPE_LIMIT = 15;
+// Daily in-memory quota tracking per user: 10 generations per day
+const DAILY_RECIPE_LIMIT = 10;
 const recipeQuotaTracker = new Map();
 
 function checkAndIncrementRecipeQuota(userId) {
@@ -31,15 +31,24 @@ function checkAndIncrementRecipeQuota(userId) {
 
   if (!userRecord || userRecord.date !== today) {
     recipeQuotaTracker.set(userId, { date: today, count: 1 });
-    return { allowed: true, remaining: DAILY_RECIPE_LIMIT - 1 };
+    return { allowed: true, used: 1, remaining: DAILY_RECIPE_LIMIT - 1, limit: DAILY_RECIPE_LIMIT };
   }
 
   if (userRecord.count >= DAILY_RECIPE_LIMIT) {
-    return { allowed: false, remaining: 0 };
+    return { allowed: false, used: DAILY_RECIPE_LIMIT, remaining: 0, limit: DAILY_RECIPE_LIMIT };
   }
 
   userRecord.count += 1;
-  return { allowed: true, remaining: DAILY_RECIPE_LIMIT - userRecord.count };
+  return { allowed: true, used: userRecord.count, remaining: DAILY_RECIPE_LIMIT - userRecord.count, limit: DAILY_RECIPE_LIMIT };
+}
+
+function getRecipeQuota(userId) {
+  const today = new Date().toISOString().split('T')[0];
+  const userRecord = recipeQuotaTracker.get(userId);
+  if (!userRecord || userRecord.date !== today) {
+    return { used: 0, remaining: DAILY_RECIPE_LIMIT, limit: DAILY_RECIPE_LIMIT };
+  }
+  return { used: userRecord.count, remaining: Math.max(0, DAILY_RECIPE_LIMIT - userRecord.count), limit: DAILY_RECIPE_LIMIT };
 }
 
 function clearRecipeQuotaForTest() {
@@ -358,9 +367,9 @@ function generateFallbackRecipes(mainIngredient, language = 'th', offset = 0) {
 
   if (offset > 0 && pool.length > 3) {
     const shift = (offset * 3) % pool.length;
-    return [...pool.sublist(shift), ...pool.sublist(0, shift)];
+    return [...pool.sublist(shift), ...pool.sublist(0, shift)].slice(0, 3);
   }
-  return pool;
+  return pool.slice(0, 3);
 }
 
 async function scanLabel(buffer, mimeType) {
@@ -394,17 +403,20 @@ async function scanLabel(buffer, mimeType) {
 }
 
 async function suggestRecipes({ userId, mainIngredient, language = 'th', offset = 0 }) {
-  // Check daily rate limit (15 requests/day per user)
+  // Check daily rate limit (10 requests/day per user)
   let remainingQuota = DAILY_RECIPE_LIMIT;
+  let usedQuota = 1;
   if (userId) {
     const quota = checkAndIncrementRecipeQuota(userId);
     if (!quota.allowed) {
-      const error = new Error('วันนี้คุณได้ไอเดียไปเยอะแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ!');
+      const error = new Error('วันนี้คุณใช้โควตาครบ 10 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨');
       error.statusCode = 429;
+      error.usedQuota = DAILY_RECIPE_LIMIT;
       error.remainingQuota = 0;
       throw error;
     }
     remainingQuota = quota.remaining;
+    usedQuota = quota.used;
   }
 
   const langInstruction = language === 'en'
@@ -417,11 +429,11 @@ async function suggestRecipes({ userId, mainIngredient, language = 'th', offset 
 ข้อกำหนดสำคัญมาก:
 1. ทุกเมนูต้องชูและโฟกัสเฉพาะ "${mainIngredient}" เป็นวัตถุดิบหลักเท่านั้น ห้ามใส่วัตถุดิบหลักอื่นที่ไม่เกี่ยวข้อง (ห้ามผสมเนื้อสัตว์หรือผักอื่นที่ไม่ได้เลือกมา)
 2. วัตถุดิบเสริมต้องเป็นเครื่องปรุงพื้นฐานประจำบ้านเท่านั้น (เช่น ไข่ไก่, ข้าวสวย, น้ำมัน, กระเทียม, ซีอิ๊ว, น้ำปลา, เกลือ, พริกไทย, น้ำตาล)
-3. เมนูทั้ง 6 ต้องมีความหลากหลายของกรรมวิธี (เช่น มีทั้งผัด, ทอด/ไข่, ต้ม/ซุป, ยำ/สลัด, ข้าว/เส้น, ของว่าง/หม้อทอด) ห้ามซ้ำแนวกัน
+3. เมนูทั้ง 3 ต้องมีความหลากหลายของกรรมวิธี (เช่น มีผัด, ทอด/ไข่, ต้ม/ซุป, ยำ/สลัด, ข้าว/เส้น) ไม่ซ้ำแนวกัน
 4. เวลาปรุง 5-20 นาที ระดับความง่าย Easy หรือ Very easy
 5. ${langInstruction}
 
-ตอบกลับเป็น JSON array ของวัตถุ 6 รายการเท่านั้น ตามโครงสร้างดังนี้:
+ตอบกลับเป็น JSON array ของวัตถุ 3 รายการเท่านั้น ตามโครงสร้างดังนี้:
 [
   {
     "id": "recipe_1",
@@ -447,7 +459,7 @@ async function suggestRecipes({ userId, mainIngredient, language = 'th', offset 
     const res = await ai.models.generateContent({
       model,
       contents: [{ text: prompt }],
-      config: { responseMimeType: 'application/json', temperature: 0.75 },
+      config: { responseMimeType: 'application/json', temperature: 0.8 },
     });
 
     if (res.text) {
@@ -465,8 +477,8 @@ async function suggestRecipes({ userId, mainIngredient, language = 'th', offset 
     recipes = generateFallbackRecipes(mainIngredient, language, offset);
   }
 
-  // Ensure 6 recipes and attach unique non-repeating image assets
-  const formattedRecipes = recipes.map((r, idx) => {
+  // Ensure exactly 3 recipes and attach unique non-repeating image assets
+  const formattedRecipes = recipes.slice(0, 3).map((r, idx) => {
     return attachRecipeImages(
       {
         id: r.id || `recipe_${idx + 1}`,
@@ -486,7 +498,9 @@ async function suggestRecipes({ userId, mainIngredient, language = 'th', offset 
 
   return {
     recipes: formattedRecipes,
+    usedDailyQuota: usedQuota,
     remainingDailyQuota: remainingQuota,
+    maxDailyQuota: DAILY_RECIPE_LIMIT,
   };
 }
 
@@ -494,6 +508,7 @@ module.exports = {
   scanLabel,
   suggestRecipes,
   checkAndIncrementRecipeQuota,
+  getRecipeQuota,
   clearRecipeQuotaForTest,
   generateFallbackRecipes,
   DISH_IMAGES,

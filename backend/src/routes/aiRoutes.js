@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const multer = require('multer');
 const authenticateToken = require('../middleware/auth');
-const { scanLabel, suggestRecipes } = require('../services/aiService');
+const { scanLabel, suggestRecipes, getRecipeQuota } = require('../services/aiService');
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
@@ -43,6 +43,12 @@ router.post('/scan-label', authenticateToken, handleUpload, async (req, res, nex
   }
 });
 
+router.get('/recipes/quota', authenticateToken, (req, res) => {
+  const userId = req.user?.userId || 'anonymous';
+  const quota = getRecipeQuota(userId);
+  res.json(quota);
+});
+
 router.post('/recipes', authenticateToken, async (req, res, next) => {
   try {
     const { mainIngredient, language, offset } = req.body;
@@ -63,7 +69,9 @@ router.post('/recipes', authenticateToken, async (req, res, next) => {
     if (err.statusCode === 429) {
       return res.status(429).json({
         error: err.message,
+        usedDailyQuota: 10,
         remainingDailyQuota: 0,
+        maxDailyQuota: 10,
       });
     }
     next(err);

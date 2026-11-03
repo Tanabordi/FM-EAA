@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../data/models/recipe_model.dart';
 import '../../../../data/repositories/item_repository.dart';
@@ -9,8 +10,9 @@ import '../../../../data/repositories/ai_repository.dart';
 import 'recipe_detail_page.dart';
 
 /// Screen #25: AI Suggested Recipes Page
-/// Features smart batching (6 recipes fetched, instant 0s swap on 1st regenerate),
-/// 3-second cooldown anti-spam protection, and polite daily quota messaging.
+/// Generates 3 recipes per request focused on selected ingredient,
+/// with 10 requests/day limit, usage counter in button (e.g. Regenerate (1/10)),
+/// and 3-second button cooldown.
 class RecipeRecommendationPage extends ConsumerStatefulWidget {
   final String fridgeId;
   final String initialIngredient;
@@ -27,11 +29,12 @@ class RecipeRecommendationPage extends ConsumerStatefulWidget {
 
 class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationPage> {
   late String _currentIngredient;
-  List<RecipeModel> _cachedBatch = [];
   List<RecipeModel> _recipes = [];
-  int _currentBatchIndex = 0; // 0 = showing items 0-2, 1 = showing items 3-5
-  int _generationCount = 0;
   bool _isRegenerating = false;
+
+  // Daily Quota Tracking (Max: 10/day)
+  int _usedCount = 1;
+  static const int _maxDailyQuota = 10;
 
   // Anti-Spam Cooldown (3 seconds)
   int _cooldownSeconds = 0;
@@ -44,10 +47,12 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         ? 'Strawberries'
         : widget.initialIngredient;
 
-    // Load initial recipes immediately from smart fallback / cache
+    // Load initial recipes immediately from fallback
     _loadInitialFallback();
 
-    // Query fridge items and fetch fresh AI recipes if applicable
+    // Load persisted quota and query fresh AI recipes
+    _loadDailyQuota();
+
     Future.microtask(() async {
       try {
         final itemRepo = ref.read(itemRepositoryProvider);
@@ -71,9 +76,36 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     super.dispose();
   }
 
+  Future<void> _loadDailyQuota() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      final savedDate = prefs.getString('gemini_recipe_date');
+      if (savedDate == today) {
+        final savedCount = prefs.getInt('gemini_recipe_count') ?? 1;
+        if (mounted) {
+          setState(() {
+            _usedCount = savedCount;
+          });
+        }
+      } else {
+        await prefs.setString('gemini_recipe_date', today);
+        await prefs.setInt('gemini_recipe_count', 1);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveDailyQuota(int count) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      await prefs.setString('gemini_recipe_date', today);
+      await prefs.setInt('gemini_recipe_count', count);
+    } catch (_) {}
+  }
+
   void _loadInitialFallback() {
-    _cachedBatch = _getQuickLocalRecipes(_currentIngredient);
-    _recipes = _cachedBatch.take(3).toList();
+    _recipes = _getQuickLocalRecipes(_currentIngredient).take(3).toList();
   }
 
   List<RecipeModel> _getQuickLocalRecipes(String ingredient) {
@@ -83,6 +115,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         const RecipeModel(
           id: 'spinach_pasta',
           title: 'Creamy Garlic Spinach Pasta',
+          description: 'A comforting, creamy garlic pasta loaded with tender wilted spinach.',
           imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281699?auto=format&fit=crop&w=800&q=80',
           assetFallback: 'assets/images/food_spinach.png',
           cookingTime: '15 min',
@@ -106,6 +139,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         const RecipeModel(
           id: 'spinach_salad',
           title: 'Strawberry & Spinach Salad',
+          description: 'Crisp baby spinach paired with fresh sweet strawberries and balsamic dressing.',
           imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
           assetFallback: 'assets/images/food_spinach.png',
           cookingTime: '10 min',
@@ -128,6 +162,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         const RecipeModel(
           id: 'spinach_smoothie',
           title: 'Green Power Spinach Smoothie',
+          description: 'A refreshing energy boost packed with fresh nutrients and banana.',
           imageUrl: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?auto=format&fit=crop&w=800&q=80',
           assetFallback: 'assets/images/food_spinach.png',
           cookingTime: '5 min',
@@ -155,6 +190,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         const RecipeModel(
           id: 'avocado_toast',
           title: 'Avocado Toast with Poached Egg',
+          description: 'Crisp sourdough topped with velvety seasoned avocado mash and a runny poached egg.',
           imageUrl: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80',
           assetFallback: 'assets/images/food_avocados.png',
           cookingTime: '12 min',
@@ -177,6 +213,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         const RecipeModel(
           id: 'strawberry_avocado_salad',
           title: 'Strawberry & Avocado Salad',
+          description: 'A colorful mix of creamy avocado cubes and sweet strawberries on bed of greens.',
           imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
           assetFallback: 'assets/images/food_avocados.png',
           cookingTime: '10 min',
@@ -199,6 +236,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         const RecipeModel(
           id: 'guacamole',
           title: 'Zesty Homemade Guacamole',
+          description: 'Fresh chunky guacamole with lime, cilantro, and ripe avocado.',
           imageUrl: 'https://images.unsplash.com/photo-1541344999736-83eca872f241?auto=format&fit=crop&w=800&q=80',
           assetFallback: 'assets/images/food_avocados.png',
           cookingTime: '8 min',
@@ -226,6 +264,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         const RecipeModel(
           id: 'strawberry_pancakes',
           title: 'Fluffy Strawberry Pancakes',
+          description: 'Fluffy golden hotcakes topped with fresh sweet strawberries and maple syrup.',
           imageUrl: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=80',
           assetFallback: 'assets/images/food_strawberries.png',
           cookingTime: '20 min',
@@ -251,6 +290,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         const RecipeModel(
           id: 'strawberry_smoothie',
           title: 'Strawberry Yogurt Smoothie',
+          description: 'Creamy yogurt blended with sweet ripe strawberries and honey.',
           imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
           assetFallback: 'assets/images/food_strawberries.png',
           cookingTime: '10 mins',
@@ -273,6 +313,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         const RecipeModel(
           id: 'strawberry_salad',
           title: 'Strawberry & Avocado Salad',
+          description: 'Tossed greens with sweet strawberries, avocado chunks, and balsamic glaze.',
           imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
           assetFallback: 'assets/images/food_avocados.png',
           cookingTime: '10 min',
@@ -296,11 +337,12 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       ];
     }
 
-    // Default for any custom ingredient like "ค็อกเทลรมควัน"
+    // Default for any custom ingredient like "แครอท" or "ค็อกเทลรมควัน"
     return [
       RecipeModel(
         id: 'recipe_local_1',
         title: 'ผัดกระเทียมพริกไทย$ingredient',
+        description: 'หอมกลิ่นกระเทียมพริกไทย ทำง่าย รสชาติกลมกล่อม',
         imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '10 min',
@@ -312,6 +354,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       RecipeModel(
         id: 'recipe_local_2',
         title: 'ไข่เจียวทรงเครื่องใส่$ingredient',
+        description: 'ไข่เจียวฟูนุ่มกรอบนอกนุ่มใน เข้ากันได้อย่างลงตัว',
         imageUrl: 'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_eggs.png',
         cookingTime: '10 min',
@@ -323,6 +366,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       RecipeModel(
         id: 'recipe_local_3',
         title: 'ข้าวผัดโบราณใส่$ingredient',
+        description: 'เปลี่ยนข้าวสวยและวัตถุดิบเหลือให้เป็นมื้ออร่อยง่ายๆ',
         imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '15 min',
@@ -337,19 +381,24 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   Future<void> _fetchRecipesFromAi() async {
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
-      final results = await aiRepo.getSuggestedRecipes(
+      final result = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
+        offset: 0,
       );
 
-      if (results.isNotEmpty && mounted) {
+      if (result.recipes.isNotEmpty && mounted) {
         setState(() {
-          _cachedBatch = results;
-          _currentBatchIndex = 0;
-          _recipes = _cachedBatch.take(3).toList();
+          _recipes = result.recipes;
+          _usedCount = result.usedDailyQuota;
         });
+        _saveDailyQuota(_usedCount);
       }
     } catch (e) {
-      if (mounted && e.toString().contains('วันนี้คุณได้ไอเดีย')) {
+      if (mounted && e.toString().contains('วันนี้คุณ')) {
+        setState(() {
+          _usedCount = _maxDailyQuota;
+        });
+        _saveDailyQuota(_maxDailyQuota);
         _showDailyLimitAlert();
       }
     }
@@ -381,7 +430,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   void _showDailyLimitAlert() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('วันนี้คุณได้ไอเดียไปเยอะแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨'),
+        content: Text('วันนี้คุณใช้โควตาครบ 10 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨'),
         backgroundColor: Color(0xFFFA8B28),
         duration: Duration(seconds: 4),
       ),
@@ -389,56 +438,43 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   }
 
   void _onRegenerate() async {
-    // Prevent spam if cooling down or currently regenerating
-    if (_cooldownSeconds > 0 || _isRegenerating) return;
-
-    // Start 3-second button cooldown immediately (Technique 2)
-    _startCooldown();
-
-    // Technique 1: 0-second instant swap from pre-fetched 6 recipes batch!
-    if (_currentBatchIndex == 0 && _cachedBatch.length > 3) {
-      setState(() {
-        _currentBatchIndex = 1;
-        _recipes = _cachedBatch.sublist(3, _cachedBatch.length.clamp(3, 6));
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('⚡ สลับ 3 เมนูสำรองทันที (0s)! ประหยัดโควตา'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Color(0xFF2E6A44),
-        ),
-      );
+    // Check if daily quota is reached (10/10)
+    if (_usedCount >= _maxDailyQuota) {
+      _showDailyLimitAlert();
       return;
     }
 
-    // If already showed the backup 3 recipes, call Gemini AI to fetch next fresh batch of 6
+    // Prevent spam if cooling down or currently regenerating
+    if (_cooldownSeconds > 0 || _isRegenerating) return;
+
+    // Start 3-second button cooldown
+    _startCooldown();
+
     setState(() {
       _isRegenerating = true;
     });
 
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
-
-      _generationCount++;
-      final freshResults = await aiRepo.getSuggestedRecipes(
+      final result = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
-        offset: _generationCount,
+        offset: _usedCount,
       );
 
       if (!mounted) return;
 
       setState(() {
-        _cachedBatch = freshResults;
-        _currentBatchIndex = 0;
-        _recipes = _cachedBatch.take(3).toList();
+        _recipes = result.recipes;
+        _usedCount = result.usedDailyQuota;
         _isRegenerating = false;
       });
 
+      _saveDailyQuota(_usedCount);
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✨ Gemini AI คิดไอเดียชุดใหม่ 6 เมนูเรียบร้อย!'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text('✨ Gemini AI สุ่ม 3 เมนูใหม่เรียบร้อย! (ใช้ไปแล้ว $_usedCount/$_maxDailyQuota ครั้ง)'),
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -447,13 +483,19 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         _isRegenerating = false;
       });
 
-      if (e.toString().contains('วันนี้คุณได้ไอเดีย')) {
+      if (e.toString().contains('วันนี้คุณ')) {
+        setState(() {
+          _usedCount = _maxDailyQuota;
+        });
+        _saveDailyQuota(_maxDailyQuota);
         _showDailyLimitAlert();
       } else {
-        // Fallback swap
+        // Local fallback rotation
         setState(() {
+          _usedCount = (_usedCount + 1).clamp(1, _maxDailyQuota);
           _recipes = List.from(_recipes.reversed);
         });
+        _saveDailyQuota(_usedCount);
       }
     }
   }
@@ -471,6 +513,8 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
   @override
   Widget build(BuildContext context) {
+    final isQuotaFull = _usedCount >= _maxDailyQuota;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF6FBF3),
       body: SafeArea(
@@ -511,7 +555,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                               ),
                               SizedBox(height: 12),
                               Text(
-                                'Gemini AI is crafting delicious recipes...',
+                                'Gemini AI is crafting 3 fresh recipes...',
                                 style: TextStyle(
                                   color: Color(0xFF414942),
                                   fontSize: 13,
@@ -524,54 +568,81 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                     else
                       ..._recipes.map((recipe) => _buildRecipeCard(recipe)),
                     const SizedBox(height: 16),
-                    // Regenerate Button with Cooldown feedback
+                    // Regenerate Button with Usage Counter and Cooldown
                     Center(
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: (_cooldownSeconds > 0 || _isRegenerating) ? null : _onRegenerate,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (_cooldownSeconds > 0) ...[
-                                const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Color(0xFF717971),
+                      child: isQuotaFull
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE4E9E2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.block,
+                                    color: Color(0xFF8A938A),
+                                    size: 16,
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Regenerate (${_cooldownSeconds}s)',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF717971),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Regenerate (10/10 - ครบโควตาวันนี้แล้ว)',
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF8A938A),
+                                    ),
                                   ),
+                                ],
+                              ),
+                            )
+                          : InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: (_cooldownSeconds > 0 || _isRegenerating) ? null : _onRegenerate,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_cooldownSeconds > 0) ...[
+                                      const SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFF717971),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Regenerate (${_cooldownSeconds}s) · ($_usedCount/$_maxDailyQuota)',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF717971),
+                                        ),
+                                      ),
+                                    ] else ...[
+                                      const Icon(
+                                        Icons.sync,
+                                        color: Color(0xFF2E6A44),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Regenerate ($_usedCount/$_maxDailyQuota)',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF2E6A44),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                              ] else ...[
-                                const Icon(
-                                  Icons.sync,
-                                  color: Color(0xFF2E6A44),
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 6),
-                                const Text(
-                                  'Regenerate',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF2E6A44),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
+                              ),
+                            ),
                     ),
                     const SizedBox(height: 24),
                   ],

@@ -52,7 +52,7 @@ void main() {
       expect(find.text('View Recipe'), findsNWidgets(3));
 
       // Regenerate button
-      expect(find.text('Regenerate'), findsOneWidget);
+      expect(find.textContaining('Regenerate'), findsOneWidget);
       expect(find.byIcon(Icons.sync), findsOneWidget);
     });
 
@@ -114,11 +114,11 @@ void main() {
       );
       await tester.pump();
 
-      await tester.ensureVisible(find.text('Regenerate'));
+      await tester.ensureVisible(find.textContaining('Regenerate'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Regenerate'), findsOneWidget);
-      await tester.tap(find.text('Regenerate'));
+      expect(find.textContaining('Regenerate (1/10)'), findsOneWidget);
+      await tester.tap(find.textContaining('Regenerate'));
       await tester.pump();
 
       // Button enters cooldown state
@@ -126,7 +126,7 @@ void main() {
 
       // Advance time by 3 seconds
       await tester.pump(const Duration(seconds: 4));
-      expect(find.text('Regenerate'), findsOneWidget);
+      expect(find.textContaining('Regenerate'), findsOneWidget);
     });
   });
 
