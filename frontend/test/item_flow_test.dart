@@ -56,7 +56,7 @@ void main() {
       expect(find.text('กรุณากรอกชื่ออาหารก่อนบันทึก'), findsOneWidget);
     });
 
-    testWidgets('Screen #11: Tapping Scan Label with AI card opens 2 options (Camera/Gallery), loads image, and X clears all data', (tester) async {
+    testWidgets('Screen #11: Tapping Scan Label with AI card opens ScanLabelPage directly and supports saving item', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -70,39 +70,18 @@ void main() {
       await tester.tap(find.text('Scan Label with AI'));
       await tester.pumpAndSettle();
 
-      // Check bottom sheet options: Camera and Gallery
-      expect(find.text('Take Photo with Camera'), findsOneWidget);
-      expect(find.text('Choose from Gallery'), findsOneWidget);
-      expect(find.text('Demo AI Scan (Sample Avocados)'), findsNothing);
+      // Directly opens ScanLabelPage with camera and gallery controls
+      expect(find.text('AI Label Scanner'), findsOneWidget);
+      expect(find.byKey(const Key('scan_label_camera_btn')), findsOneWidget);
+      expect(find.byKey(const Key('scan_label_gallery_btn')), findsOneWidget);
 
-      // Tap Choose from Gallery in sheet
-      await tester.tap(find.text('Choose from Gallery'));
-      await tester.pumpAndSettle();
-      await tester.pump(const Duration(milliseconds: 350));
+      // Tap back button in ScanLabelPage to return to AddItemPage
+      await tester.tap(find.byType(IconButton).first);
       await tester.pumpAndSettle();
 
-      // Image is loaded
-      expect(find.text('Photo Loaded'), findsOneWidget);
-      expect(find.text('Photo Selected'), findsOneWidget);
+      expect(find.text('Add items'), findsOneWidget);
 
-      // Now test: "ถ้ากด กากบาทออกข้อมูลทั้งหมดในหน้า add itemก้จะหายหมดเหมือนกัน"
-      await tester.tap(find.byIcon(Icons.close));
-      await tester.pumpAndSettle();
-
-      // Image and all fields must be cleared
-      expect(find.text('Scan Label with AI'), findsOneWidget);
-      expect(find.text('Photo Loaded'), findsNothing);
-
-      // User can choose new photo and fill form to save
-      await tester.tap(find.text('Scan Label with AI'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Take Photo with Camera'));
-      await tester.pumpAndSettle();
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Photo Loaded'), findsOneWidget);
-
+      // Enter food name and save
       await tester.enterText(find.widgetWithText(TextFormField, 'Food Name'), 'Fresh Avocados');
       await tester.pumpAndSettle();
 

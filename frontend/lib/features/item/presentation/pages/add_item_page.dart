@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
 import '../../../../shared/widgets/app_back_button.dart';
@@ -183,178 +182,17 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   }
 
 
-  Future<void> _showScanSourceSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  Future<void> _openScanLabelScanner() async {
+    final result = await Navigator.push<AiScanResult>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ScanLabelPage(fridgeId: widget.fridgeId),
       ),
-      builder: (bottomSheetContext) {
-        return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDDE4DC),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.auto_awesome, color: Color(0xFF2E6A44), size: 22),
-                      SizedBox(width: 8),
-                      Text(
-                        'Scan Label with AI',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF181D17),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(8, 4, 8, 14),
-                  child: Text(
-                    'Capture or select an image to let Gemini AI extract food name and expiry date.',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF717971)),
-                  ),
-                ),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFD8F3DC),
-                    child: Icon(Icons.document_scanner_outlined, color: Color(0xFF2D6A4F)),
-                  ),
-                  title: const Text(
-                    'Open AI Label Scanner',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  subtitle: const Text('Interactive viewfinder & real-time scanner page'),
-                  onTap: () async {
-                    Navigator.of(bottomSheetContext).pop();
-                    final result = await Navigator.push<AiScanResult>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ScanLabelPage(fridgeId: widget.fridgeId),
-                      ),
-                    );
-                    if (result != null && mounted) {
-                      setState(() {
-                        _applyScanResult(result);
-                      });
-                    }
-                  },
-                ),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFEAEFE8),
-                    child: Icon(Icons.photo_camera_outlined, color: Color(0xFF2E6A44)),
-                  ),
-                  title: const Text(
-                    'Take Photo with Camera',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  subtitle: const Text('Capture label directly using camera'),
-                  onTap: () {
-                    Navigator.of(bottomSheetContext).pop();
-                    _pickImage(ImageSource.camera);
-                  },
-                ),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFEAEFE8),
-                    child: Icon(Icons.photo_library_outlined, color: Color(0xFF2E6A44)),
-                  ),
-                  title: const Text(
-                    'Choose from Gallery',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  subtitle: const Text('Select a photo of food packaging'),
-                  onTap: () {
-                    Navigator.of(bottomSheetContext).pop();
-                    _pickImage(ImageSource.gallery);
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final picker = ImagePicker();
-      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
-
-      final XFile? picked;
-      if (isTest) {
-        picked = await picker
-            .pickImage(
-              source: source,
-              maxWidth: 1024,
-              maxHeight: 1024,
-              imageQuality: 85,
-            )
-            .timeout(const Duration(milliseconds: 300), onTimeout: () => null);
-      } else {
-        picked = await picker.pickImage(
-          source: source,
-          maxWidth: 1024,
-          maxHeight: 1024,
-          imageQuality: 85,
-        );
-      }
-
-      if (!mounted) return;
-
-      if (picked != null) {
-        final bytes = await picked.readAsBytes();
-        if (!mounted) return;
-        setState(() {
-          _imagePath = picked!.path;
-          _imageBytes = bytes;
-          _hasAnalyzed = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('📸 โหลดรูปภาพเรียบร้อยแล้ว'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      } else if (isTest) {
-        setState(() {
-          _imagePath = 'assets/images/food_avocados.png';
-          _imageBytes = null;
-          _hasAnalyzed = false;
-        });
-      }
-    } catch (_) {
-      if (!mounted) return;
-      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
-      if (isTest) {
-        setState(() {
-          _imagePath = 'assets/images/food_avocados.png';
-          _imageBytes = null;
-          _hasAnalyzed = false;
-        });
-      }
+    if (result != null && mounted) {
+      setState(() {
+        _applyScanResult(result);
+      });
     }
   }
 
@@ -600,7 +438,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                       borderRadius: BorderRadius.circular(24),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(24),
-                        onTap: _isScanning ? null : _showScanSourceSheet,
+                        onTap: _isScanning ? null : _openScanLabelScanner,
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                           decoration: BoxDecoration(
