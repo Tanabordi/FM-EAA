@@ -10,6 +10,7 @@ class MarkConsumedSheet extends StatefulWidget {
   final String unit;
   final void Function(double amount, bool finishedAll) onConsumed;
   final VoidCallback? onRecommendRecipe;
+  final bool hideGeminiShortcut;
 
   const MarkConsumedSheet({
     super.key,
@@ -18,6 +19,7 @@ class MarkConsumedSheet extends StatefulWidget {
     required this.unit,
     required this.onConsumed,
     this.onRecommendRecipe,
+    this.hideGeminiShortcut = false,
   });
 
   @override
@@ -25,7 +27,13 @@ class MarkConsumedSheet extends StatefulWidget {
 }
 
 class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
-  double _consumeAmount = 1;
+  late double _consumeAmount;
+
+  @override
+  void initState() {
+    super.initState();
+    _consumeAmount = widget.availablePieces <= 1 ? widget.availablePieces : 1.0;
+  }
 
   void _onGeminiRecipe() {
     if (widget.onRecommendRecipe != null) {
@@ -163,72 +171,74 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              // Gemini AI Recipe Recommendation Button (Floating pill button with shadow)
-              InkWell(
-                borderRadius: BorderRadius.circular(28),
-                onTap: _onGeminiRecipe,
-                child: Container(
-                  height: 52,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEAEFE8),
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: const Color(0xFF717971),
-                      width: 1.0,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.16),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+              if (!widget.hideGeminiShortcut) ...[
+                const SizedBox(height: 24),
+                // Gemini AI Recipe Recommendation Button (Floating pill button with shadow)
+                InkWell(
+                  borderRadius: BorderRadius.circular(28),
+                  onTap: _onGeminiRecipe,
+                  child: Container(
+                    height: 52,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAEFE8),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: const Color(0xFF717971),
+                        width: 1.0,
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.16),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
                         ),
-                        child: Center(
-                          child: ShaderMask(
-                            shaderCallback: (bounds) => const SweepGradient(
-                              colors: [
-                                Color(0xFF4285F4),
-                                Color(0xFF9B72CF),
-                                Color(0xFFEA4335),
-                                Color(0xFFFBBC04),
-                                Color(0xFF4285F4),
-                              ],
-                            ).createShader(bounds),
-                            child: const Icon(
-                              Icons.auto_awesome,
-                              color: Colors.white,
-                              size: 20,
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: ShaderMask(
+                              shaderCallback: (bounds) => const SweepGradient(
+                                colors: [
+                                  Color(0xFF4285F4),
+                                  Color(0xFF9B72CF),
+                                  Color(0xFFEA4335),
+                                  Color(0xFFFBBC04),
+                                  Color(0xFF4285F4),
+                                ],
+                              ).createShader(bounds),
+                              child: const Icon(
+                                Icons.auto_awesome,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'Ask Gemini AI for recipe ideas',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF181D17),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Ask Gemini AI for recipe ideas',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF181D17),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
+              ],
+              const SizedBox(height: 16),
               // Confirm Button
               SizedBox(
                 height: 52,

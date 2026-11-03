@@ -204,6 +204,14 @@ void main() {
       expect(find.text('Done! Mark as Consumed'), findsOneWidget);
       await tester.tap(find.text('Done! Mark as Consumed'));
       await tester.pumpAndSettle();
+
+      // Opens MarkConsumedSheet with stepper and Confirm button
+      expect(find.text('How much did you consume?'), findsOneWidget);
+      expect(find.text('Confirm'), findsOneWidget);
+      expect(find.text('Finished all'), findsOneWidget);
+
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
       expect(markedConsumed, true);
     });
   });

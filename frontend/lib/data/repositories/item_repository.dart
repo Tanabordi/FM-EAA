@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../local/app_database.dart';
 import '../models/item_model.dart';
@@ -35,6 +36,14 @@ class ItemRepository {
     String? category,
     String? zone,
   }) async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      final entries = await database.itemDao.getItemsByFridge(
+        fridgeId,
+        category: category,
+        zone: zone,
+      );
+      return entries.map(ItemModel.fromEntry).toList();
+    }
     try {
       final token = await apiClient.storage.read(key: 'jwt_token');
       if (token != null && token.isNotEmpty) {

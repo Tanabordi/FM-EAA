@@ -6,6 +6,7 @@ import '../../data/models/recipe_model.dart';
 import '../../../history/providers/history_provider.dart';
 import '../../../../data/repositories/item_repository.dart';
 import '../../../../data/models/item_model.dart';
+import '../../../item/presentation/widgets/mark_consumed_sheet.dart';
 
 /// Screen #26: Recipe Details
 /// Matches exact layout and design from uploaded Figma screenshot (media_1793552844285_7860fd5e.png)
@@ -39,45 +40,90 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
   }
 
   Future<void> _onDoneMarkAsConsumed() async {
-    if (widget.onMarkConsumed != null) {
-      widget.onMarkConsumed!();
-    }
+    // Look up matching item in the current fridge inventory
+    ItemModel? matchingItem;
+    try {
+      final itemRepo = ref.read(itemRepositoryProvider);
+      final items = await itemRepo.getItems(widget.fridgeId);
+      final searchKey = widget.recipe.expiringIngredient.toLowerCase();
+      matchingItem = items.cast<ItemModel?>().firstWhere(
+            (i) =>
+                i != null &&
+                (i.name.toLowerCase().contains(searchKey) ||
+                    searchKey.contains(i.name.toLowerCase())),
+            orElse: () => null,
+          );
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    final availablePieces = matchingItem?.quantity ?? 1.0;
+    final itemName = matchingItem?.name ?? widget.recipe.expiringIngredient;
+    final unit = matchingItem != null && matchingItem.unit.isNotEmpty
+        ? (matchingItem.unit.contains('punnet')
+            ? 'pieces'
+            : (matchingItem.unit.contains('bag')
+                ? 'bag'
+                : (matchingItem.unit.contains('bottle') ? 'bottle' : matchingItem.unit)))
+        : 'portion';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => MarkConsumedSheet(
+        itemName: itemName,
+        availablePieces: availablePieces > 0 ? availablePieces : 1.0,
+        unit: unit,
+        hideGeminiShortcut: true,
+        onConsumed: (amount, finishedAll) async {
+          Navigator.pop(sheetContext);
+          await _processConsumption(matchingItem, amount, finishedAll);
+        },
+      ),
+    );
+  }
+
+  Future<void> _processConsumption(
+    ItemModel? matchingItem,
+    double amount,
+    bool finishedAll,
+  ) async {
+    final itemName = matchingItem?.name ?? widget.recipe.expiringIngredient;
+    final unit = matchingItem?.unit ?? 'portion';
+    final isCompletelyFinished =
+        finishedAll || (matchingItem != null && matchingItem.quantity - amount <= 0);
 
     // 1. Record consumed entry into History database for HistoryPage
     try {
       await ref.read(historyRepositoryProvider).recordConsumedItem(
             fridgeId: widget.fridgeId,
-            itemName: widget.recipe.title,
-            category: 'meals',
-            zone: 'fridge',
+            itemName: '${widget.recipe.title} ($itemName)',
+            category: matchingItem?.category ?? 'meals',
+            zone: matchingItem?.zone ?? 'fridge',
             imagePath: widget.recipe.imageUrl,
-            quantity: 1.0,
-            quantityLeft: 0.0,
-            unit: 'portion',
+            quantity: amount,
+            quantityLeft: matchingItem != null
+                ? (isCompletelyFinished
+                    ? 0.0
+                    : (matchingItem.quantity - amount).clamp(0.0, double.infinity))
+                : 0.0,
+            unit: unit,
             byUsername: 'alex.lee',
           );
     } catch (_) {}
 
     // 2. Also deduct from fridge inventory if matching ingredient item exists
-    try {
-      final itemRepo = ref.read(itemRepositoryProvider);
-      final items = await itemRepo.getItems(widget.fridgeId);
-      final matching = items.cast<ItemModel?>().firstWhere(
-            (i) =>
-                i != null &&
-                i.name.toLowerCase().contains(
-                      widget.recipe.expiringIngredient.toLowerCase(),
-                    ),
-            orElse: () => null,
-          );
-      if (matching != null) {
+    if (matchingItem != null) {
+      try {
+        final itemRepo = ref.read(itemRepositoryProvider);
         await itemRepo.consumeItem(
-          matching.id,
-          1.0,
-          finishedAll: matching.quantity <= 1.0,
+          matchingItem.id,
+          amount,
+          finishedAll: isCompletelyFinished,
         );
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
 
     if (widget.onMarkConsumed != null) {
       widget.onMarkConsumed!();
@@ -86,9 +132,13 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     if (!mounted) return;
 
     // 3. Show feedback SnackBar
+    final feedbackText = isCompletelyFinished
+        ? '✨ Finished all $itemName! Recorded to History.'
+        : '✨ Consumed ${amount.toInt()} $unit of $itemName! Recorded to History.';
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('✨ ${widget.recipe.title} marked as consumed! Recorded to History.'),
+        content: Text(feedbackText),
         duration: const Duration(seconds: 3),
       ),
     );

@@ -55,52 +55,44 @@ function clearRecipeQuotaForTest() {
   recipeQuotaTracker.clear();
 }
 
-// Curated high-resolution food photo pools to ensure diverse, non-repeating photos
+// Curated high-resolution food photo pools to ensure diverse, accurate, and non-repeating photos
 const DISH_IMAGE_POOLS = {
   carrot: [
-    'https://images.unsplash.com/photo-1447175008436-054170c2e979?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1598170845058-32b9d6a5c717?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1447175008436-054170c2e979?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1522184216316-3c25379f9760?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80',
   ],
   omelet: [
     'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1494597706938-de2cd7341979?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1700324673015-52cddc228533?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1766146431872-a4472ccd3889?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&w=800&q=80',
   ],
   fried_rice: [
     'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1596560548464-f010549b84d7?auto=format&fit=crop&w=800&q=80',
   ],
   stir_fry: [
     'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1514944298352-78d12351be74?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=800&q=80',
   ],
   soup: [
     'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1578020190125-f4f7c18bc9cb?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1607528971899-2e7a3f4e3c35?auto=format&fit=crop&w=800&q=80',
   ],
   salad: [
     'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1505253758473-96b3015f27eb?auto=format&fit=crop&w=800&q=80',
   ],
   sausage: [
-    'https://images.unsplash.com/photo-1585325701165-351af916e581?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1533060328534-2db4d2602877?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1597075349414-e594898d46a9?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1691480241974-92481cef09ff?auto=format&fit=crop&w=800&q=80',
   ],
   pasta: [
     'https://images.unsplash.com/photo-1621996346565-e3d5d6281699?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80',
   ],
   sandwich: [
     'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80',
@@ -108,7 +100,6 @@ const DISH_IMAGE_POOLS = {
   ],
   pancake: [
     'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1506084868230-bb9d95c24759?auto=format&fit=crop&w=800&q=80',
   ],
   smoothie: [
     'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
@@ -116,11 +107,9 @@ const DISH_IMAGE_POOLS = {
   ],
   chicken: [
     'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=800&q=80',
   ],
   default: [
     'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
   ],
 };
@@ -153,38 +142,52 @@ function attachRecipeImages(recipe, mainIngredient, index = 0) {
   const lowerTitle = (recipe.title || '').toLowerCase();
   const lowerExp = (recipe.expiringIngredient || mainIngredient || '').toLowerCase();
 
-  let pool = DISH_IMAGE_POOLS[type];
-  let fallbackAsset = DISH_FALLBACK_ASSETS[type] || DISH_FALLBACK_ASSETS.default;
+  let pool = null;
+  let fallbackAsset = DISH_FALLBACK_ASSETS.default;
 
-  if (lowerExp.includes('แครอท') || lowerExp.includes('carrot')) {
+  // 1. Prioritize dish cooking style from title or dishType so photos accurately reflect the dish name
+  if (lowerTitle.includes('ไข่') || lowerTitle.includes('omelet') || lowerTitle.includes('egg') || type === 'omelet') {
+    pool = DISH_IMAGE_POOLS.omelet;
+    fallbackAsset = DISH_FALLBACK_ASSETS.omelet;
+  } else if (lowerTitle.includes('ข้าวผัด') || lowerTitle.includes('fried rice') || type === 'fried_rice') {
+    pool = DISH_IMAGE_POOLS.fried_rice;
+    fallbackAsset = DISH_FALLBACK_ASSETS.fried_rice;
+  } else if (lowerTitle.includes('ผัด') || lowerTitle.includes('stir') || type === 'stir_fry') {
+    pool = DISH_IMAGE_POOLS.stir_fry;
+    fallbackAsset = DISH_FALLBACK_ASSETS.stir_fry;
+  } else if (lowerTitle.includes('ซุป') || lowerTitle.includes('soup') || lowerTitle.includes('ต้ม') || type === 'soup') {
+    pool = DISH_IMAGE_POOLS.soup;
+    fallbackAsset = DISH_FALLBACK_ASSETS.soup;
+  } else if (lowerTitle.includes('สลัด') || lowerTitle.includes('salad') || lowerTitle.includes('ยำ') || type === 'salad') {
+    pool = DISH_IMAGE_POOLS.salad;
+    fallbackAsset = DISH_FALLBACK_ASSETS.salad;
+  } else if (lowerTitle.includes('แซนด์วิช') || lowerTitle.includes('sandwich') || type === 'sandwich') {
+    pool = DISH_IMAGE_POOLS.sandwich;
+    fallbackAsset = DISH_FALLBACK_ASSETS.default;
+  } else if (lowerTitle.includes('พาสต้า') || lowerTitle.includes('สปาเก็ตตี้') || lowerTitle.includes('pasta') || type === 'pasta') {
+    pool = DISH_IMAGE_POOLS.pasta;
+    fallbackAsset = DISH_FALLBACK_ASSETS.default;
+  } else if (lowerTitle.includes('สมูทตี้') || lowerTitle.includes('smoothie') || type === 'smoothie') {
+    pool = DISH_IMAGE_POOLS.smoothie;
+    fallbackAsset = DISH_FALLBACK_ASSETS.smoothie;
+  } else if (lowerTitle.includes('แพนเค้ก') || lowerTitle.includes('pancake') || type === 'pancake') {
+    pool = DISH_IMAGE_POOLS.pancake;
+    fallbackAsset = DISH_FALLBACK_ASSETS.pancake;
+  } else if (lowerTitle.includes('ไส้กรอก') || lowerTitle.includes('sausage') || lowerExp.includes('ไส้กรอก') || lowerExp.includes('ค็อกเทล')) {
+    pool = DISH_IMAGE_POOLS.sausage;
+    fallbackAsset = DISH_FALLBACK_ASSETS.sausage;
+  } else if (lowerTitle.includes('ไก่') || lowerTitle.includes('chicken') || lowerExp.includes('ไก่')) {
+    pool = DISH_IMAGE_POOLS.chicken;
+    fallbackAsset = DISH_FALLBACK_ASSETS.chicken;
+  } else if (lowerExp.includes('แครอท') || lowerExp.includes('carrot')) {
     pool = DISH_IMAGE_POOLS.carrot;
-  } else if (!pool) {
-    if (lowerTitle.includes('ไข่') || lowerTitle.includes('omelet') || lowerTitle.includes('egg')) {
-      pool = DISH_IMAGE_POOLS.omelet;
-      fallbackAsset = DISH_FALLBACK_ASSETS.omelet;
-    } else if (lowerTitle.includes('ข้าวผัด') || lowerTitle.includes('fried rice')) {
-      pool = DISH_IMAGE_POOLS.fried_rice;
-    } else if (lowerTitle.includes('ผัด') || lowerTitle.includes('stir')) {
-      pool = DISH_IMAGE_POOLS.stir_fry;
-    } else if (lowerTitle.includes('ซุป') || lowerTitle.includes('soup') || lowerTitle.includes('ต้ม')) {
-      pool = DISH_IMAGE_POOLS.soup;
-    } else if (lowerTitle.includes('สลัด') || lowerTitle.includes('salad')) {
-      pool = DISH_IMAGE_POOLS.salad;
-      fallbackAsset = DISH_FALLBACK_ASSETS.salad;
-    } else if (lowerTitle.includes('แซนด์วิช') || lowerTitle.includes('sandwich')) {
-      pool = DISH_IMAGE_POOLS.sandwich;
-    } else if (lowerExp.includes('ไส้กรอก') || lowerExp.includes('sausage') || lowerExp.includes('ค็อกเทล')) {
-      pool = DISH_IMAGE_POOLS.sausage;
-      fallbackAsset = DISH_FALLBACK_ASSETS.sausage;
-    } else if (lowerExp.includes('ไก่') || lowerExp.includes('chicken')) {
-      pool = DISH_IMAGE_POOLS.chicken;
-      fallbackAsset = DISH_FALLBACK_ASSETS.chicken;
-    } else if (lowerExp.includes('strawberr') || lowerExp.includes('สตรอว์')) {
-      pool = DISH_IMAGE_POOLS.pancake;
-      fallbackAsset = DISH_FALLBACK_ASSETS.pancake;
-    } else {
-      pool = DISH_IMAGE_POOLS.default;
-    }
+    fallbackAsset = DISH_FALLBACK_ASSETS.default;
+  } else if (DISH_IMAGE_POOLS[type]) {
+    pool = DISH_IMAGE_POOLS[type];
+    fallbackAsset = DISH_FALLBACK_ASSETS[type] || DISH_FALLBACK_ASSETS.default;
+  } else {
+    pool = DISH_IMAGE_POOLS.default;
+    fallbackAsset = DISH_FALLBACK_ASSETS.default;
   }
 
   // Pick unique photo from pool based on index to ensure every card in the list is distinct
@@ -193,8 +196,8 @@ function attachRecipeImages(recipe, mainIngredient, index = 0) {
 
   return {
     ...recipe,
-    imageUrl: recipe.imageUrl || chosenUrl,
-    assetFallback: recipe.assetFallback || fallbackAsset,
+    imageUrl: chosenUrl,
+    assetFallback: fallbackAsset,
   };
 }
 
