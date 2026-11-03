@@ -28,7 +28,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
     super.dispose();
   }
 
-  void _createFridge() {
+  void _createFridge() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       setState(() {
@@ -38,16 +38,27 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
     }
 
     final desc = _descController.text.trim();
-    ref.read(fridgesProvider.notifier).addFridge(name, desc);
-
     final messenger = ScaffoldMessenger.of(context);
-    context.pop();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('Fridge "$name" created successfully'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    
+    try {
+      await ref.read(fridgesProvider.notifier).addFridge(name, desc);
+      if (!mounted) return;
+      context.pop();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Fridge "$name" created successfully'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to create fridge: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

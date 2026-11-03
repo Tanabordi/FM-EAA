@@ -116,18 +116,46 @@ class ItemModel {
   }
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
+    final rawExpiry = json['expiryDate'] ?? json['expiry_date'];
+    DateTime parsedExpiry;
+    if (rawExpiry is DateTime) {
+      parsedExpiry = rawExpiry;
+    } else if (rawExpiry != null) {
+      parsedExpiry = DateTime.tryParse(rawExpiry.toString()) ?? DateTime.now();
+    } else {
+      parsedExpiry = DateTime.now();
+    }
+
+    final rawUpdated = json['updatedAt'] ?? json['updated_at'];
+    DateTime parsedUpdated;
+    if (rawUpdated is DateTime) {
+      parsedUpdated = rawUpdated;
+    } else if (rawUpdated != null) {
+      parsedUpdated = DateTime.tryParse(rawUpdated.toString()) ?? DateTime.now();
+    } else {
+      parsedUpdated = DateTime.now();
+    }
+
+    final rawQuantity = json['quantity'];
+    double qty = 1.0;
+    if (rawQuantity is num) {
+      qty = rawQuantity.toDouble();
+    } else if (rawQuantity != null) {
+      qty = double.tryParse(rawQuantity.toString()) ?? 1.0;
+    }
+
     return ItemModel(
-      id: json['id'] as String,
-      fridgeId: json['fridge_id'] as String,
-      name: json['name'] as String,
-      category: json['category'] as String,
-      zone: json['zone'] as String,
-      quantity: (json['quantity'] as num).toDouble(),
-      unit: json['unit'] as String,
-      expiryDate: DateTime.parse(json['expiry_date'] as String),
-      imagePath: json['image_path'] as String?,
-      isSynced: (json['is_synced'] as int? ?? 1) == 1,
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      id: json['id']?.toString() ?? '',
+      fridgeId: (json['fridgeId'] ?? json['fridge_id'] ?? '').toString(),
+      name: json['name']?.toString() ?? '',
+      category: json['category']?.toString() ?? 'meals',
+      zone: json['zone']?.toString() ?? 'fridge',
+      quantity: qty,
+      unit: json['unit']?.toString() ?? 'pieces',
+      expiryDate: parsedExpiry,
+      imagePath: (json['imagePath'] ?? json['image_path'])?.toString(),
+      isSynced: json['isSynced'] == true || (json['is_synced'] as int? ?? 1) == 1,
+      updatedAt: parsedUpdated,
     );
   }
 

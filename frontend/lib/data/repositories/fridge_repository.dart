@@ -19,65 +19,147 @@ class FridgeRepository {
     });
   }
 
-  /// Get all fridges from local SQLite
+  /// Get all fridges: tries backend API first if authenticated, caches to Drift SQLite, and falls back to local DB
   Future<List<FridgeModel>> getFridges() async {
-    final entries = await database.fridgeDao.getAllFridges();
-    return entries.map(FridgeModel.fromEntry).toList();
+    try {
+      final token = await apiClient.storage.read(key: 'jwt_token');
+      if (token != null && token.isNotEmpty) {
+        final res = await apiClient.dio.get('/fridges');
+        final list = (res.data['fridges'] as List?)
+            ?.map((e) => FridgeModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+        if (list != null) {
+          // Cache to local Drift database safely
+          try {
+            for (final f in list) {
+              await database.fridgeDao.insertFridgeOptimistic(
+                id: f.id,
+                name: f.name,
+                description: f.description,
+                ownerId: f.ownerId,
+                isSynced: true,
+              );
+            }
+          } catch (_) {}
+          return list;
+        }
+      }
+    } catch (_) {
+      // Fallback to local SQLite if network is offline or unauthenticated
+    }
+    try {
+      final entries = await database.fridgeDao.getAllFridges();
+      return entries.map(FridgeModel.fromEntry).toList();
+    } catch (_) {
+      return [];
+    }
   }
 
-  /// Optimistic Create: Inserts into Drift SQLite with is_synced = false immediately
+  /// Create Fridge: calls backend API, persists to Drift SQLite as synced
   Future<FridgeModel> createFridge(
     String name,
     String description, {
     String? id,
     String ownerId = 'user_1',
   }) async {
-    final fridgeId = id ?? 'fridge_${DateTime.now().millisecondsSinceEpoch}';
-    final now = DateTime.now();
+    try {
+      final res = await apiClient.dio.post(
+        '/fridges',
+        data: {
+          'name': name.trim(),
+          'description': description.trim(),
+          if (id != null) 'id': id,
+        },
+      );
+      final fridgeJson = res.data['fridge'] as Map<String, dynamic>;
+      final model = FridgeModel.fromJson(fridgeJson);
 
-    await database.fridgeDao.insertFridgeOptimistic(
-      id: fridgeId,
-      name: name,
-      description: description,
-      ownerId: ownerId,
-      isSynced: false, // Optimistic UI: marked false until synced
-    );
+      try {
+        await database.fridgeDao.insertFridgeOptimistic(
+          id: model.id,
+          name: model.name,
+          description: model.description,
+          ownerId: model.ownerId,
+          isSynced: true,
+        );
+      } catch (_) {}
 
-    return FridgeModel(
-      id: fridgeId,
-      name: name,
-      description: description,
-      ownerId: ownerId,
-      isSynced: false,
-      updatedAt: now,
-      memberCount: 1,
-    );
+      return model;
+    } catch (_) {
+      // Offline fallback: save locally as unsynced
+      final fridgeId = id ?? 'fridge_${DateTime.now().millisecondsSinceEpoch}';
+      final now = DateTime.now();
+
+      try {
+        await database.fridgeDao.insertFridgeOptimistic(
+          id: fridgeId,
+          name: name,
+          description: description,
+          ownerId: ownerId,
+          isSynced: false,
+        );
+      } catch (_) {}
+
+      return FridgeModel(
+        id: fridgeId,
+        name: name,
+        description: description,
+        ownerId: ownerId,
+        isSynced: false,
+        updatedAt: now,
+        memberCount: 1,
+      );
+    }
   }
 
-  /// Optimistic Update: Updates Drift SQLite with is_synced = false immediately
+  /// Update Fridge: calls backend API and updates local Drift SQLite
   Future<void> updateFridge(String id, String name, String description) async {
-    await database.fridgeDao.updateFridgeOptimistic(
-      id: id,
-      name: name,
-      description: description,
-      isSynced: false, // Optimistic UI
-    );
+    try {
+      await apiClient.dio.patch(
+        '/fridges/$id',
+        data: {
+          'name': name.trim(),
+          'description': description.trim(),
+        },
+      );
+    } catch (_) {}
+
+    try {
+      await database.fridgeDao.updateFridgeOptimistic(
+        id: id,
+        name: name,
+        description: description,
+        isSynced: true,
+      );
+    } catch (_) {}
   }
 
-  /// Optimistic Delete: Removes fridge from local SQLite immediately
+  /// Delete Fridge: calls backend API and removes from local SQLite
   Future<void> deleteFridge(String id) async {
-    await database.fridgeDao.deleteFridge(id);
+    try {
+      await apiClient.dio.delete('/fridges/$id');
+    } catch (_) {}
+
+    try {
+      await database.fridgeDao.deleteFridge(id);
+    } catch (_) {}
   }
 
   /// Query all unsynced fridges
   Future<List<FridgeModel>> getUnsyncedFridges() async {
-    final entries = await database.fridgeDao.getUnsyncedFridges();
-    return entries.map(FridgeModel.fromEntry).toList();
+    try {
+      final entries = await database.fridgeDao.getUnsyncedFridges();
+      return entries.map(FridgeModel.fromEntry).toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   /// Mark fridge as synced
   Future<void> markFridgeSynced(String id) async {
-    await database.fridgeDao.markFridgeSynced(id);
+    try {
+      await database.fridgeDao.markFridgeSynced(id);
+    } catch (_) {}
   }
 }
 

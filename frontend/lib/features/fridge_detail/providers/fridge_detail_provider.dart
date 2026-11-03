@@ -59,15 +59,27 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
 
   void _init() {
     if (_repository != null) {
-      _repository.watchItems(fridgeId).listen((sqliteItems) {
-        final initial = getInitialFridgeItems(fridgeId);
-        final sqliteIds = sqliteItems.map((e) => e.id).toSet();
-        final remainingInitial = initial.where(
-          (it) => !sqliteIds.contains(it.id) && !_consumedIds.contains(it.id),
-        );
-        state = [...sqliteItems, ...remainingInitial];
-      });
+      _loadItemsFromApi();
+      try {
+        _repository.watchItems(fridgeId).listen((sqliteItems) {
+          final initial = getInitialFridgeItems(fridgeId);
+          final sqliteIds = sqliteItems.map((e) => e.id).toSet();
+          final remainingInitial = initial.where(
+            (it) => !sqliteIds.contains(it.id) && !_consumedIds.contains(it.id),
+          );
+          state = [...sqliteItems, ...remainingInitial];
+        }, onError: (_) {});
+      } catch (_) {}
     }
+  }
+
+  Future<void> _loadItemsFromApi() async {
+    try {
+      final items = await _repository?.getItems(fridgeId);
+      if (items != null && items.isNotEmpty) {
+        state = items;
+      }
+    } catch (_) {}
   }
 
   ItemModel? _lastConsumedItem;
