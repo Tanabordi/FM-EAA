@@ -542,6 +542,31 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
     }
 
     final parsedQty = double.tryParse(_quantityController.text) ?? 1.0;
+
+    // If the image is a local file, ensure it's uploaded to OCI Object Storage so all devices can display it
+    if (_imagePath != null &&
+        !_imagePath!.startsWith('http') &&
+        !_imagePath!.startsWith('assets/') &&
+        !Platform.environment.containsKey('FLUTTER_TEST')) {
+      try {
+        if (_imageBytes == null && !kIsWeb) {
+          final f = File(_imagePath!);
+          if (f.existsSync()) {
+            _imageBytes = await f.readAsBytes();
+          }
+        }
+        if (_imageBytes != null) {
+          final cloudUrl = await ref.read(itemRepositoryProvider).uploadItemImageBytes(
+            _imageBytes!,
+            filename: 'item.jpg',
+          );
+          if (cloudUrl != null) {
+            _imagePath = cloudUrl;
+          }
+        }
+      } catch (_) {}
+    }
+
     final updated = ItemModel(
       id: widget.itemId,
       fridgeId: widget.fridgeId,

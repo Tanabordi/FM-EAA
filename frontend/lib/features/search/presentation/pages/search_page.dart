@@ -201,6 +201,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
                             return ItemCard(
                               name: '${item.name} (${item.category.capitalize()})',
+                              category: item.category,
                               quantityText: item.formattedQuantity,
                               status: item.status,
                               statusText: item.statusText,

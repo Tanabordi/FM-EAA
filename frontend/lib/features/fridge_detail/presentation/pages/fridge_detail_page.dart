@@ -147,6 +147,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
 
                         return ItemCard(
                           name: item.name,
+                          category: item.category,
                           quantityText: item.formattedQuantity,
                           status: item.status,
                           statusText: item.statusText,

@@ -2,11 +2,13 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/freshness_colors.dart';
+import '../utils/food_asset_helper.dart';
 import 'status_badge.dart';
 
 /// ItemCard displaying an ingredient inside a fridge zone matching Figma node 11:178 & 275:17
 class ItemCard extends StatelessWidget {
   final String name;
+  final String? category;
   final String quantityText;
   final FreshnessStatus status;
   final String statusText;
@@ -17,6 +19,7 @@ class ItemCard extends StatelessWidget {
   const ItemCard({
     super.key,
     required this.name,
+    this.category,
     required this.quantityText,
     required this.status,
     required this.statusText,
@@ -155,37 +158,44 @@ class ItemCard extends StatelessWidget {
   }
 
   Widget _buildPlaceholder() {
-    final lower = name.toLowerCase();
-    IconData iconData = Icons.restaurant_rounded;
-    Color iconColor = const Color(0xFF2E6A44);
-    Color bgColor = const Color(0xFFDDE4DC);
+    final assetFallback = getFoodAssetFallback(name, category: category);
+    return Image.asset(
+      assetFallback,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        final lower = name.toLowerCase();
+        IconData iconData = Icons.restaurant_rounded;
+        Color iconColor = const Color(0xFF2E6A44);
+        Color bgColor = const Color(0xFFDDE4DC);
 
-    if (lower.contains('spinach') || lower.contains('cabbage') || lower.contains('veggie')) {
-      iconData = Icons.eco_rounded;
-      bgColor = const Color(0xFFD5E4D4);
-      iconColor = const Color(0xFF2E7D32);
-    } else if (lower.contains('strawberr') || lower.contains('apple') || lower.contains('berry')) {
-      iconData = Icons.favorite_rounded;
-      bgColor = const Color(0xFFFFEBEE);
-      iconColor = const Color(0xFFE53935);
-    } else if (lower.contains('avocado')) {
-      iconData = Icons.spa_rounded;
-      bgColor = const Color(0xFFE8F5E9);
-      iconColor = const Color(0xFF388E3C);
-    } else if (lower.contains('milk') || lower.contains('drink') || lower.contains('juice') || lower.contains('beverage')) {
-      iconData = Icons.local_drink_rounded;
-      bgColor = const Color(0xFFE3F2FD);
-      iconColor = const Color(0xFF1E88E5);
-    } else if (lower.contains('pork') || lower.contains('beef') || lower.contains('chicken') || lower.contains('steak')) {
-      iconData = Icons.lunch_dining_rounded;
-      bgColor = const Color(0xFFFBE9E7);
-      iconColor = const Color(0xFFD84315);
-    }
+        if (lower.contains('spinach') || lower.contains('cabbage') || lower.contains('veggie')) {
+          iconData = Icons.eco_rounded;
+          bgColor = const Color(0xFFD5E4D4);
+          iconColor = const Color(0xFF2E7D32);
+        } else if (lower.contains('strawberr') || lower.contains('apple') || lower.contains('berry')) {
+          iconData = Icons.favorite_rounded;
+          bgColor = const Color(0xFFFFEBEE);
+          iconColor = const Color(0xFFE53935);
+        } else if (lower.contains('avocado')) {
+          iconData = Icons.spa_rounded;
+          bgColor = const Color(0xFFE8F5E9);
+          iconColor = const Color(0xFF388E3C);
+        } else if (lower.contains('milk') || lower.contains('drink') || lower.contains('juice') || lower.contains('beverage')) {
+          iconData = Icons.local_drink_rounded;
+          bgColor = const Color(0xFFE3F2FD);
+          iconColor = const Color(0xFF1E88E5);
+        } else if (lower.contains('pork') || lower.contains('beef') || lower.contains('chicken') || lower.contains('steak')) {
+          iconData = Icons.lunch_dining_rounded;
+          bgColor = const Color(0xFFFBE9E7);
+          iconColor = const Color(0xFFD84315);
+        }
 
-    return Container(
-      color: bgColor,
-      alignment: Alignment.center,
-      child: Icon(iconData, color: iconColor, size: 30),
+        return Container(
+          color: bgColor,
+          alignment: Alignment.center,
+          child: Icon(iconData, color: iconColor, size: 30),
+        );
+      },
     );
   }
 }

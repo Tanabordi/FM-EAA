@@ -417,15 +417,22 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     if (_imagePath != null &&
         !_imagePath!.startsWith('http') &&
         !_imagePath!.startsWith('assets/') &&
-        _imageBytes != null &&
         !Platform.environment.containsKey('FLUTTER_TEST')) {
       try {
-        final cloudUrl = await ref.read(itemRepositoryProvider).uploadItemImageBytes(
-          _imageBytes!,
-          filename: 'item.jpg',
-        );
-        if (cloudUrl != null) {
-          _imagePath = cloudUrl;
+        if (_imageBytes == null && !kIsWeb) {
+          final f = File(_imagePath!);
+          if (f.existsSync()) {
+            _imageBytes = await f.readAsBytes();
+          }
+        }
+        if (_imageBytes != null) {
+          final cloudUrl = await ref.read(itemRepositoryProvider).uploadItemImageBytes(
+            _imageBytes!,
+            filename: 'item.jpg',
+          );
+          if (cloudUrl != null) {
+            _imagePath = cloudUrl;
+          }
         }
       } catch (_) {}
     }

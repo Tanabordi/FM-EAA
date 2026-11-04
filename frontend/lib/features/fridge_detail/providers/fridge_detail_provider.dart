@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/freshness_colors.dart';
 import '../../../data/models/item_model.dart';
@@ -56,6 +58,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
   final ItemRepository? _repository;
   final Ref? _ref;
   final Set<String> _consumedIds = {};
+  final Set<String> _migratingIds = {};
   Timer? _pollingTimer;
 
   FridgeItemsNotifier(this.fridgeId, [this._repository, this._ref])
@@ -124,8 +127,42 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
       if (items != null) {
         state = items;
         _syncFridgeItemCount();
+        _autoSyncLocalImages(items);
       }
     } catch (_) {}
+  }
+
+  Future<void> _autoSyncLocalImages(List<ItemModel> items) async {
+    if (isTestEnvironment() || _repository == null) return;
+    for (final item in items) {
+      final path = item.imagePath;
+      if (path == null ||
+          path.isEmpty ||
+          path.startsWith('http://') ||
+          path.startsWith('https://') ||
+          path.startsWith('assets/')) {
+        continue;
+      }
+      if (_migratingIds.contains(item.id)) continue;
+
+      if (!kIsWeb) {
+        try {
+          final file = File(path);
+          if (file.existsSync()) {
+            _migratingIds.add(item.id);
+            final bytes = await file.readAsBytes();
+            final cloudUrl = await _repository.uploadItemImageBytes(
+              bytes,
+              filename: 'migrated_${item.id}.jpg',
+            );
+            if (cloudUrl != null) {
+              final updated = item.copyWith(imagePath: cloudUrl);
+              await updateItem(updated);
+            }
+          }
+        } catch (_) {}
+      }
+    }
   }
 
   Future<void> loadItems() async {
