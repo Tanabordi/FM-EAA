@@ -114,9 +114,9 @@ flowchart TD
 - ✅ **ขั้นที่ 1** พัฒนาบริการวิเคราะห์ฉลากอาหารฝั่งเซิร์ฟเวอร์ (`aiService.js`, `aiRoutes.js`) เชื่อมต่อ Google Gemini Vision API สกัดชื่ออาหารและวันหมดอายุ
 - ✅ **ขั้นที่ 2** พัฒนาหน้าจอการสแกนฉลากด้วยกล้องบนมือถือ (`scan_label_page.dart`) และระบบนำผลลัพธ์มา Autofill ข้อมูลลงแบบฟอร์มวัตถุดิบ
 - ✅ **ขั้นที่ 3** พัฒนาระบบตรวจสอบสถานะการเชื่อมต่อเครือข่ายเบื้องหลัง (`connectivity_watcher.dart`) ด้วย `connectivity_plus`
-- ⏳ **ขั้นที่ 4** พัฒนาระบบซิงค์ข้อมูลฝั่งเซิร์ฟเวอร์ (`syncRoutes.js`, `syncService.js`) รองรับ Last-Write-Wins (LWW) อิงตาม `updated_at`
-- ⏳ **ขั้นที่ 5** พัฒนาระบบประมวลผลการซิงค์ฝั่งมือถือ (`sync_engine.dart`) รวมส่งข้อมูลแบบ Batched และจัดการสถานะ `is_synced`
-- ⏳ **ขั้นที่ 6** พัฒนาระบบปัญญาประดิษฐ์แนะนำเมนูอาหารและรายละเอียดสูตร (Screens #25–26: `recipe_recommendation_page.dart`, `recipe_detail_page.dart` พร้อม `recipe_provider.dart`, `aiRoutes.js`, `aiService.js`) รองรับ Structured JSON Prompt สร้างสรรค์เมนู และเชื่อมต่อระบบตัดสต็อกอาหารอัตโนมัติ
+- ✅ **ขั้นที่ 4** พัฒนาระบบซิงค์ข้อมูลฝั่งเซิร์ฟเวอร์ (`syncRoutes.js`, `syncService.js`) รองรับ Last-Write-Wins (LWW) อิงตาม `updated_at`
+- ✅ **ขั้นที่ 5** พัฒนาระบบประมวลผลการซิงค์ฝั่งมือถือ (`sync_engine.dart`) รวมส่งข้อมูลแบบ Batched และจัดการสถานะ `is_synced`
+- ✅ **ขั้นที่ 6** พัฒนาระบบปัญญาประดิษฐ์แนะนำเมนูอาหารและรายละเอียดสูตร (Screens #25–26: `recipe_recommendation_page.dart`, `recipe_detail_page.dart` พร้อม `recipe_provider.dart`, `aiRoutes.js`, `aiService.js`) รองรับ Structured JSON Prompt สร้างสรรค์เมนู และเชื่อมต่อระบบตัดสต็อกอาหารอัตโนมัติ
 
 #### 👤 ส่วนที่ 4 นายธนบดี บุญภมร (Auth, Family Sharing & Notifications)
 - ✅ **ขั้นที่ 1** พัฒนาหน้าจอการพิสูจน์ตัวตน (Screens #1–4: `OnboardingPage`, `SignInPage`, `CreateAccountPage`, `ResetPasswordPage`) พร้อมระบบตรวจสอบความถูกต้องของข้อมูลนำเข้า (Form Validation & Loading State)
