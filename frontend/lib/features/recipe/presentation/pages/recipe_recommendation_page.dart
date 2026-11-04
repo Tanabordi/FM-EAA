@@ -983,33 +983,39 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                   Row(
                     children: [
                       // Badge: Time & Difficulty
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0F4ED),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.access_time,
-                              size: 14,
-                              color: Color(0xFF414942),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${recipe.cookingTime} · ${recipe.difficulty}',
-                              style: const TextStyle(
-                                fontSize: 12,
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F4ED),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.access_time,
+                                size: 14,
                                 color: Color(0xFF414942),
-                                fontWeight: FontWeight.w500,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  '${recipe.cookingTime} · ${recipe.difficulty}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF414942),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       // View Recipe Button
                       SizedBox(
                         height: 36,
