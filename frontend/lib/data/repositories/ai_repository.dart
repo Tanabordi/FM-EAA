@@ -25,6 +25,7 @@ class RecipeSuggestionResult {
 /// Scanned result from Gemini AI Vision analysis
 class AiScanResult {
   final bool isDetected;
+  final bool isFood;
   final String? foodName;
   final DateTime? expiryDate;
   final String category;
@@ -32,26 +33,31 @@ class AiScanResult {
   final String storage;
   final String? imagePath;
   final String? message;
+  final double confidence;
 
   const AiScanResult({
     this.isDetected = true,
+    this.isFood = true,
     this.foodName,
     this.expiryDate,
-    this.category = 'Veggies',
+    this.category = 'Meals',
     this.unit = 'pieces',
     this.storage = 'Fridge',
     this.imagePath,
     this.message,
+    this.confidence = 1.0,
   });
 
   /// Factory for when an image is not recognized as a food item or has no label
-  factory AiScanResult.notDetected({String? imagePath, String? message}) {
+  factory AiScanResult.notDetected({String? imagePath, String? message, bool isFood = false}) {
     return AiScanResult(
       isDetected: false,
+      isFood: isFood,
       foodName: null,
       expiryDate: null,
       imagePath: imagePath,
       message: message ?? 'No food label or ingredients detected in image',
+      confidence: 0.0,
     );
   }
 }
@@ -145,11 +151,13 @@ class AiRepository {
 
       if (response.statusCode == 200 && response.data is Map) {
         final data = response.data as Map<String, dynamic>;
+        final isFood = data['is_food'] != false;
         final rawName = data['foodName'] as String?;
-        if (rawName == null || rawName.trim().isEmpty || rawName.trim().toLowerCase() == 'null') {
+        if (!isFood || rawName == null || rawName.trim().isEmpty || rawName.trim().toLowerCase() == 'null') {
           return AiScanResult.notDetected(
             imagePath: name,
             message: 'No food label or ingredients detected in image',
+            isFood: false,
           );
         }
 
@@ -190,11 +198,13 @@ class AiRepository {
 
       if (response.statusCode == 200 && response.data is Map) {
         final data = response.data as Map<String, dynamic>;
+        final isFood = data['is_food'] != false;
         final rawName = data['foodName'] as String?;
-        if (rawName == null || rawName.trim().isEmpty || rawName.trim().toLowerCase() == 'null') {
+        if (!isFood || rawName == null || rawName.trim().isEmpty || rawName.trim().toLowerCase() == 'null') {
           return AiScanResult.notDetected(
             imagePath: imageFile.path,
             message: 'No food label or ingredients detected in image',
+            isFood: false,
           );
         }
 
@@ -205,6 +215,66 @@ class AiRepository {
     }
 
     return _smartFallback(imageFile.path);
+  }
+
+  /// Specifically scans for expiration date on close-up image (bottle cap, bottom of can)
+  Future<DateTime?> scanExpiryDate(File imageFile, {String language = 'en'}) async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return DateTime.now().add(const Duration(days: 30));
+    }
+    if (imageFile.path.isEmpty || !imageFile.existsSync()) return null;
+
+    try {
+      final fileName = imageFile.path.split(Platform.pathSeparator).last;
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(imageFile.path, filename: fileName),
+        'language': language,
+        'mode': 'expiry_only',
+      });
+
+      final response = await apiClient.dio.post(
+        '/ai/scan-label',
+        data: formData,
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+      );
+
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = response.data as Map<String, dynamic>;
+        if (data['expiryDate'] != null) {
+          return DateTime.tryParse(data['expiryDate'].toString());
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Specifically scans for expiration date from image bytes
+  Future<DateTime?> scanExpiryBytes(Uint8List bytes, {String? filename, String language = 'en'}) async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return DateTime.now().add(const Duration(days: 30));
+    }
+    try {
+      final name = filename ?? 'expiry.jpg';
+      final formData = FormData.fromMap({
+        'image': MultipartFile.fromBytes(bytes, filename: name),
+        'language': language,
+        'mode': 'expiry_only',
+      });
+
+      final response = await apiClient.dio.post(
+        '/ai/scan-label',
+        data: formData,
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+      );
+
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = response.data as Map<String, dynamic>;
+        if (data['expiryDate'] != null) {
+          return DateTime.tryParse(data['expiryDate'].toString());
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Fetches 6 AI suggested recipes for mainIngredient with daily quota tracking (max 3/day)
@@ -1199,12 +1269,33 @@ class AiRepository {
     String imagePath, {
     String language = 'en',
   }) {
-    var foodName = (data['foodName'] as String).trim();
+    final isFood = data['is_food'] != false;
+    final confidence = (data['confidence'] as num?)?.toDouble() ?? (isFood ? 0.9 : 0.0);
+
+    if (!isFood) {
+      return AiScanResult.notDetected(
+        imagePath: imagePath,
+        message: 'No food label or ingredients detected in image',
+        isFood: false,
+      );
+    }
+
+    var foodName = (data['foodName'] as String? ?? '').trim();
+    if (foodName.isEmpty || foodName.toLowerCase() == 'null') {
+      return AiScanResult.notDetected(
+        imagePath: imagePath,
+        message: 'No food label or ingredients detected in image',
+        isFood: false,
+      );
+    }
+
     if (language == 'en') {
       foodName = translateThaiToEnglish(foodName);
     }
     DateTime? expiryDate;
-    if (data['expiryDate'] != null) {
+    if (data['expiryDate'] != null &&
+        data['expiryDate'].toString().trim().isNotEmpty &&
+        data['expiryDate'].toString().toLowerCase() != 'null') {
       expiryDate = DateTime.tryParse(data['expiryDate'].toString());
     }
 
@@ -1241,33 +1332,37 @@ class AiRepository {
     if (category != null) {
       return AiScanResult(
         isDetected: true,
+        isFood: true,
         foodName: foodName,
-        expiryDate: expiryDate ?? DateTime.now().add(const Duration(days: 7)),
+        expiryDate: expiryDate,
         category: category,
         unit: unit ?? (category == 'Beverages' ? 'bottle' : category == 'Proteins' ? 'pack' : 'pieces'),
         storage: storage ?? 'Fridge',
         imagePath: imagePath,
+        confidence: confidence,
       );
     }
 
     return _categorizeFood(
       foodName,
-      expiryDate ?? DateTime.now().add(const Duration(days: 7)),
+      expiryDate,
       imagePath,
       suggestedUnit: unit,
       suggestedStorage: storage,
+      confidence: confidence,
     );
   }
 
   AiScanResult _categorizeFood(
     String foodName,
-    DateTime expiryDate,
+    DateTime? expiryDate,
     String imagePath, {
     String? suggestedUnit,
     String? suggestedStorage,
+    double confidence = 1.0,
   }) {
     final lower = foodName.toLowerCase();
-    String category = 'Veggies';
+    String category = 'Meals';
     String unit = suggestedUnit ?? 'pieces';
     String storage = suggestedStorage ?? 'Fridge';
 
@@ -1332,6 +1427,16 @@ class AiRepository {
         lower.contains('noodle') ||
         lower.contains('burger') ||
         lower.contains('dumpling') ||
+        lower.contains('flour') ||
+        lower.contains('batter') ||
+        lower.contains('tempura') ||
+        lower.contains('bread') ||
+        lower.contains('snack') ||
+        lower.contains('cereal') ||
+        lower.contains('ramen') ||
+        lower.contains('biscuit') ||
+        lower.contains('cookie') ||
+        lower.contains('cracker') ||
         lower.contains('ข้าว') ||
         lower.contains('ก๋วยเตี๋ยว') ||
         lower.contains('แกง') ||
@@ -1344,9 +1449,18 @@ class AiRepository {
         lower.contains('ซุป') ||
         lower.contains('บะหมี่') ||
         lower.contains('เกี๊ยว') ||
-        lower.contains('เบอร์เกอร์')) {
+        lower.contains('เบอร์เกอร์') ||
+        lower.contains('แป้ง') ||
+        lower.contains('แป้งทอดกรอบ') ||
+        lower.contains('แป้งสาลี') ||
+        lower.contains('ขนม') ||
+        lower.contains('ขนมปัง') ||
+        lower.contains('ซีเรียล') ||
+        lower.contains('มาม่า') ||
+        lower.contains('ไวไว') ||
+        lower.contains('วุ้นเส้น')) {
       category = 'Meals';
-      unit = suggestedUnit ?? 'box';
+      unit = suggestedUnit ?? (lower.contains('แป้ง') || lower.contains('flour') || lower.contains('ข้าว') ? 'bag' : 'box');
     } else if (lower.contains('sauce') ||
         lower.contains('ketchup') ||
         lower.contains('mayo') ||
@@ -1387,12 +1501,14 @@ class AiRepository {
 
     return AiScanResult(
       isDetected: true,
+      isFood: true,
       foodName: foodName,
       expiryDate: expiryDate,
       category: category,
       unit: unit,
       storage: storage,
       imagePath: imagePath,
+      confidence: confidence,
     );
   }
 

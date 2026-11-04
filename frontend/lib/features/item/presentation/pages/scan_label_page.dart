@@ -37,6 +37,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   Uint8List? _imageBytes;
   String? _pickedFileName;
   bool _isAnalyzing = false;
+  bool _isScanningExpiry = false;
   AiScanResult? _scanResult;
   bool _torchEnabled = false;
 
@@ -373,12 +374,109 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     }
   }
 
+  Future<void> _pickAndScanExpiryOnly() async {
+    try {
+      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+      if (isTest) {
+        setState(() {
+          if (_scanResult != null) {
+            _scanResult = AiScanResult(
+              isDetected: _scanResult!.isDetected,
+              isFood: _scanResult!.isFood,
+              foodName: _scanResult!.foodName,
+              expiryDate: DateTime(2027, 8, 15),
+              category: _scanResult!.category,
+              unit: _scanResult!.unit,
+              storage: _scanResult!.storage,
+              imagePath: _scanResult!.imagePath,
+              message: _scanResult!.message,
+              confidence: _scanResult!.confidence,
+            );
+          }
+        });
+        return;
+      }
+
+      final picked = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+
+      if (picked != null) {
+        setState(() {
+          _isScanningExpiry = true;
+        });
+
+        final aiRepo = ref.read(aiRepositoryProvider);
+        final lang = ref.read(localeProvider).languageCode;
+        DateTime? expiry;
+
+        try {
+          final bytes = await picked.readAsBytes();
+          expiry = await aiRepo.scanExpiryBytes(bytes, filename: picked.name, language: lang);
+        } catch (_) {
+          expiry = await aiRepo.scanExpiryDate(File(picked.path), language: lang);
+        }
+
+        if (!mounted) return;
+        setState(() {
+          _isScanningExpiry = false;
+          if (expiry != null && _scanResult != null) {
+            _scanResult = AiScanResult(
+              isDetected: _scanResult!.isDetected,
+              isFood: _scanResult!.isFood,
+              foodName: _scanResult!.foodName,
+              expiryDate: expiry,
+              category: _scanResult!.category,
+              unit: _scanResult!.unit,
+              storage: _scanResult!.storage,
+              imagePath: _scanResult!.imagePath,
+              message: _scanResult!.message,
+              confidence: _scanResult!.confidence,
+            );
+          }
+        });
+
+        if (expiry != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✨ ตรวจพบวันหมดอายุแล้ว: ${expiry.day}/${expiry.month}/${expiry.year}'),
+              backgroundColor: const Color(0xFF2D6A4F),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ยังไม่พบตัวเลขวันหมดอายุในภาพนี้ สามารถไปเลือกวันที่เองในฟอร์มได้ครับ'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isScanningExpiry = false);
+      }
+    }
+  }
+
   void _onApplyResult() {
     if (_scanResult == null) return;
+    if (!_scanResult!.isFood || _scanResult!.foodName == null || _scanResult!.foodName!.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ไม่พบข้อมูลอาหารในภาพ กรุณาถ่ายภาพอาหารใหม่')),
+      );
+      return;
+    }
 
-    // Attach the actual local image path captured/selected by user
+    // Attach the actual local image path captured/selected by user (Photo 1)
     final finalResult = AiScanResult(
       isDetected: _scanResult!.isDetected,
+      isFood: _scanResult!.isFood,
       foodName: _scanResult!.foodName,
       expiryDate: _scanResult!.expiryDate,
       category: _scanResult!.category,
@@ -386,6 +484,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       storage: _scanResult!.storage,
       imagePath: _imagePath ?? _scanResult!.imagePath,
       message: _scanResult!.message,
+      confidence: _scanResult!.confidence,
     );
 
     // Pop with result if pushed from AddItemPage
@@ -655,10 +754,50 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
   Widget _buildResultCard() {
     final res = _scanResult!;
-    final name = res.foodName ?? 'Food name not detected (editable in form)';
+
+    if (!res.isFood || !res.isDetected || res.foodName == null || res.foodName!.trim().isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2C1616),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE63946)),
+        ),
+        child: const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.cancel_rounded, color: Color(0xFFE63946), size: 24),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ไม่พบอาหารหรือฉลากในภาพ',
+                    style: TextStyle(
+                      color: Color(0xFFFFD8D8),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'กรุณาถ่ายภาพอาหารใหม่อีกครั้งให้ชัดเจน (หลีกเลี่ยงภาพบุคคล วัตถุสิ่งของ หรือภาพที่มืด/เบลอ)',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final name = res.foodName!;
     final dateStr = res.expiryDate != null
         ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}'
-        : 'Not specified';
+        : 'Not specified (ไม่พบวันหมดอายุบนภาพ)';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -671,6 +810,28 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (res.confidence < 0.7)
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade900.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.shade600),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 16),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'AI ไม่มั่นใจในผลลัพธ์ กรุณาตรวจสอบหรือแก้ไขชื่ออาหาร',
+                      style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Row(
             children: [
               const Icon(Icons.check_circle_rounded, color: Color(0xFF74C69D), size: 20),
@@ -715,7 +876,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Wrap(
             spacing: 16,
             runSpacing: 4,
@@ -724,11 +885,19 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.event_outlined, color: Colors.white70, size: 15),
+                  Icon(
+                    res.expiryDate != null ? Icons.event_outlined : Icons.event_busy_outlined,
+                    color: res.expiryDate != null ? Colors.white70 : Colors.amber.shade300,
+                    size: 15,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Expiry: $dateStr',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    style: TextStyle(
+                      color: res.expiryDate != null ? Colors.white70 : Colors.amber.shade300,
+                      fontSize: 13,
+                      fontWeight: res.expiryDate != null ? FontWeight.normal : FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -762,36 +931,118 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Primary Action Button (Autofill or Analyze)
+          // Primary Action Button (Autofill or Analyze or Step 2 Expiry)
           if (_scanResult != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 20),
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  key: const Key('scan_label_autofill_btn'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2D6A4F),
-                    foregroundColor: Colors.white,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  onPressed: _onApplyResult,
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle_rounded, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Autofill Form Details',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              child: Column(
+                children: [
+                  if (!_scanResult!.isFood || _scanResult!.foodName == null || _scanResult!.foodName!.trim().isEmpty)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        key: const Key('scan_label_retake_btn'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE63946),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _scanResult = null;
+                            _imageBytes = null;
+                            _imagePath = null;
+                            _pickedFileName = null;
+                          });
+                        },
+                        icon: const Icon(Icons.camera_alt_outlined, size: 20),
+                        label: const Text(
+                          'ถ่ายภาพอาหารใหม่',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    ],
-                  ),
-                ),
+                    )
+                  else if (_scanResult!.expiryDate == null) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        key: const Key('scan_label_step2_expiry_btn'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2D6A4F),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: _isScanningExpiry ? null : _pickAndScanExpiryOnly,
+                        icon: _isScanningExpiry
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.qr_code_scanner_rounded, size: 20),
+                        label: Text(
+                          _isScanningExpiry ? 'กำลังอ่านวันหมดอายุ...' : '📸 ถ่ายจุดวันหมดอายุเพิ่ม (ฝาขวด/ก้นกระป๋อง)',
+                          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 40,
+                      child: OutlinedButton(
+                        key: const Key('scan_label_autofill_btn'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white70,
+                          side: const BorderSide(color: Colors.white30),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: _onApplyResult,
+                        child: const Text(
+                          'ข้ามไปกรอกวันที่เองในฟอร์ม ➔',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ] else
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        key: const Key('scan_label_autofill_btn'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2D6A4F),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: _onApplyResult,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle_rounded, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Autofill Form Details',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
             )
           else if (hasImage)

@@ -36,6 +36,66 @@ class FakeAiRepository extends AiRepository {
   }
 }
 
+class NonFoodAiRepository extends AiRepository {
+  NonFoodAiRepository() : super(apiClient: ApiClient());
+
+  @override
+  Future<AiScanResult> scanLabelBytes(Uint8List bytes, {String? filename, String language = 'en'}) async {
+    return AiScanResult.notDetected(
+      message: 'No food label or ingredients detected in image',
+      isFood: false,
+    );
+  }
+
+  @override
+  Future<AiScanResult> scanLabel(File imageFile, {String language = 'en'}) async {
+    return AiScanResult.notDetected(
+      message: 'No food label or ingredients detected in image',
+      isFood: false,
+    );
+  }
+}
+
+class MissingExpiryAiRepository extends AiRepository {
+  MissingExpiryAiRepository() : super(apiClient: ApiClient());
+
+  @override
+  Future<AiScanResult> scanLabelBytes(Uint8List bytes, {String? filename, String language = 'en'}) async {
+    return const AiScanResult(
+      isDetected: true,
+      isFood: true,
+      foodName: 'Sprite Zero Sugar',
+      expiryDate: null,
+      category: 'Beverages',
+      unit: 'bottle',
+      storage: 'Fridge',
+    );
+  }
+
+  @override
+  Future<AiScanResult> scanLabel(File imageFile, {String language = 'en'}) async {
+    return const AiScanResult(
+      isDetected: true,
+      isFood: true,
+      foodName: 'Sprite Zero Sugar',
+      expiryDate: null,
+      category: 'Beverages',
+      unit: 'bottle',
+      storage: 'Fridge',
+    );
+  }
+
+  @override
+  Future<DateTime?> scanExpiryDate(File imageFile, {String language = 'en'}) async {
+    return DateTime(2027, 8, 15);
+  }
+
+  @override
+  Future<DateTime?> scanExpiryBytes(Uint8List bytes, {String? filename, String language = 'en'}) async {
+    return DateTime(2027, 8, 15);
+  }
+}
+
 void main() {
   testWidgets('ScanLabelPage renders viewfinder, instructions, and controls', (tester) async {
     await tester.pumpWidget(
@@ -155,6 +215,80 @@ void main() {
 
     expect(find.text('Organic Greek Yogurt'), findsOneWidget);
     expect(find.text('Proteins'), findsOneWidget);
+  });
+
+  testWidgets('Non-food scan (e.g. face photo) blocks autofill and shows warning message', (tester) async {
+    final fakeRepo = NonFoodAiRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          aiRepositoryProvider.overrideWithValue(fakeRepo),
+        ],
+        child: const MaterialApp(
+          home: ScanLabelPage(fridgeId: 'fridge_1'),
+        ),
+      ),
+    );
+
+    // Pick photo
+    await tester.tap(find.byKey(const Key('scan_label_gallery_btn')));
+    await tester.pumpAndSettle();
+
+    // Tap analyze
+    await tester.tap(find.byKey(const Key('scan_label_analyze_btn')));
+    await tester.pumpAndSettle();
+
+    // Must show warning: ไม่พบอาหารหรือฉลากในภาพ
+    expect(find.text('ไม่พบอาหารหรือฉลากในภาพ'), findsOneWidget);
+
+    // Autofill button MUST NOT exist!
+    expect(find.byKey(const Key('scan_label_autofill_btn')), findsNothing);
+
+    // Retake button appears instead
+    expect(find.text('ถ่ายภาพอาหารใหม่'), findsOneWidget);
+  });
+
+  testWidgets('Two-Step scan appears when initial photo has no expiry date and supports step 2 expiry capture', (tester) async {
+    final fakeRepo = MissingExpiryAiRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          aiRepositoryProvider.overrideWithValue(fakeRepo),
+        ],
+        child: const MaterialApp(
+          home: ScanLabelPage(fridgeId: 'fridge_1'),
+        ),
+      ),
+    );
+
+    // Pick photo 1
+    await tester.tap(find.byKey(const Key('scan_label_gallery_btn')));
+    await tester.pumpAndSettle();
+
+    // Tap analyze
+    await tester.tap(find.byKey(const Key('scan_label_analyze_btn')));
+    await tester.pumpAndSettle();
+
+    // Food name is found
+    expect(find.text('Sprite Zero Sugar'), findsOneWidget);
+    // Expiry shows not specified
+    expect(find.textContaining('Not specified'), findsOneWidget);
+
+    // Step 2 expiry scan button MUST be visible!
+    final step2Btn = find.byKey(const Key('scan_label_step2_expiry_btn'));
+    expect(step2Btn, findsOneWidget);
+
+    // Tap step 2 expiry scan
+    await tester.tap(step2Btn);
+    await tester.pumpAndSettle();
+
+    // Expiry date is now extracted and populated!
+    expect(find.textContaining('15/8/2027'), findsOneWidget);
+
+    // Now standard autofill button is available
+    expect(find.text('Autofill Form Details'), findsOneWidget);
   });
 }
 

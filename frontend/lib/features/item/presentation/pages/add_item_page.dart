@@ -228,10 +228,13 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   }
 
   void _applyScanResult(AiScanResult result) {
-    if (result.foodName != null && result.foodName!.trim().isNotEmpty) {
-      _foodNameController.text = result.foodName!;
-      _foodNameError = null;
+    if (!result.isFood || result.foodName == null || result.foodName!.trim().isEmpty) {
+      _hasAnalyzed = false;
+      return;
     }
+
+    _foodNameController.text = result.foodName!;
+    _foodNameError = null;
     if (result.imagePath != null && result.imagePath!.isNotEmpty) {
       _imagePath = result.imagePath;
       try {
@@ -255,6 +258,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       _expirationDate = result.expiryDate;
       _expirationDateController.text = _formatDate(result.expiryDate!);
       _expirationDateError = null;
+    } else {
+      _expirationDate = null;
+      _expirationDateController.text = '';
     }
     _hasAnalyzed = true;
   }

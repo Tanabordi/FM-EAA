@@ -37,7 +37,8 @@ router.post('/scan-label', authenticateToken, handleUpload, async (req, res, nex
   try {
     if (!req.file) return res.status(400).json({ error: 'image is required' });
     const language = req.query.language || req.body?.language || 'en';
-    const result = await scanLabel(req.file.buffer, req.file.mimetype, language);
+    const mode = req.query.mode || req.body?.mode || 'full';
+    const result = await scanLabel(req.file.buffer, req.file.mimetype, language, mode);
     res.json(result);
   } catch (err) {
     next(err);
