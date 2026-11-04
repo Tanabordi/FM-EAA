@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../shared/widgets/fridge_card.dart';
 import '../widgets/cute_fridge_illustration.dart';
 import '../widgets/edit_fridge_sheet.dart';
@@ -36,6 +37,14 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.isAuthenticated && next.user != null) {
         ref.read(fridgesProvider.notifier).loadFridges();
+      } else if (!next.isAuthenticated) {
+        try {
+          ref.read(routerProvider).go('/sign-in');
+        } catch (_) {
+          try {
+            context.go('/sign-in');
+          } catch (_) {}
+        }
       }
     });
 

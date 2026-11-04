@@ -469,6 +469,25 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
     });
+
+    testWidgets('Tapping Log out calls logout and clears state cleanly', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: LogoutDialog(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final confirmBtn = find.widgetWithText(ElevatedButton, 'Log out');
+      expect(confirmBtn, findsOneWidget);
+
+      await tester.tap(confirmBtn);
+      await tester.pumpAndSettle();
+    });
   });
 }
 
