@@ -290,5 +290,96 @@ void main() {
     // Now standard autofill button is available
     expect(find.text('Autofill Form Details'), findsOneWidget);
   });
+
+  test('AiRepository.estimateShelfLife calculates biological shelf life correctly', () {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Proteins: fresh pork in fridge (3 days) vs freezer (90 days)
+    final porkFridge = AiRepository.estimateShelfLife('Ground Pork', category: 'Proteins', storage: 'Fridge');
+    expect(porkFridge.difference(today).inDays, equals(3));
+
+    final porkFreezer = AiRepository.estimateShelfLife('Ground Pork', category: 'Proteins', storage: 'Freezer');
+    expect(porkFreezer.difference(today).inDays, equals(90));
+
+    // Seafood: fresh fish in fridge (2 days)
+    final fishFridge = AiRepository.estimateShelfLife('Fresh Salmon', category: 'Proteins', storage: 'Fridge');
+    expect(fishFridge.difference(today).inDays, equals(2));
+
+    // Veggies: leafy greens (5 days) vs freezer (180 days)
+    final spinachFridge = AiRepository.estimateShelfLife('Spinach', category: 'Veggies', storage: 'Fridge');
+    expect(spinachFridge.difference(today).inDays, equals(5));
+
+    final spinachFreezer = AiRepository.estimateShelfLife('Spinach', category: 'Veggies', storage: 'Freezer');
+    expect(spinachFreezer.difference(today).inDays, equals(180));
+
+    // Milk: 7 days
+    final milkFridge = AiRepository.estimateShelfLife('Fresh Milk', category: 'Beverages', storage: 'Fridge');
+    expect(milkFridge.difference(today).inDays, equals(7));
+  });
+
+  testWidgets('AddItemPage auto-recalibrates expiry when storage changes if isAiEstimated is true', (tester) async {
+    final now = DateTime.now();
+    final initialFridgeExpiry = DateTime(now.year, now.month, now.day).add(const Duration(days: 3));
+
+    final scanResult = AiScanResult(
+      isDetected: true,
+      foodName: 'Minced Pork',
+      expiryDate: initialFridgeExpiry,
+      category: 'Proteins',
+      unit: 'pack',
+      storage: 'Fridge',
+      isAiEstimated: true,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: AddItemPage(
+            fridgeId: 'fridge_1',
+            initialScanResult: scanResult,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final m = initialFridgeExpiry.month.toString().padLeft(2, '0');
+    final d = initialFridgeExpiry.day.toString().padLeft(2, '0');
+    final expectedFridgeStr = '$m/$d/${initialFridgeExpiry.year}';
+
+    final dateFieldFinder = find.byKey(const Key('add_item_expiration_date'));
+    expect(find.descendant(of: dateFieldFinder, matching: find.text(expectedFridgeStr)), findsOneWidget);
+
+    // Switch storage from 'Fridge' to 'Freezer'
+    final storageDropdownFinder = find.byType(DropdownButtonFormField<String>).last;
+    await tester.tap(storageDropdownFinder);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Freezer').last);
+    await tester.pumpAndSettle();
+
+    // Verify expiry updated to freezer shelf life (90 days)
+    final expectedFreezerExpiry = DateTime(now.year, now.month, now.day).add(const Duration(days: 90));
+    final fM = expectedFreezerExpiry.month.toString().padLeft(2, '0');
+    final fD = expectedFreezerExpiry.day.toString().padLeft(2, '0');
+    final expectedFreezerStr = '$fM/$fD/${expectedFreezerExpiry.year}';
+
+    expect(find.descendant(of: dateFieldFinder, matching: find.text(expectedFreezerStr)), findsOneWidget);
+    expect(find.textContaining('Recalculated shelf life for Freezer'), findsOneWidget);
+
+    // Manual user edit: user enters custom date
+    await tester.enterText(dateFieldFinder, '12/31/2026');
+    await tester.pumpAndSettle();
+
+    // Switch storage back to 'Fridge'
+    await tester.tap(storageDropdownFinder);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fridge').last);
+    await tester.pumpAndSettle();
+
+    // Must NOT overwrite user's manual date!
+    expect(find.descendant(of: dateFieldFinder, matching: find.text('12/31/2026')), findsOneWidget);
+  });
 }
 

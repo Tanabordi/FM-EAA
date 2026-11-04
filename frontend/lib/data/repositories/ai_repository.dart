@@ -36,6 +36,7 @@ class AiScanResult {
   final String? imageUrl;
   final String? message;
   final double confidence;
+  final bool isAiEstimated;
 
   const AiScanResult({
     this.isDetected = true,
@@ -49,6 +50,7 @@ class AiScanResult {
     this.imageUrl,
     this.message,
     this.confidence = 1.0,
+    this.isAiEstimated = false,
   });
 
   /// Factory for when an image is not recognized as a food item or has no label
@@ -61,6 +63,37 @@ class AiScanResult {
       imagePath: imagePath,
       message: message ?? 'No food label or ingredients detected in image',
       confidence: 0.0,
+      isAiEstimated: false,
+    );
+  }
+
+  AiScanResult copyWith({
+    bool? isDetected,
+    bool? isFood,
+    String? foodName,
+    DateTime? expiryDate,
+    String? category,
+    String? unit,
+    String? storage,
+    String? imagePath,
+    String? imageUrl,
+    String? message,
+    double? confidence,
+    bool? isAiEstimated,
+  }) {
+    return AiScanResult(
+      isDetected: isDetected ?? this.isDetected,
+      isFood: isFood ?? this.isFood,
+      foodName: foodName ?? this.foodName,
+      expiryDate: expiryDate ?? this.expiryDate,
+      category: category ?? this.category,
+      unit: unit ?? this.unit,
+      storage: storage ?? this.storage,
+      imagePath: imagePath ?? this.imagePath,
+      imageUrl: imageUrl ?? this.imageUrl,
+      message: message ?? this.message,
+      confidence: confidence ?? this.confidence,
+      isAiEstimated: isAiEstimated ?? this.isAiEstimated,
     );
   }
 }
@@ -128,6 +161,92 @@ class AiRepository {
       }
     }
     return text;
+  }
+
+  /// Estimate biological shelf life for fresh groceries/meat without a printed date
+  static DateTime estimateShelfLife(
+    String foodName, {
+    String? category,
+    String storage = 'Fridge',
+  }) {
+    final lower = foodName.toLowerCase();
+    final cat = (category != null && category.isNotEmpty)
+        ? category.toLowerCase()
+        : detectCategory(foodName).toLowerCase();
+    final isFreezer = storage.trim().toLowerCase() == 'freezer';
+
+    int days = 5;
+
+    if (cat == 'proteins') {
+      if (isFreezer) {
+        days = 90; // 3 months in freezer
+      } else {
+        if (lower.contains('fish') || lower.contains('salmon') || lower.contains('shrimp') || lower.contains('seafood') || lower.contains('กุ้ง') || lower.contains('ปลา')) {
+          days = 2; // fresh seafood lasts 2 days in fridge
+        } else if (lower.contains('egg') || lower.contains('ไข่')) {
+          days = 21; // eggs last 3 weeks in fridge
+        } else if (lower.contains('sausage') || lower.contains('ham') || lower.contains('bacon') || lower.contains('ไส้กรอก') || lower.contains('แฮม') || lower.contains('เบคอน')) {
+          days = 7; // processed meats last 1 week
+        } else if (lower.contains('tofu') || lower.contains('เต้าหู้')) {
+          days = 5;
+        } else {
+          days = 3; // fresh minced pork, chicken, beef lasts 2-3 days in fridge
+        }
+      }
+    } else if (cat == 'veggies') {
+      if (isFreezer) {
+        days = 180; // 6 months frozen
+      } else {
+        if (lower.contains('spinach') || lower.contains('cabbage') || lower.contains('lettuce') || lower.contains('coriander') || lower.contains('basil') || lower.contains('herb') || lower.contains('ผัก')) {
+          days = 5; // leafy greens 5 days
+        } else if (lower.contains('strawberr') || lower.contains('berry') || lower.contains('banana') || lower.contains('กล้วย') || lower.contains('สตรอว์เบอร์รี่')) {
+          days = 4; // soft berries / ripe bananas
+        } else if (lower.contains('apple') || lower.contains('orange') || lower.contains('carrot') || lower.contains('onion') || lower.contains('garlic') || lower.contains('potato') || lower.contains('แอปเปิ้ล') || lower.contains('ส้ม') || lower.contains('แครอท')) {
+          days = 14; // root veggies / firm fruits
+        } else if (lower.contains('tomato') || lower.contains('mushroom') || lower.contains('cucumber') || lower.contains('มะเขือเทศ') || lower.contains('เห็ด') || lower.contains('แตงกวา')) {
+          days = 7;
+        } else {
+          days = 7;
+        }
+      }
+    } else if (cat == 'beverages') {
+      if (isFreezer) {
+        days = 30;
+      } else {
+        if (lower.contains('milk') || lower.contains('นม')) {
+          days = 7; // opened fresh milk
+        } else if (lower.contains('juice') || lower.contains('smoothie') || lower.contains('น้ำผลไม้')) {
+          days = 5;
+        } else {
+          days = 30; // bottled drinks/water
+        }
+      }
+    } else if (cat == 'meals') {
+      if (isFreezer) {
+        days = 60; // 2 months frozen
+      } else {
+        if (lower.contains('bread') || lower.contains('ขนมปัง')) {
+          days = 5; // bread lasts 5 days
+        } else if (lower.contains('noodle') || lower.contains('flour') || lower.contains('แป้ง') || lower.contains('มาม่า')) {
+          days = 90; // dry flour/noodles
+        } else {
+          days = 3; // cooked meals/bento/curry/leftovers 3 days
+        }
+      }
+    } else if (cat == 'sauces') {
+      if (isFreezer) {
+        days = 90;
+      } else {
+        if (lower.contains('mayo') || lower.contains('dressing') || lower.contains('dip') || lower.contains('มายองเนส') || lower.contains('น้ำสลัด')) {
+          days = 30;
+        } else {
+          days = 90; // soy sauce, fish sauce, ketchup
+        }
+      }
+    }
+
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day).add(Duration(days: days));
   }
 
   AiRepository({required this.apiClient});

@@ -45,6 +45,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   bool _hasAnalyzed = false;
   bool _isScanning = false;
   bool _forceExit = false;
+  bool _isAiEstimatedExpiry = false;
 
   String? _foodNameError;
   String? _categoryError;
@@ -256,6 +257,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     _unitError = null;
     _selectedStorage = _normalizeStorage(result.storage);
     _storageError = null;
+    _isAiEstimatedExpiry = result.isAiEstimated;
     if (result.expiryDate != null) {
       _expirationDate = result.expiryDate;
       _expirationDateController.text = _formatDate(result.expiryDate!);
@@ -337,6 +339,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       _selectedUnit = null;
       _selectedStorage = null;
       _expirationDate = null;
+      _isAiEstimatedExpiry = false;
       _foodNameError = null;
       _categoryError = null;
       _quantityError = null;
@@ -1236,8 +1239,32 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           .toList(),
                       onChanged: (val) {
                         setState(() {
+                          final oldStorage = _selectedStorage;
                           _selectedStorage = val;
                           _storageError = null;
+
+                          // Auto-recalibrate expiry if it was estimated by AI and storage location changed
+                          if (_isAiEstimatedExpiry &&
+                              val != null &&
+                              val != oldStorage &&
+                              _foodNameController.text.trim().isNotEmpty) {
+                            final recalculated = AiRepository.estimateShelfLife(
+                              _foodNameController.text.trim(),
+                              category: _selectedCategory,
+                              storage: val,
+                            );
+                            _expirationDate = recalculated;
+                            _expirationDateController.text = _formatDate(recalculated);
+                            _expirationDateError = null;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('✨ Recalculated shelf life for $val (${_formatDate(recalculated)})'),
+                                backgroundColor: const Color(0xFF2D6A4F),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
                         });
                       },
                     ),
@@ -1290,6 +1317,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                             );
                             if (picked != null) {
                               setState(() {
+                                _isAiEstimatedExpiry = false;
                                 _expirationDate = picked;
                                 _expirationDateController.text = _formatDate(picked);
                                 _expirationDateError = null;
@@ -1299,6 +1327,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         ),
                       ),
                       onChanged: (val) {
+                        _isAiEstimatedExpiry = false;
                         final parsed = _tryParseDate(val);
                         if (parsed != null) {
                           setState(() {

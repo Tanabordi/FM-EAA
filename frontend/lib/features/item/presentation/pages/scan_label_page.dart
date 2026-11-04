@@ -430,9 +430,43 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                   _pickAndScanExpiryOnly(ImageSource.gallery);
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.auto_awesome, color: Color(0xFF2E6A44)),
+                title: const Text('Estimate Shelf Life with AI'),
+                subtitle: const Text('For fresh produce, meat & veggies without printed date'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _estimateShelfLifeWithAi();
+                },
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _estimateShelfLifeWithAi() {
+    if (_scanResult == null) return;
+    final foodName = _scanResult!.foodName ?? 'Food item';
+    final estimatedDate = AiRepository.estimateShelfLife(
+      foodName,
+      category: _scanResult!.category,
+      storage: _scanResult!.storage,
+    );
+
+    setState(() {
+      _scanResult = _scanResult!.copyWith(
+        expiryDate: estimatedDate,
+        isAiEstimated: true,
+      );
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✨ Estimated expiry for $foodName (${_scanResult!.storage}): ${estimatedDate.day}/${estimatedDate.month}/${estimatedDate.year}'),
+        backgroundColor: const Color(0xFF2D6A4F),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -443,18 +477,9 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       if (isTest) {
         setState(() {
           if (_scanResult != null) {
-            _scanResult = AiScanResult(
-              isDetected: _scanResult!.isDetected,
-              isFood: _scanResult!.isFood,
-              foodName: _scanResult!.foodName,
+            _scanResult = _scanResult!.copyWith(
               expiryDate: DateTime(2027, 8, 15),
-              category: _scanResult!.category,
-              unit: _scanResult!.unit,
-              storage: _scanResult!.storage,
-              imagePath: _scanResult!.imagePath,
-              imageUrl: _scanResult!.imageUrl,
-              message: _scanResult!.message,
-              confidence: _scanResult!.confidence,
+              isAiEstimated: false,
             );
           }
         });
@@ -488,18 +513,9 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         setState(() {
           _isScanningExpiry = false;
           if (expiry != null && _scanResult != null) {
-            _scanResult = AiScanResult(
-              isDetected: _scanResult!.isDetected,
-              isFood: _scanResult!.isFood,
-              foodName: _scanResult!.foodName,
+            _scanResult = _scanResult!.copyWith(
               expiryDate: expiry,
-              category: _scanResult!.category,
-              unit: _scanResult!.unit,
-              storage: _scanResult!.storage,
-              imagePath: _scanResult!.imagePath,
-              imageUrl: _scanResult!.imageUrl,
-              message: _scanResult!.message,
-              confidence: _scanResult!.confidence,
+              isAiEstimated: false,
             );
           }
         });
@@ -550,18 +566,9 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     final effectiveImage = cloudUrl ?? _imagePath ?? _scanResult!.imagePath;
 
     // Attach the actual image path (preferring cloud PAR URL so all devices see it)
-    final finalResult = AiScanResult(
-      isDetected: _scanResult!.isDetected,
-      isFood: _scanResult!.isFood,
-      foodName: _scanResult!.foodName,
-      expiryDate: _scanResult!.expiryDate,
-      category: _scanResult!.category,
-      unit: _scanResult!.unit,
-      storage: _scanResult!.storage,
+    final finalResult = _scanResult!.copyWith(
       imagePath: effectiveImage,
       imageUrl: cloudUrl,
-      message: _scanResult!.message,
-      confidence: _scanResult!.confidence,
     );
 
     // Pop with result if pushed from AddItemPage
@@ -873,7 +880,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
     final name = res.foodName!;
     final dateStr = res.expiryDate != null
-        ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}'
+        ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}${res.isAiEstimated ? ' (AI Estimated)' : ''}'
         : 'Not specified (Not found on image)';
 
     return Container(
@@ -963,15 +970,21 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    res.expiryDate != null ? Icons.event_outlined : Icons.event_busy_outlined,
-                    color: res.expiryDate != null ? Colors.white70 : Colors.amber.shade300,
+                    res.isAiEstimated
+                        ? Icons.auto_awesome
+                        : (res.expiryDate != null ? Icons.event_outlined : Icons.event_busy_outlined),
+                    color: res.isAiEstimated
+                        ? const Color(0xFF74C69D)
+                        : (res.expiryDate != null ? Colors.white70 : Colors.amber.shade300),
                     size: 15,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'Expiry: $dateStr',
                     style: TextStyle(
-                      color: res.expiryDate != null ? Colors.white70 : Colors.amber.shade300,
+                      color: res.isAiEstimated
+                          ? const Color(0xFFD8F3DC)
+                          : (res.expiryDate != null ? Colors.white70 : Colors.amber.shade300),
                       fontSize: 13,
                       fontWeight: res.expiryDate != null ? FontWeight.normal : FontWeight.w600,
                     ),
