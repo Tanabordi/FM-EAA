@@ -36,10 +36,14 @@ class HistoryController extends StateNotifier<AsyncValue<void>> {
   Future<void> deleteItem(String historyId, {String? fridgeId}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await _repository.deleteHistoryItem(historyId, fridgeId: fridgeId);
+      final deletedItemId = await _repository.deleteHistoryItem(historyId, fridgeId: fridgeId);
       if (fridgeId != null && _ref != null) {
         try {
-          _ref!.read(fridgeItemsProvider(fridgeId).notifier).loadItems();
+          if (deletedItemId != null) {
+            _ref!.read(fridgeItemsProvider(fridgeId).notifier).deleteItem(deletedItemId);
+          } else {
+            _ref!.read(fridgeItemsProvider(fridgeId).notifier).loadItems();
+          }
           _ref!.read(fridgesProvider.notifier).loadFridges();
         } catch (_) {}
       }
@@ -52,7 +56,11 @@ class HistoryController extends StateNotifier<AsyncValue<void>> {
       await _repository.clearHistory(fridgeId, kind);
       if (_ref != null) {
         try {
-          _ref!.read(fridgeItemsProvider(fridgeId).notifier).loadItems();
+          if (kind == 'expired') {
+            _ref!.read(fridgeItemsProvider(fridgeId).notifier).removeExpiredItems();
+          } else {
+            _ref!.read(fridgeItemsProvider(fridgeId).notifier).loadItems();
+          }
           _ref!.read(fridgesProvider.notifier).loadFridges();
         } catch (_) {}
       }

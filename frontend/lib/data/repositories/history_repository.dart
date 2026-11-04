@@ -78,13 +78,15 @@ class HistoryRepository {
   }
 
   /// Optimistic Delete: Deletes a single history record immediately from SQLite and calls backend API
-  Future<void> deleteHistoryItem(String historyId, {String? fridgeId}) async {
+  Future<String?> deleteHistoryItem(String historyId, {String? fridgeId}) async {
+    String? deletedItemId;
     final hist = await database.itemDao.getHistoryItemById(historyId);
     if (hist != null && hist.kind == 'expired' && hist.itemId != null) {
+      deletedItemId = hist.itemId;
       await database.itemDao.deleteItem(hist.itemId!);
     } else if (historyId.startsWith('exp_')) {
-      final itemId = historyId.substring(4);
-      await database.itemDao.deleteItem(itemId);
+      deletedItemId = historyId.substring(4);
+      await database.itemDao.deleteItem(deletedItemId);
     }
     await database.itemDao.deleteHistoryItem(historyId);
     if (fridgeId != null) {
@@ -92,6 +94,7 @@ class HistoryRepository {
         await apiClient.dio.delete('/fridges/$fridgeId/history/$historyId');
       } catch (_) {}
     }
+    return deletedItemId;
   }
 
   /// Clear history for a fridge (optionally filtered by kind: consumed or expired) and calls backend API

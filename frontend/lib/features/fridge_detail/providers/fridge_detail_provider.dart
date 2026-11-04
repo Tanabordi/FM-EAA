@@ -165,6 +165,16 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
     }
   }
 
+  void removeExpiredItems() {
+    for (final item in state) {
+      if (item.status == FreshnessStatus.expired) {
+        _consumedIds.add(item.id);
+      }
+    }
+    state = state.where((item) => item.status != FreshnessStatus.expired).toList();
+    _syncFridgeItemCount();
+  }
+
   Future<void> consumeItem(String id, double amount, bool finishedAll) async {
     final index = state.indexWhere((item) => item.id == id);
     if (index == -1) return;
