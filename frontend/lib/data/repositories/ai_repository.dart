@@ -11,12 +11,14 @@ class RecipeSuggestionResult {
   final int usedDailyQuota;
   final int maxDailyQuota;
   final int remainingDailyQuota;
+  final bool isFromAi;
 
   const RecipeSuggestionResult({
     required this.recipes,
     this.usedDailyQuota = 1,
     this.maxDailyQuota = 3,
     this.remainingDailyQuota = 2,
+    this.isFromAi = true,
   });
 }
 
@@ -211,6 +213,7 @@ class AiRepository {
     String? category,
     String language = 'en',
     int offset = 0,
+    bool isRegenerate = false,
   }) async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
       final list = _generateSmartFallbackRecipes(mainIngredient, category: category, language: language, offset: offset);
@@ -219,6 +222,7 @@ class AiRepository {
         usedDailyQuota: (offset + 1).clamp(1, 3),
         maxDailyQuota: 3,
         remainingDailyQuota: (2 - offset).clamp(0, 3),
+        isFromAi: false,
       );
     }
 
@@ -250,6 +254,7 @@ class AiRepository {
             usedDailyQuota: used,
             maxDailyQuota: max,
             remainingDailyQuota: remaining,
+            isFromAi: true,
           );
         }
       }
@@ -261,8 +266,18 @@ class AiRepository {
                 : 'วันนี้คุณใช้โควตาครบ 3 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨');
         throw Exception(msg);
       }
+      if (isRegenerate) {
+        throw Exception(
+          language == 'th'
+              ? 'ไม่มีการเชื่อมต่ออินเทอร์เน็ต ไม่สามารถขอเมนูใหม่จาก Gemini AI ได้ (ไม่ได้หักโควตา)'
+              : 'No internet connection. Cannot regenerate recipes with Gemini AI (Quota not used)',
+        );
+      }
     } catch (e) {
       if (e.toString().contains('วันนี้คุณ') || e.toString().contains('daily limit') || e.toString().contains('โควตาครบ')) {
+        rethrow;
+      }
+      if (isRegenerate) {
         rethrow;
       }
     }
@@ -273,6 +288,7 @@ class AiRepository {
       usedDailyQuota: (offset + 1).clamp(1, 3),
       maxDailyQuota: 3,
       remainingDailyQuota: (2 - offset).clamp(0, 3),
+      isFromAi: false,
     );
   }
 

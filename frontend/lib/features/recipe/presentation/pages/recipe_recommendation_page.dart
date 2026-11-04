@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_top_bar.dart';
 import '../../data/models/recipe_model.dart';
 import '../../../../data/repositories/item_repository.dart';
 import '../../../../data/repositories/ai_repository.dart';
+import '../../../../sync/connectivity_watcher.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import 'recipe_detail_page.dart';
 
@@ -771,6 +772,25 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     // Prevent spam if cooling down or currently regenerating or loading
     if (_isLoading || _isRegenerating || _cooldownSeconds > 0) return;
 
+    // Check connectivity before initiating AI generation
+    final isOnline = await ref.read(connectivityWatcherProvider).checkOnline();
+    if (!isOnline) {
+      if (!mounted) return;
+      final isTh = ref.read(localeProvider).languageCode == 'th';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isTh
+                ? 'ไม่มีการเชื่อมต่ออินเทอร์เน็ต ไม่สามารถขอเมนูใหม่จาก Gemini AI ได้ (ไม่ได้หักโควตา)'
+                : 'No internet connection. Cannot regenerate recipes with Gemini AI (Quota not used)',
+          ),
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     // Start 3-second button cooldown
     _startCooldown();
 
@@ -787,6 +807,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         category: _category,
         language: lang,
         offset: _usedCount,
+        isRegenerate: true,
       );
 
       if (!mounted) return;
@@ -800,9 +821,14 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
 
       if (mounted) {
+        final isTh = ref.read(localeProvider).languageCode == 'th';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✨ Gemini AI generated 6 fresh recipes! (Used $_usedCount/$_maxDailyQuota times)'),
+            content: Text(
+              isTh
+                  ? '✨ Gemini AI คิดค้นสูตรเมนูใหม่ให้เรียบร้อย! (ใช้ไป $_usedCount/$_maxDailyQuota ครั้ง)'
+                  : '✨ Gemini AI generated 6 fresh recipes! (Used $_usedCount/$_maxDailyQuota times)',
+            ),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -820,16 +846,20 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         await _persistRecipesForIngredient(_currentIngredient, _recipes, _maxDailyQuota);
         _showDailyLimitAlert();
       } else {
-        // Local fallback rotation
-        setState(() {
-          _usedCount = (_usedCount + 1).clamp(1, _maxDailyQuota);
-          if (_recipes.isEmpty) {
-            _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
-          } else {
-            _recipes = List.from(_recipes.reversed);
-          }
-        });
-        await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
+        // Network / server failure when regenerating:
+        // DO NOT increment quota! DO NOT persist new quota!
+        final isTh = ref.read(localeProvider).languageCode == 'th';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isTh
+                  ? 'ไม่สามารถเชื่อมต่อกับ Gemini AI ได้ กรุณาตรวจสอบอินเทอร์เน็ต (ไม่ได้หักโควตา)'
+                  : 'Unable to connect to Gemini AI. Please check your internet connection (Quota not used)',
+            ),
+            backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     }
   }

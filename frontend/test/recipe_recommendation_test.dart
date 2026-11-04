@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,12 +7,17 @@ import 'package:fm_eaa/data/local/app_database.dart';
 import 'package:fm_eaa/features/recipe/data/models/recipe_model.dart';
 import 'package:fm_eaa/features/recipe/presentation/pages/recipe_recommendation_page.dart';
 import 'package:fm_eaa/features/recipe/presentation/pages/recipe_detail_page.dart';
+import 'package:fm_eaa/sync/connectivity_watcher.dart';
 
 void main() {
   late AppDatabase db;
+  late ConnectivityWatcher onlineWatcher;
+  late ConnectivityWatcher offlineWatcher;
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
+    onlineWatcher = ConnectivityWatcher(check: () async => [ConnectivityResult.wifi]);
+    offlineWatcher = ConnectivityWatcher(check: () async => [ConnectivityResult.none]);
   });
 
   tearDown(() async {
@@ -151,6 +157,7 @@ void main() {
         ProviderScope(
           overrides: [
             appDatabaseProvider.overrideWithValue(db),
+            connectivityWatcherProvider.overrideWithValue(onlineWatcher),
           ],
           child: const MaterialApp(
             home: RecipeRecommendationPage(
@@ -178,12 +185,43 @@ void main() {
       expect(find.textContaining('Regenerate'), findsOneWidget);
     });
 
+    testWidgets('shows warning and prevents quota deduction when offline on regenerate tap', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            connectivityWatcherProvider.overrideWithValue(offlineWatcher),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'Strawberries',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Regenerate (1/3)'), findsOneWidget);
+
+      await tester.ensureVisible(find.textContaining('Regenerate'));
+      await tester.tap(find.textContaining('Regenerate'));
+      await tester.pump();
+
+      // Warning snackbar must be shown
+      expect(find.textContaining('Cannot regenerate recipes with Gemini AI (Quota not used)'), findsOneWidget);
+
+      // Quota MUST remain unchanged at 1/3!
+      expect(find.textContaining('Regenerate (1/3)'), findsOneWidget);
+    });
+
     testWidgets('persists recipes and regenerate count per ingredient when navigating away and back', (tester) async {
       // 1. Visit recipe recommendations for 'Cheddar Cheese'
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             appDatabaseProvider.overrideWithValue(db),
+            connectivityWatcherProvider.overrideWithValue(onlineWatcher),
           ],
           child: const MaterialApp(
             home: RecipeRecommendationPage(
@@ -209,6 +247,7 @@ void main() {
         ProviderScope(
           overrides: [
             appDatabaseProvider.overrideWithValue(db),
+            connectivityWatcherProvider.overrideWithValue(onlineWatcher),
           ],
           child: const MaterialApp(
             home: RecipeRecommendationPage(
@@ -228,6 +267,7 @@ void main() {
         ProviderScope(
           overrides: [
             appDatabaseProvider.overrideWithValue(db),
+            connectivityWatcherProvider.overrideWithValue(onlineWatcher),
           ],
           child: const MaterialApp(
             home: RecipeRecommendationPage(
