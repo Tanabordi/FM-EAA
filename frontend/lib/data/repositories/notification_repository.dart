@@ -72,7 +72,7 @@ class NotificationRepository {
     try {
       if (inviteId != null) {
         await apiClient.dio.post(
-          '/api/invites/$inviteId/${accept ? 'accept' : 'decline'}',
+          '/invites/$inviteId/${accept ? 'accept' : 'decline'}',
           data: {},
         );
       }

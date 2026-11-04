@@ -36,7 +36,21 @@ class ApiClient {
           } catch (_) {}
           return handler.next(options);
         },
-        onError: (DioException error, handler) {
+        onError: (DioException error, handler) async {
+          // If remote backend returned 404 or connection error, retry against local backend
+          final requestOptions = error.requestOptions;
+          final currentBase = requestOptions.baseUrl;
+          if (!currentBase.contains('localhost:5001') &&
+              (error.response?.statusCode == 404 ||
+                  error.type == DioExceptionType.connectionError)) {
+            try {
+              final localOptions = requestOptions.copyWith(
+                baseUrl: 'http://localhost:5001/api',
+              );
+              final response = await dio.fetch(localOptions);
+              return handler.resolve(response);
+            } catch (_) {}
+          }
           return handler.next(error);
         },
       ),

@@ -76,4 +76,35 @@ router.delete('/:id/members/:userId', async (req, res, next) => {
   }
 });
 
+// GET /api/fridges/:id/search-users - Search users for inviting to fridge
+router.get('/:id/search-users', async (req, res, next) => {
+  try {
+    const users = await fridgeService.searchUsersForFridge(req.params.id, req.user.id, req.query.username);
+    res.status(200).json({ users });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/fridges/:id/invites - Invite user by username
+router.post('/:id/invites', async (req, res, next) => {
+  try {
+    const result = await fridgeService.inviteMember(req.params.id, req.user.id, req.body.username);
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/fridges/:id/invites - List pending invites for fridge
+router.get('/:id/invites', async (req, res, next) => {
+  try {
+    const invites = await fridgeService.getPendingInvites(req.params.id, req.user.id);
+    res.status(200).json({ invites });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
+
