@@ -101,8 +101,8 @@ class ItemDetailsPage extends ConsumerWidget {
                         height: 240,
                         color: const Color(0xFFEAEFE8),
                         child: item.imagePath != null && item.imagePath!.isNotEmpty
-                            ? (item.imagePath!.startsWith('assets/')
-                                ? Image.asset(
+                            ? (item.imagePath!.startsWith('http://') || item.imagePath!.startsWith('https://')
+                                ? Image.network(
                                     item.imagePath!,
                                     width: double.infinity,
                                     height: 240,
@@ -111,15 +111,25 @@ class ItemDetailsPage extends ConsumerWidget {
                                       child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
                                     ),
                                   )
-                                : Image.file(
-                                    File(item.imagePath!),
-                                    width: double.infinity,
-                                    height: 240,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Center(
-                                      child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
-                                    ),
-                                  ))
+                                : (item.imagePath!.startsWith('assets/')
+                                    ? Image.asset(
+                                        item.imagePath!,
+                                        width: double.infinity,
+                                        height: 240,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Center(
+                                          child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
+                                        ),
+                                      )
+                                    : Image.file(
+                                        File(item.imagePath!),
+                                        width: double.infinity,
+                                        height: 240,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Center(
+                                          child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
+                                        ),
+                                      )))
                             : const Center(
                                 child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
                               ),

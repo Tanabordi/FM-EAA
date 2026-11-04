@@ -112,7 +112,26 @@ class ItemCard extends StatelessWidget {
 
   Widget _buildFoodImage() {
     if (imagePath != null && imagePath!.isNotEmpty) {
-      if (imagePath!.startsWith('assets/')) {
+      if (imagePath!.startsWith('http://') || imagePath!.startsWith('https://')) {
+        return Image.network(
+          imagePath!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return Container(
+              color: const Color(0xFFDDE4DC),
+              child: const Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2E6A44)),
+                ),
+              ),
+            );
+          },
+        );
+      } else if (imagePath!.startsWith('assets/')) {
         return Image.asset(
           imagePath!,
           fit: BoxFit.cover,

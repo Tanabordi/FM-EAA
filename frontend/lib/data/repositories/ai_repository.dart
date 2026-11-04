@@ -32,6 +32,7 @@ class AiScanResult {
   final String unit;
   final String storage;
   final String? imagePath;
+  final String? imageUrl;
   final String? message;
   final double confidence;
 
@@ -44,6 +45,7 @@ class AiScanResult {
     this.unit = 'pieces',
     this.storage = 'Fridge',
     this.imagePath,
+    this.imageUrl,
     this.message,
     this.confidence = 1.0,
   });
@@ -1329,6 +1331,9 @@ class AiRepository {
       if (match.isNotEmpty) storage = match;
     }
 
+    final cloudUrl = (data['imageUrl'] as String?)?.trim();
+    final effectiveImagePath = (cloudUrl != null && cloudUrl.isNotEmpty) ? cloudUrl : imagePath;
+
     if (category != null) {
       return AiScanResult(
         isDetected: true,
@@ -1338,7 +1343,8 @@ class AiRepository {
         category: category,
         unit: unit ?? (category == 'Beverages' ? 'bottle' : category == 'Proteins' ? 'pack' : 'pieces'),
         storage: storage ?? 'Fridge',
-        imagePath: imagePath,
+        imagePath: effectiveImagePath,
+        imageUrl: cloudUrl,
         confidence: confidence,
       );
     }
@@ -1346,7 +1352,7 @@ class AiRepository {
     return _categorizeFood(
       foodName,
       expiryDate,
-      imagePath,
+      effectiveImagePath,
       suggestedUnit: unit,
       suggestedStorage: storage,
       confidence: confidence,

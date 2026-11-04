@@ -389,6 +389,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               unit: _scanResult!.unit,
               storage: _scanResult!.storage,
               imagePath: _scanResult!.imagePath,
+              imageUrl: _scanResult!.imageUrl,
               message: _scanResult!.message,
               confidence: _scanResult!.confidence,
             );
@@ -433,6 +434,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               unit: _scanResult!.unit,
               storage: _scanResult!.storage,
               imagePath: _scanResult!.imagePath,
+              imageUrl: _scanResult!.imageUrl,
               message: _scanResult!.message,
               confidence: _scanResult!.confidence,
             );
@@ -473,7 +475,11 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       return;
     }
 
-    // Attach the actual local image path captured/selected by user (Photo 1)
+    final cloudUrl = _scanResult!.imageUrl ??
+        ((_scanResult!.imagePath != null && _scanResult!.imagePath!.startsWith('http')) ? _scanResult!.imagePath : null);
+    final effectiveImage = cloudUrl ?? _imagePath ?? _scanResult!.imagePath;
+
+    // Attach the actual image path (preferring cloud PAR URL so all devices see it)
     final finalResult = AiScanResult(
       isDetected: _scanResult!.isDetected,
       isFood: _scanResult!.isFood,
@@ -482,7 +488,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       category: _scanResult!.category,
       unit: _scanResult!.unit,
       storage: _scanResult!.storage,
-      imagePath: _imagePath ?? _scanResult!.imagePath,
+      imagePath: effectiveImage,
+      imageUrl: cloudUrl,
       message: _scanResult!.message,
       confidence: _scanResult!.confidence,
     );

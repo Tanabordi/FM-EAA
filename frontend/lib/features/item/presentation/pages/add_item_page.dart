@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
+import '../../../../data/repositories/item_repository.dart';
 import '../../../../shared/utils/date_input_formatter.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
@@ -408,6 +409,23 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       return;
     }
 
+    // If the image is a local file, ensure it's uploaded to OCI Object Storage so all devices can display it
+    if (_imagePath != null &&
+        !_imagePath!.startsWith('http') &&
+        !_imagePath!.startsWith('assets/') &&
+        _imageBytes != null &&
+        !Platform.environment.containsKey('FLUTTER_TEST')) {
+      try {
+        final cloudUrl = await ref.read(itemRepositoryProvider).uploadItemImageBytes(
+          _imageBytes!,
+          filename: 'item.jpg',
+        );
+        if (cloudUrl != null) {
+          _imagePath = cloudUrl;
+        }
+      } catch (_) {}
+    }
+
     final newItem = ItemModel(
       id: 'item_${DateTime.now().millisecondsSinceEpoch}',
       fridgeId: widget.fridgeId,
@@ -462,6 +480,21 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
             _imagePath = picked.path;
             _hasAnalyzed = false;
           });
+        }
+
+        // Upload to OCI Object Storage in background
+        if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+          try {
+            final cloudUrl = await ref.read(itemRepositoryProvider).uploadItemImageBytes(
+              bytes,
+              filename: picked.name,
+            );
+            if (cloudUrl != null && mounted) {
+              setState(() {
+                _imagePath = cloudUrl;
+              });
+            }
+          } catch (_) {}
         }
       }
     } catch (e) {
@@ -762,21 +795,29 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                               child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
                             ),
                           )
-                        : (_imagePath!.startsWith('assets/')
-                            ? Image.asset(
+                        : (_imagePath!.startsWith('http://') || _imagePath!.startsWith('https://')
+                            ? Image.network(
                                 _imagePath!,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => const Center(
                                   child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
                                 ),
                               )
-                            : Image.file(
-                                File(_imagePath!),
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Center(
-                                  child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
-                                ),
-                              )),
+                            : (_imagePath!.startsWith('assets/')
+                                ? Image.asset(
+                                    _imagePath!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Center(
+                                      child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                                    ),
+                                  )
+                                : Image.file(
+                                    File(_imagePath!),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Center(
+                                      child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                                    ),
+                                  ))),
                   ),
                 ),
                 Positioned(
