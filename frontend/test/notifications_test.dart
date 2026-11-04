@@ -41,6 +41,18 @@ void main() {
       final instance2 = NotificationService();
       expect(identical(instance1, instance2), true);
     });
+
+    test('scheduleItemExpiryAlert and cancelItemExpiryAlert run without error', () async {
+      final service = NotificationService();
+      await service.scheduleItemExpiryAlert(
+        itemId: 'item_apple_1',
+        itemName: 'Apple',
+        fridgeName: 'Kitchen',
+        expiryDate: DateTime.now().add(const Duration(days: 2)),
+      );
+
+      await service.cancelItemExpiryAlert('item_apple_1');
+    });
   });
 
   group('NotificationRepository & SQLite Storage Tests', () {
@@ -81,6 +93,58 @@ void main() {
       await notificationRepo.markAsRead('n_read_test');
 
       expect((await notificationRepo.getNotifications('user_1')).first.isRead, true);
+    });
+
+    test('markAllAsRead marks all notifications for user as read', () async {
+      await notificationRepo.insertNotification(
+        NotificationModel(
+          id: 'n_all_1',
+          userId: 'user_1',
+          type: 'expiry',
+          title: 'Alert 1',
+          message: 'Item 1 expiring',
+          createdAt: DateTime.now(),
+        ),
+      );
+      await notificationRepo.insertNotification(
+        NotificationModel(
+          id: 'n_all_2',
+          userId: 'user_1',
+          type: 'invite',
+          title: 'Alert 2',
+          message: 'Invite 2',
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      final before = await notificationRepo.getNotifications('user_1');
+      expect(before.every((n) => !n.isRead), true);
+
+      await notificationRepo.markAllAsRead('user_1');
+
+      final after = await notificationRepo.getNotifications('user_1');
+      expect(after.every((n) => n.isRead), true);
+    });
+
+    test('watchUnreadCount accurately streams unread count', () async {
+      expect(await notificationRepo.watchUnreadCount('user_1').first, 0);
+
+      await notificationRepo.insertNotification(
+        NotificationModel(
+          id: 'n_unread_1',
+          userId: 'user_1',
+          type: 'expiry',
+          title: 'Item Expiry',
+          message: 'Milk expires soon',
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      expect(await notificationRepo.watchUnreadCount('user_1').first, 1);
+
+      await notificationRepo.markAsRead('n_unread_1');
+
+      expect(await notificationRepo.watchUnreadCount('user_1').first, 0);
     });
 
     test('deleteNotification removes single record', () async {
@@ -181,6 +245,9 @@ void main() {
       // Verify AppBar
       expect(find.text('Notifications'), findsOneWidget);
 
+      // Verify Mark all as read button is shown since unread notifications exist
+      expect(find.byIcon(Icons.done_all_rounded), findsOneWidget);
+
       // Verify Family Invitation Card
       expect(find.text("John invited you to join 'Home Fridge'"), findsOneWidget);
       expect(find.text('Accept'), findsOneWidget);
@@ -222,9 +289,12 @@ void main() {
 
       // Tap Accept
       await tester.tap(find.text('Accept'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Accepted invitation.'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Empty State renders when no notifications exist', (tester) async {
@@ -249,4 +319,3 @@ void main() {
     });
   });
 }
-

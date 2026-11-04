@@ -6,6 +6,7 @@ import '../widgets/cute_fridge_illustration.dart';
 import '../widgets/edit_fridge_sheet.dart';
 import '../widgets/delete_fridge_dialog.dart';
 import '../../providers/fridges_provider.dart';
+import '../../../notifications/providers/notifications_provider.dart';
 
 /// Screen #5: My Fridges (Supports both Empty State [Image 1] and Populated State [Image 2 / 10])
 class MyFridgesPage extends ConsumerStatefulWidget {
@@ -27,6 +28,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
   @override
   Widget build(BuildContext context) {
     final fridges = ref.watch(fridgesProvider);
+    final unreadNotifs = ref.watch(unreadNotificationCountProvider).value ?? 0;
     final theme = Theme.of(context);
     final isEmpty = fridges.isEmpty;
 
@@ -34,8 +36,8 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
       backgroundColor: const Color(0xFFF6FBF3),
       body: SafeArea(
         child: isEmpty
-            ? _buildEmptyState(context)
-            : _buildPopulatedState(context, ref, fridges, theme),
+            ? _buildEmptyState(context, unreadNotifs)
+            : _buildPopulatedState(context, ref, fridges, theme, unreadNotifs),
       ),
       floatingActionButton: isEmpty
           ? null
@@ -61,7 +63,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
   }
 
   /// Screen #5 Empty State (Image 1: 100% pixel-perfect match to Figma)
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, int unreadNotifs) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Column(
@@ -86,6 +88,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
                   _buildCircleActionButton(
                     icon: Icons.notifications_outlined,
                     tooltip: 'Notifications',
+                    badgeCount: unreadNotifs,
                     onPressed: () => context.push('/notifications'),
                   ),
                   const SizedBox(width: 10),
@@ -157,6 +160,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
     WidgetRef ref,
     List dynamicFridges,
     ThemeData theme,
+    int unreadNotifs,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -183,6 +187,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
                   _buildCircleActionButton(
                     icon: Icons.notifications_outlined,
                     tooltip: 'Notifications',
+                    badgeCount: unreadNotifs,
                     onPressed: () => context.push('/notifications'),
                   ),
                   const SizedBox(width: 10),
@@ -287,20 +292,51 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
     required IconData icon,
     required String tooltip,
     required VoidCallback onPressed,
+    int badgeCount = 0,
   }) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: const BoxDecoration(
-        color: Color(0xFFEAEFE8),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: const Color(0xFF181D18), size: 20),
-        tooltip: tooltip,
-        onPressed: onPressed,
-        padding: EdgeInsets.zero,
-      ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: const BoxDecoration(
+            color: Color(0xFFEAEFE8),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: Icon(icon, color: const Color(0xFF181D18), size: 20),
+            tooltip: tooltip,
+            onPressed: onPressed,
+            padding: EdgeInsets.zero,
+          ),
+        ),
+        if (badgeCount > 0)
+          Positioned(
+            top: -2,
+            right: -2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFBA1A1A),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Center(
+                child: Text(
+                  badgeCount > 99 ? '99+' : badgeCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

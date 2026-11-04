@@ -4,6 +4,8 @@ import '../../../data/local/app_database.dart';
 import '../../../data/models/notification_model.dart';
 import '../../../data/remote/api_client.dart';
 import '../../../data/repositories/notification_repository.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../fridges/providers/fridges_provider.dart';
 
 /// Provider for NotificationRepository bound with AppDatabase and ApiClient
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
@@ -11,32 +13,54 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return NotificationRepository(apiClient: ApiClient(), database: db);
 });
 
-/// Reactive stream of notifications for a user (auto-seeds demo notifications if empty)
+/// Current authenticated user ID (or 'user_1' fallback for offline/guest)
+final currentNotificationUserIdProvider = Provider<String>((ref) {
+  final authState = ref.watch(authProvider);
+  return authState.user?.id ?? 'user_1';
+});
+
+/// Reactive stream of notifications for a user
 final notificationsStreamProvider = StreamProvider.family<List<NotificationModel>, String>((ref, userId) {
   final repo = ref.watch(notificationRepositoryProvider);
-  unawaited(repo.seedInitialNotificationsIfEmpty(userId).catchError((_) {}));
+  unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
   return repo.watchNotifications(userId);
 });
 
-/// Convenience provider for default user_1 notifications
+/// Default notifications stream provider matching the active logged-in user
 final defaultNotificationsStreamProvider = StreamProvider<List<NotificationModel>>((ref) {
+  final userId = ref.watch(currentNotificationUserIdProvider);
   final repo = ref.watch(notificationRepositoryProvider);
-  unawaited(repo.seedInitialNotificationsIfEmpty('user_1').catchError((_) {}));
-  return repo.watchNotifications('user_1');
+
+  // Sync with remote backend API in the background
+  unawaited(repo.syncNotifications(userId).catchError((_) async {
+    await repo.seedInitialNotificationsIfEmpty(userId).catchError((_) {});
+    return <NotificationModel>[];
+  }));
+
+  return repo.watchNotifications(userId);
+});
+
+/// Stream of unread notification count for active user
+final unreadNotificationCountProvider = StreamProvider<int>((ref) {
+  final userId = ref.watch(currentNotificationUserIdProvider);
+  final repo = ref.watch(notificationRepositoryProvider);
+  return repo.watchUnreadCount(userId);
 });
 
 /// Backward-compatible FutureProvider for notifications list
 final notificationsListProvider = FutureProvider<List<NotificationModel>>((ref) async {
+  final userId = ref.watch(currentNotificationUserIdProvider);
   final repo = ref.watch(notificationRepositoryProvider);
-  await repo.seedInitialNotificationsIfEmpty('user_1');
-  return repo.getNotifications('user_1');
+  await repo.syncNotifications(userId);
+  return repo.getNotifications(userId);
 });
 
 /// Controller for notification actions (Accept/Decline invite, Mark read, Delete, Clear all)
 class NotificationController extends StateNotifier<AsyncValue<void>> {
   final NotificationRepository _repository;
+  final Ref _ref;
 
-  NotificationController(this._repository) : super(const AsyncData(null));
+  NotificationController(this._repository, this._ref) : super(const AsyncData(null));
 
   Future<void> respondToInvite({
     required String notificationId,
@@ -44,11 +68,20 @@ class NotificationController extends StateNotifier<AsyncValue<void>> {
     required bool accept,
   }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _repository.respondToInvite(
-          notificationId: notificationId,
-          inviteId: inviteId,
-          accept: accept,
-        ));
+    state = await AsyncValue.guard(() async {
+      await _repository.respondToInvite(
+        notificationId: notificationId,
+        inviteId: inviteId,
+        accept: accept,
+      );
+
+      // If user accepted a fridge invitation, reload the fridges list in the background
+      if (accept) {
+        try {
+          unawaited(_ref.read(fridgesProvider.notifier).loadFridges().catchError((_) {}));
+        } catch (_) {}
+      }
+    });
   }
 
   Future<void> markAsRead(String id) async {
@@ -56,18 +89,31 @@ class NotificationController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() => _repository.markAsRead(id));
   }
 
+  Future<void> markAllAsRead([String? userId]) async {
+    final String targetUserId = userId ?? _ref.read(currentNotificationUserIdProvider);
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _repository.markAllAsRead(targetUserId));
+  }
+
   Future<void> deleteNotification(String id) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() => _repository.deleteNotification(id));
   }
 
-  Future<void> clearAll([String userId = 'user_1']) async {
+  Future<void> clearAll([String? userId]) async {
+    final String targetUserId = userId ?? _ref.read(currentNotificationUserIdProvider);
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _repository.clearAllNotifications(userId));
+    state = await AsyncValue.guard(() => _repository.clearAllNotifications(targetUserId));
+  }
+
+  Future<void> sync([String? userId]) async {
+    final String targetUserId = userId ?? _ref.read(currentNotificationUserIdProvider);
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _repository.syncNotifications(targetUserId));
   }
 }
 
 final notificationControllerProvider = StateNotifierProvider<NotificationController, AsyncValue<void>>((ref) {
   final repo = ref.watch(notificationRepositoryProvider);
-  return NotificationController(repo);
+  return NotificationController(repo, ref);
 });
