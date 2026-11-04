@@ -162,6 +162,10 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                   final notif = notifications[index];
                   if (notif.isInvite) {
                     return _buildInviteCard(context, notif);
+                  } else if (notif.isMemberJoined) {
+                    return _buildMemberJoinedCard(context, notif);
+                  } else if (notif.isItemAction) {
+                    return _buildItemActionCard(context, notif);
                   } else {
                     return _buildExpiryCard(context, notif);
                   }
@@ -370,6 +374,227 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                       notif.message.isNotEmpty ? notif.message : 'Remember to consume before expiry.',
                       style: TextStyle(
                         fontSize: 12,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      timeStr,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                color: theme.colorScheme.onSurfaceVariant,
+                tooltip: 'Dismiss',
+                onPressed: () => _handleDismiss(notif),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMemberJoinedCard(BuildContext context, NotificationModel notif) {
+    final theme = Theme.of(context);
+    final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt);
+
+    return InkWell(
+      onTap: () {
+        if (!notif.isRead) {
+          ref.read(notificationControllerProvider.notifier).markAsRead(notif.id);
+        }
+        final fridgeId = notif.fridgeId;
+        if (fridgeId != null && fridgeId.isNotEmpty) {
+          context.push('/fridges/$fridgeId');
+        } else {
+          context.push('/fridges');
+        }
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Card(
+        elevation: 0,
+        color: notif.isRead ? theme.colorScheme.surfaceContainer : const Color(0xFFE8F5E9),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: notif.isRead
+              ? BorderSide.none
+              : const BorderSide(color: Color(0xFFA5D6A7), width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const CircleAvatar(
+                backgroundColor: Color(0xFFC8E6C9),
+                child: Icon(
+                  Icons.group_add_rounded,
+                  color: Color(0xFF2E7D32),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            notif.title.isNotEmpty ? notif.title : 'New Member Joined',
+                            style: TextStyle(
+                              fontWeight: notif.isRead ? FontWeight.w600 : FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        if (!notif.isRead)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            margin: const EdgeInsets.only(left: 6),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2E7D32),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      notif.message.isNotEmpty ? notif.message : 'A new member has joined the fridge.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      timeStr,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                color: theme.colorScheme.onSurfaceVariant,
+                tooltip: 'Dismiss',
+                onPressed: () => _handleDismiss(notif),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemActionCard(BuildContext context, NotificationModel notif) {
+    final theme = Theme.of(context);
+    final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt);
+
+    Color avatarBg;
+    Color iconColor;
+    IconData icon;
+    Color cardBg;
+    Color borderColor;
+
+    if (notif.isItemAdded) {
+      avatarBg = const Color(0xFFE8F5E9);
+      iconColor = const Color(0xFF2E7D32);
+      icon = Icons.add_circle_outline_rounded;
+      cardBg = notif.isRead ? theme.colorScheme.surfaceContainer : const Color(0xFFF1F8E9);
+      borderColor = const Color(0xFFC5E1A5);
+    } else if (notif.isItemConsumed) {
+      avatarBg = const Color(0xFFFFF3E0);
+      iconColor = const Color(0xFFE65100);
+      icon = Icons.restaurant_rounded;
+      cardBg = notif.isRead ? theme.colorScheme.surfaceContainer : const Color(0xFFFFF8E1);
+      borderColor = const Color(0xFFFFE082);
+    } else {
+      // isItemDeleted
+      avatarBg = const Color(0xFFFFEBEE);
+      iconColor = const Color(0xFFC62828);
+      icon = Icons.delete_outline_rounded;
+      cardBg = notif.isRead ? theme.colorScheme.surfaceContainer : const Color(0xFFFFF5F5);
+      borderColor = const Color(0xFFFFCDD2);
+    }
+
+    return InkWell(
+      onTap: () {
+        if (!notif.isRead) {
+          ref.read(notificationControllerProvider.notifier).markAsRead(notif.id);
+        }
+        final fridgeId = notif.fridgeId;
+        if (fridgeId != null && fridgeId.isNotEmpty) {
+          context.push('/fridges/$fridgeId');
+        } else {
+          context.push('/fridges');
+        }
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Card(
+        elevation: 0,
+        color: cardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: notif.isRead ? BorderSide.none : BorderSide(color: borderColor, width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                backgroundColor: avatarBg,
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            notif.title.isNotEmpty ? notif.title : notif.message,
+                            style: TextStyle(
+                              fontWeight: notif.isRead ? FontWeight.w600 : FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        if (!notif.isRead)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            margin: const EdgeInsets.only(left: 6),
+                            decoration: BoxDecoration(
+                              color: iconColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      notif.message.isNotEmpty ? notif.message : 'Food item activity in your fridge.',
+                      style: TextStyle(
+                        fontSize: 13,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),

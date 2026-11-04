@@ -276,4 +276,117 @@ describe('Notifications API Integration Tests', () => {
       expect(expiryNotif.isRead).toBe(false);
     });
   });
+
+  describe('Fridge Activity Notifications (Member Joined & Item Actions)', () => {
+    let activityItemId = null;
+
+    it('generates a member_joined notification for User A when User B accepts invite with inviter info', async () => {
+      // 1. User A invites User B
+      const invRes = await request(app)
+        .post(`/api/fridges/${fridgeId}/invites`)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ username: userB.username });
+
+      expect(invRes.statusCode).toBe(201);
+      const inviteId = invRes.body.invite.id;
+
+      // 2. User B accepts invite
+      const accRes = await request(app)
+        .post(`/api/invites/${inviteId}/accept`)
+        .set('Authorization', `Bearer ${tokenB}`);
+
+      expect(accRes.statusCode).toBe(200);
+
+      // 3. User A should have a member_joined notification specifying who joined and who invited them
+      const notifsRes = await request(app)
+        .get('/api/notifications')
+        .set('Authorization', `Bearer ${tokenA}`);
+
+      expect(notifsRes.statusCode).toBe(200);
+      const memberNotif = notifsRes.body.notifications.find(n => n.type === 'member_joined');
+      expect(memberNotif).toBeDefined();
+      expect(memberNotif.payload.joined_username).toBe(userB.username);
+      expect(memberNotif.payload.invited_by_username).toBe(userA.username);
+      expect(memberNotif.message).toContain(userB.username);
+      expect(memberNotif.message).toContain(userA.username);
+    });
+
+    it('generates an item_added notification for User A when User B adds an item', async () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 3);
+      const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+      const addRes = await request(app)
+        .post(`/api/fridges/${fridgeId}/items`)
+        .set('Authorization', `Bearer ${tokenB}`)
+        .send({
+          name: 'Chocolate Pudding',
+          category: 'meals',
+          zone: 'fridge',
+          quantity: 2,
+          unit: 'cups',
+          expiryDate: tomorrowStr,
+        });
+
+      expect(addRes.statusCode).toBe(201);
+      activityItemId = addRes.body.item.id;
+
+      // User A receives notification that User B added Chocolate Pudding
+      const notifsRes = await request(app)
+        .get('/api/notifications')
+        .set('Authorization', `Bearer ${tokenA}`);
+
+      expect(notifsRes.statusCode).toBe(200);
+      const addNotif = notifsRes.body.notifications.find(
+        n => n.type === 'item_added' && n.payload.item_name === 'Chocolate Pudding'
+      );
+      expect(addNotif).toBeDefined();
+      expect(addNotif.payload.by_username).toBe(userB.username);
+      expect(addNotif.message).toContain('Chocolate Pudding');
+    });
+
+    it('generates an item_consumed notification for User A when User B eats the item', async () => {
+      const consumeRes = await request(app)
+        .post(`/api/fridges/${fridgeId}/items/${activityItemId}/consume`)
+        .set('Authorization', `Bearer ${tokenB}`)
+        .send({ amount: 1 });
+
+      expect(consumeRes.statusCode).toBe(200);
+
+      // User A receives notification that User B ate 1 cup
+      const notifsRes = await request(app)
+        .get('/api/notifications')
+        .set('Authorization', `Bearer ${tokenA}`);
+
+      expect(notifsRes.statusCode).toBe(200);
+      const consumeNotif = notifsRes.body.notifications.find(
+        n => n.type === 'item_consumed' && n.payload.item_name === 'Chocolate Pudding'
+      );
+      expect(consumeNotif).toBeDefined();
+      expect(consumeNotif.payload.by_username).toBe(userB.username);
+      expect(consumeNotif.message).toContain(userB.username);
+      expect(consumeNotif.message).toContain('Chocolate Pudding');
+    });
+
+    it('generates an item_deleted notification for User A when User B deletes the item', async () => {
+      const delRes = await request(app)
+        .delete(`/api/fridges/${fridgeId}/items/${activityItemId}`)
+        .set('Authorization', `Bearer ${tokenB}`);
+
+      expect(delRes.statusCode).toBe(200);
+
+      // User A receives notification that User B removed the item
+      const notifsRes = await request(app)
+        .get('/api/notifications')
+        .set('Authorization', `Bearer ${tokenA}`);
+
+      expect(notifsRes.statusCode).toBe(200);
+      const delNotif = notifsRes.body.notifications.find(
+        n => n.type === 'item_deleted' && n.payload.item_name === 'Chocolate Pudding'
+      );
+      expect(delNotif).toBeDefined();
+      expect(delNotif.payload.by_username).toBe(userB.username);
+      expect(delNotif.message).toContain('Chocolate Pudding');
+    });
+  });
 });

@@ -89,6 +89,7 @@ class NotificationRepository {
       'fridge_id': notif.fridgeId,
       'invite_id': notif.inviteId,
       'item_id': notif.itemId,
+      'sub_type': notif.type,
     });
 
     await database.insertNotification(
@@ -104,6 +105,7 @@ class NotificationRepository {
   /// Mark a single notification as read (local-first with remote sync)
   Future<void> markAsRead(String id) async {
     await database.markNotificationAsRead(id);
+    if (isTestEnvironment()) return;
     try {
       await apiClient.dio.patch('/notifications/$id/read');
     } catch (e) {
@@ -114,6 +116,7 @@ class NotificationRepository {
   /// Mark all notifications for a user as read
   Future<void> markAllAsRead(String userId) async {
     await database.markAllNotificationsAsRead(userId);
+    if (isTestEnvironment()) return;
     try {
       await apiClient.dio.patch('/notifications/read-all');
     } catch (e) {
@@ -124,6 +127,7 @@ class NotificationRepository {
   /// Delete a single notification (local-first with remote sync)
   Future<void> deleteNotification(String id) async {
     await database.deleteNotification(id);
+    if (isTestEnvironment()) return;
     try {
       await apiClient.dio.delete('/notifications/$id');
     } catch (e) {
@@ -134,6 +138,7 @@ class NotificationRepository {
   /// Clear all notifications for a user
   Future<void> clearAllNotifications(String userId) async {
     await database.clearNotifications(userId);
+    if (isTestEnvironment()) return;
     try {
       await apiClient.dio.delete('/notifications');
     } catch (e) {

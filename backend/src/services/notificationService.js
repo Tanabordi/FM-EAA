@@ -42,10 +42,13 @@ class NotificationService {
         } catch (_) {
           payload = { raw: r[3] };
         }
+        const effectiveType = payload.sub_type || payload.type || r[2];
         return {
           id: r[0],
           userId: r[1],
-          type: r[2],
+          type: effectiveType,
+          title: payload.title || '',
+          message: payload.message || '',
           payload,
           isRead: Boolean(r[4]),
           createdAt: r[5],
@@ -56,6 +59,76 @@ class NotificationService {
       return { notifications, unreadCount };
     } finally {
       if (conn) {
+        try { await conn.close(); } catch (_) {}
+      }
+    }
+  }
+
+  /**
+   * Helper: Notify members of a fridge (optionally excluding actor).
+   * Compatible with Oracle DB check constraint (type in ('invite', 'expiry')).
+   */
+  async notifyFridgeMembers(connOrFridgeId, fridgeIdOrExclude, excludeOrData, maybeData) {
+    let conn;
+    let fridgeId;
+    let excludeUserId;
+    let notifData;
+    let shouldClose = false;
+
+    if (connOrFridgeId && typeof connOrFridgeId.execute === 'function') {
+      conn = connOrFridgeId;
+      fridgeId = fridgeIdOrExclude;
+      excludeUserId = excludeOrData;
+      notifData = maybeData || {};
+    } else {
+      conn = await db.getDbConnection();
+      fridgeId = connOrFridgeId;
+      excludeUserId = fridgeIdOrExclude;
+      notifData = excludeOrData || {};
+      shouldClose = true;
+    }
+
+    try {
+      const { type = 'item_action', subType, title = 'Notification', message = '', ...extra } = notifData;
+      const finalSubType = subType || type;
+      const dbType = (type === 'invite' || finalSubType === 'member_joined' || type === 'member_joined') ? 'invite' : 'expiry';
+
+      const membersRes = await conn.execute(
+        `SELECT user_id FROM fridge_members WHERE fridge_id = :fridgeId AND user_id != :excludeUserId`,
+        [fridgeId, excludeUserId || '']
+      );
+      const memberIds = (membersRes.rows || []).map(r => r[0]);
+      if (memberIds.length === 0) return [];
+
+      const payloadObj = {
+        title,
+        message,
+        sub_type: finalSubType,
+        fridge_id: fridgeId,
+        ...extra,
+      };
+      const payloadStr = JSON.stringify(payloadObj);
+
+      for (const memberId of memberIds) {
+        const id = uuidv4();
+        await conn.execute(
+          `INSERT INTO notifications (id, user_id, type, payload_json, is_read, created_at)
+           VALUES (:id, :userId, :dbType, :payloadJson, 0, CURRENT_TIMESTAMP)`,
+          [id, memberId, dbType, payloadStr]
+        );
+      }
+
+      if (shouldClose) {
+        await conn.commit();
+      }
+      return memberIds;
+    } catch (err) {
+      if (shouldClose && conn) {
+        try { await conn.rollback(); } catch (_) {}
+      }
+      throw err;
+    } finally {
+      if (shouldClose && conn) {
         try { await conn.close(); } catch (_) {}
       }
     }
@@ -191,18 +264,22 @@ class NotificationService {
     try {
       conn = await db.getDbConnection();
       const id = uuidv4();
-      const payloadStr = typeof payload === 'string' ? payload : JSON.stringify(payload || {});
+      const payloadObj = typeof payload === 'string' ? JSON.parse(payload) : (payload || {});
+      const subType = payloadObj.sub_type || type;
+      payloadObj.sub_type = subType;
+      const dbType = (type === 'invite' || subType === 'member_joined' || type === 'member_joined') ? 'invite' : 'expiry';
+      const payloadStr = JSON.stringify(payloadObj);
       const sql = `
         INSERT INTO notifications (id, user_id, type, payload_json, is_read, created_at)
-        VALUES (:id, :userId, :type, :payloadJson, 0, CURRENT_TIMESTAMP)
+        VALUES (:id, :userId, :dbType, :payloadJson, 0, CURRENT_TIMESTAMP)
       `;
-      await conn.execute(sql, [id, userId, type, payloadStr]);
+      await conn.execute(sql, [id, userId, dbType, payloadStr]);
       await conn.commit();
       return {
         id,
         userId,
-        type,
-        payload: typeof payload === 'string' ? JSON.parse(payload) : payload,
+        type: subType,
+        payload: payloadObj,
         isRead: false,
       };
     } catch (err) {

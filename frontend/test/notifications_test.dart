@@ -332,5 +332,82 @@ void main() {
       expect(find.text('No Notifications'), findsOneWidget);
       expect(find.text("You're all caught up! Expiry alerts and family invites will appear here."), findsOneWidget);
     });
+
+    testWidgets('NotificationsPage renders Member Joined and Item Action cards correctly', (tester) async {
+      final sampleNotifs = [
+        NotificationModel(
+          id: 'notif_member_1',
+          userId: 'user_1',
+          type: 'member_joined',
+          title: 'New Member Joined',
+          message: "Bob joined 'Kitchen Fridge' (invited by Alice)",
+          fridgeId: 'fridge_1',
+          createdAt: DateTime.now(),
+        ),
+        NotificationModel(
+          id: 'notif_item_add',
+          userId: 'user_1',
+          type: 'item_added',
+          title: 'New Item Added',
+          message: 'Alice added "Greek Yogurt" to "Kitchen Fridge"',
+          fridgeId: 'fridge_1',
+          createdAt: DateTime.now(),
+        ),
+        NotificationModel(
+          id: 'notif_item_consume',
+          userId: 'user_1',
+          type: 'item_consumed',
+          title: 'Item Consumed',
+          message: 'Alice ate 1 cup of "Greek Yogurt" in "Kitchen Fridge"',
+          fridgeId: 'fridge_1',
+          createdAt: DateTime.now(),
+        ),
+        NotificationModel(
+          id: 'notif_item_del',
+          userId: 'user_1',
+          type: 'item_deleted',
+          title: 'Item Removed',
+          message: 'Bob removed "Old Spinach" from "Kitchen Fridge"',
+          fridgeId: 'fridge_1',
+          createdAt: DateTime.now(),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            notificationRepositoryProvider.overrideWithValue(notificationRepo),
+            defaultNotificationsStreamProvider.overrideWith((ref) => Stream.value(sampleNotifs)),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const NotificationsPage(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Verify Member Joined card
+      expect(find.text('New Member Joined'), findsOneWidget);
+      expect(find.text("Bob joined 'Kitchen Fridge' (invited by Alice)"), findsOneWidget);
+      expect(find.byIcon(Icons.group_add_rounded), findsOneWidget);
+
+      // Verify Item Added card
+      expect(find.text('New Item Added'), findsOneWidget);
+      expect(find.text('Alice added "Greek Yogurt" to "Kitchen Fridge"'), findsOneWidget);
+      expect(find.byIcon(Icons.add_circle_outline_rounded), findsOneWidget);
+
+      // Verify Item Consumed card
+      expect(find.text('Item Consumed'), findsOneWidget);
+      expect(find.text('Alice ate 1 cup of "Greek Yogurt" in "Kitchen Fridge"'), findsOneWidget);
+      expect(find.byIcon(Icons.restaurant_rounded), findsOneWidget);
+
+      // Verify Item Removed card
+      expect(find.text('Item Removed'), findsOneWidget);
+      expect(find.text('Bob removed "Old Spinach" from "Kitchen Fridge"'), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
+    });
   });
 }

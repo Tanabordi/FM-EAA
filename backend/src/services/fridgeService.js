@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const db = require('../config/db');
+const notificationService = require('./notificationService');
 
 class FridgeService {
   /**
@@ -704,30 +705,31 @@ class FridgeService {
           [fridgeId, currentUserId]
         );
 
-        // Notify inviter that invite was accepted
+        // Notify all other fridge members who joined and who invited them
         try {
           const userRes = await conn.execute(`SELECT username FROM users WHERE id = :userId`, [currentUserId]);
           const joinedUsername = (userRes.rows && userRes.rows[0]) ? userRes.rows[0][0] : 'A user';
+          const inviterRes = await conn.execute(`SELECT username FROM users WHERE id = :fromUserId`, [fromUserId]);
+          const inviterUsername = (inviterRes.rows && inviterRes.rows[0]) ? inviterRes.rows[0][0] : 'Someone';
           const fridgeRes = await conn.execute(`SELECT name FROM fridges WHERE id = :fridgeId`, [fridgeId]);
           const fridgeName = (fridgeRes.rows && fridgeRes.rows[0]) ? fridgeRes.rows[0][0] : 'Fridge';
 
-          const notifId = crypto.randomUUID();
-          const notifPayload = JSON.stringify({
-            title: 'Invitation Accepted',
-            message: `${joinedUsername} joined '${fridgeName}'`,
-            fridge_id: fridgeId,
-            fridge_name: fridgeName,
-            member_user_id: currentUserId,
-            member_username: joinedUsername,
-          });
+          const notifTitle = 'New Member Joined';
+          const notifMessage = `${joinedUsername} joined "${fridgeName}" (invited by ${inviterUsername})`;
 
-          await conn.execute(
-            `INSERT INTO notifications (id, user_id, type, payload_json, is_read, created_at)
-             VALUES (:id, :userId, 'invite_accepted', :payload, 0, CURRENT_TIMESTAMP)`,
-            [notifId, fromUserId, notifPayload]
-          );
+          await notificationService.notifyFridgeMembers(conn, fridgeId, currentUserId, {
+            type: 'member_joined',
+            subType: 'member_joined',
+            title: notifTitle,
+            message: notifMessage,
+            fridge_name: fridgeName,
+            joined_user_id: currentUserId,
+            joined_username: joinedUsername,
+            invited_by_user_id: fromUserId,
+            invited_by_username: inviterUsername,
+          });
         } catch (e) {
-          console.warn('[FridgeService] Error creating accepted notification:', e.message);
+          console.warn('[FridgeService] Error creating member joined notifications:', e.message);
         }
       }
 
