@@ -193,6 +193,17 @@ void main() {
         ProviderScope(
           overrides: [
             familyRepositoryProvider.overrideWithValue(fakeRepo),
+            authProvider.overrideWith((ref) => FakeAuthNotifier(
+              AuthState(
+                isAuthenticated: true,
+                user: UserModel(
+                  id: 'm1',
+                  username: 'Mimi',
+                  email: 'mimi@example.com',
+                  updatedAt: DateTime.now(),
+                ),
+              ),
+            )),
           ],
           child: const MaterialApp(
             home: FamilySharePage(
@@ -213,8 +224,11 @@ void main() {
       expect(find.text('Owner'), findsOneWidget);
       expect(find.text('Member'), findsOneWidget);
       expect(find.text('Invite Member'), findsOneWidget);
-      // Delete icon is visible for non-owner member Mint
+      // Delete icon is visible only for non-owner member Mint (not for owner Mimi)
       expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+      // Owner cannot leave fridge
+      expect(find.byIcon(Icons.exit_to_app_rounded), findsNothing);
+      expect(find.text('Leave Fridge'), findsNothing);
     });
 
     testWidgets('tapping delete icon shows RemoveMemberDialog and confirms removal', (tester) async {
@@ -241,6 +255,17 @@ void main() {
         ProviderScope(
           overrides: [
             familyRepositoryProvider.overrideWithValue(fakeRepo),
+            authProvider.overrideWith((ref) => FakeAuthNotifier(
+              AuthState(
+                isAuthenticated: true,
+                user: UserModel(
+                  id: 'm1',
+                  username: 'Mimi',
+                  email: 'mimi@example.com',
+                  updatedAt: DateTime.now(),
+                ),
+              ),
+            )),
           ],
           child: const MaterialApp(
             home: FamilySharePage(
@@ -322,6 +347,13 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+
+      // Non-owner member cannot delete anyone (no delete icons at all)
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
+      // Non-owner cannot see "Invite Member" button
+      expect(find.text('Invite Member'), findsNothing);
+      // Non-owner sees leave icon button on their own row and in bottom button
+      expect(find.byIcon(Icons.exit_to_app_rounded), findsNWidgets(2));
 
       // As non-owner, "Leave Fridge" button should be visible at bottom
       expect(find.text('Leave Fridge'), findsOneWidget);

@@ -29,7 +29,9 @@ class FridgeModel {
 
   bool isUserOwner([String? currentUserId]) {
     if (role.toLowerCase() == 'owner') return true;
-    if (currentUserId != null && currentUserId.isNotEmpty && ownerId == currentUserId) {
+    if (currentUserId != null &&
+        currentUserId.isNotEmpty &&
+        ownerId.toLowerCase() == currentUserId.toLowerCase()) {
       return true;
     }
     return false;

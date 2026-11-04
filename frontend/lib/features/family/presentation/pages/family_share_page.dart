@@ -29,6 +29,19 @@ class FamilySharePage extends ConsumerStatefulWidget {
 class _FamilySharePageState extends ConsumerState<FamilySharePage> {
   bool _isRemoving = false;
 
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() async {
+      if (ref.read(authProvider).user == null) {
+        await ref.read(authProvider.notifier).restoreSession();
+      }
+      ref
+          .read(familyMembersProvider(widget.fridgeId).notifier)
+          .loadMembers();
+    });
+  }
+
   void _showRemoveDialog(FamilyMemberItem member) {
     showDialog(
       context: context,
@@ -100,18 +113,39 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final familyState = ref.watch(familyMembersProvider(widget.fridgeId));
-    final currentUserId = ref.watch(authProvider).user?.id ?? '';
+    final currentUser = ref.watch(authProvider).user;
+    final currentUserId = currentUser?.id ?? '';
+    final currentUsername = currentUser?.username ?? '';
     final members = familyState.members;
 
-    // Check if current user is owner of the fridge
-    final isCurrentUserOwner = members.any((m) => m.id == currentUserId && m.isOwner) ||
-        (currentUserId.isEmpty && members.any((m) => m.isOwner));
+    final fridges = ref.watch(fridgesProvider);
+    final currentFridge = fridges.where((f) => f.id == widget.fridgeId).firstOrNull;
+
+    bool checkIsMe(FamilyMemberItem m) {
+      if (currentUserId.isNotEmpty && m.id.isNotEmpty && m.id.toLowerCase() == currentUserId.toLowerCase()) {
+        return true;
+      }
+      final cleanName = m.name.replaceAll(RegExp(r'\s*\(me\)$', caseSensitive: false), '').trim();
+      if (currentUsername.isNotEmpty && cleanName.isNotEmpty && cleanName.toLowerCase() == currentUsername.toLowerCase()) {
+        return true;
+      }
+      return false;
+    }
+
+
+    final bool isCurrentUserOwner;
+    if (currentFridge != null && currentFridge.role.toLowerCase() == 'member') {
+      isCurrentUserOwner = false;
+    } else if (currentFridge != null && currentUserId.isNotEmpty) {
+      isCurrentUserOwner = currentFridge.isUserOwner(currentUserId);
+    } else {
+      isCurrentUserOwner = members.any((m) => checkIsMe(m) && m.isOwner);
+    }
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -236,15 +270,15 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Column(
                       children: members.map((member) {
-                        final isMe = member.id == currentUserId;
+                        final isMe = checkIsMe(member);
                         final displayName = isMe && !member.name.contains('(ME)')
                             ? '${member.name} (ME)'
                             : member.name;
 
-                        // Delete button is shown if current user is owner and target is not owner
-                        final canDelete = isCurrentUserOwner && !member.isOwner;
-                        // Leave button is shown if member is viewing themselves and is not the owner
-                        final isMeAndCanLeave = isMe && !member.isOwner;
+                        // Only owner can delete other members (never themselves)
+                        final canDelete = isCurrentUserOwner && !member.isOwner && !isMe;
+                        // Non-owner member viewing themselves can leave
+                        final isMeAndCanLeave = isMe && !isCurrentUserOwner;
 
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -332,33 +366,35 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                 ),
                 const Spacer(),
 
-                // Invite Member Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E6A44),
-                      foregroundColor: Colors.white,
-                      shape: const StadiumBorder(),
-                      elevation: 0,
+                // Action Button at bottom
+                if (isCurrentUserOwner) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E6A44),
+                        foregroundColor: Colors.white,
+                        shape: const StadiumBorder(),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.person_add_alt, size: 20),
+                      label: const Text(
+                        'Invite Member',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: () {
+                        context.push('/fridges/${widget.fridgeId}/family/invite');
+                      },
                     ),
-                    icon: const Icon(Icons.person_add_alt, size: 20),
-                    label: const Text(
-                      'Invite Member',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    onPressed: () {
-                      context.push('/fridges/${widget.fridgeId}/family/invite');
-                    },
                   ),
-                ),
+                ],
                 if (!isCurrentUserOwner) ...[
-                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     height: 54,
                     child: OutlinedButton.icon(
+                      key: const Key('leave_fridge_bottom_button'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFBA1A1A),
                         side: const BorderSide(color: Color(0xFFBA1A1A), width: 1.5),

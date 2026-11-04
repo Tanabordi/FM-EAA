@@ -22,7 +22,10 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
+    Future.microtask(() async {
+      if (ref.read(authProvider).user == null) {
+        await ref.read(authProvider.notifier).restoreSession();
+      }
       ref.read(fridgesProvider.notifier).loadFridges();
     });
   }
