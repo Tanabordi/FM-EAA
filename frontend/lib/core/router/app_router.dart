@@ -177,6 +177,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(
+        path: '/fridge',
+        redirect: (context, state) => '/fridges',
+      ),
+      GoRoute(
+        path: '/fridge/:id',
+        redirect: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return id.isNotEmpty ? '/fridges/$id' : '/fridges';
+        },
+      ),
+      GoRoute(
         path: '/recipes',
         builder: (context, state) {
           final ingredient = state.uri.queryParameters['ingredient'] ?? 'Strawberries';

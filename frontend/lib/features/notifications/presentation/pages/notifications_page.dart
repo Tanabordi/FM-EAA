@@ -303,8 +303,16 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         if (!notif.isRead) {
           ref.read(notificationControllerProvider.notifier).markAsRead(notif.id);
         }
-        if (notif.fridgeId != null && notif.fridgeId!.isNotEmpty) {
-          context.push('/fridge/${notif.fridgeId}');
+        final fridgeId = notif.fridgeId;
+        final itemId = notif.itemId;
+        if (fridgeId != null && fridgeId.isNotEmpty) {
+          if (itemId != null && itemId.isNotEmpty) {
+            context.push('/fridges/$fridgeId/items/$itemId');
+          } else {
+            context.push('/fridges/$fridgeId');
+          }
+        } else {
+          context.push('/fridges');
         }
       },
       borderRadius: BorderRadius.circular(16),
