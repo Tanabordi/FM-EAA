@@ -49,7 +49,12 @@ class FridgeRepository {
     }
     try {
       final entries = await database.fridgeDao.getAllFridges();
-      return entries.map(FridgeModel.fromEntry).toList();
+      final list = <FridgeModel>[];
+      for (final e in entries) {
+        final count = await database.itemDao.getActiveItemCount(e.id);
+        list.add(FridgeModel.fromEntry(e, itemCount: count));
+      }
+      return list;
     } catch (_) {
       return [];
     }

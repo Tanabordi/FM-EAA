@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../data/repositories/ai_repository.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import 'add_item_page.dart';
 
@@ -324,15 +325,20 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
+      final lang = ref.read(localeProvider).languageCode;
       final AiScanResult result;
 
       if (_imageBytes != null) {
         result = await aiRepo.scanLabelBytes(
           _imageBytes!,
           filename: _pickedFileName ?? _imagePath?.split(Platform.pathSeparator).last ?? 'label.jpg',
+          language: lang,
         );
       } else {
-        result = await aiRepo.scanLabel(File(_imagePath!));
+        result = await aiRepo.scanLabel(
+          File(_imagePath!),
+          language: lang,
+        );
       }
 
       if (!mounted) return;

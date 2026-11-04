@@ -134,9 +134,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
                   final ingredient = state.uri.queryParameters['ingredient'] ?? 'Strawberries';
+                  final category = state.uri.queryParameters['category'];
                   return RecipeRecommendationPage(
                     fridgeId: id,
                     initialIngredient: ingredient,
+                    category: category,
                   );
                 },
               ),
@@ -181,9 +183,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final ingredient = state.uri.queryParameters['ingredient'] ?? 'Strawberries';
           final fridgeId = state.uri.queryParameters['fridgeId'] ?? 'default_fridge';
+          final category = state.uri.queryParameters['category'];
           return RecipeRecommendationPage(
             fridgeId: fridgeId,
             initialIngredient: ingredient,
+            category: category,
           );
         },
       ),
