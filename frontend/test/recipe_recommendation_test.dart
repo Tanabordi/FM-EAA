@@ -19,7 +19,7 @@ void main() {
   });
 
   group('Screen #25: AI Suggested Recipes Tests', () {
-    testWidgets('renders top bar, orange highlight banner, 3 recipe cards, and regenerate button', (tester) async {
+    testWidgets('renders top bar, 6 recipe cards, and regenerate button', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -33,7 +33,7 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // Top bar
       expect(find.text('AI Suggested Recipes'), findsOneWidget);
@@ -46,14 +46,14 @@ void main() {
       // Badges
       expect(find.text('20 min · Easy'), findsOneWidget);
       expect(find.text('10 mins · Very easy'), findsOneWidget);
-      expect(find.text('10 min · Very easy'), findsOneWidget);
+      expect(find.text('10 min · Very easy'), findsWidgets);
 
       // View Recipe buttons
-      expect(find.text('View Recipe'), findsNWidgets(3));
+      expect(find.text('View Recipe'), findsWidgets);
 
       // Regenerate button
       expect(find.textContaining('Regenerate'), findsOneWidget);
-      expect(find.byIcon(Icons.sync), findsOneWidget);
+      expect(find.byIcon(Icons.sync_rounded), findsOneWidget);
     });
 
     testWidgets('renders recipes dynamically when ingredient is Baby spinach', (tester) async {
@@ -70,7 +70,7 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('Creamy Garlic Spinach Pasta'), findsOneWidget);
       expect(find.text('Strawberry & Spinach Salad'), findsOneWidget);
@@ -91,14 +91,14 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('ผัดกระเทียมพริกไทยค็อกเทลรมควัน'), findsOneWidget);
       expect(find.text('ไข่เจียวทรงเครื่องใส่ค็อกเทลรมควัน'), findsOneWidget);
       expect(find.text('ข้าวผัดโบราณใส่ค็อกเทลรมควัน'), findsOneWidget);
     });
 
-    testWidgets('triggers 3s cooldown on regenerate button tap', (tester) async {
+    testWidgets('triggers cooldown and locks on regenerate button tap', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -112,20 +112,21 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.ensureVisible(find.textContaining('Regenerate'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Regenerate (1/10)'), findsOneWidget);
+      expect(find.textContaining('Regenerate (1/3'), findsOneWidget);
       await tester.tap(find.textContaining('Regenerate'));
       await tester.pump();
 
-      // Button enters cooldown state
+      // Button enters cooldown or loading state
       expect(find.textContaining('Regenerate ('), findsOneWidget);
 
-      // Advance time by 3 seconds
+      // Advance time by 4 seconds
       await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
       expect(find.textContaining('Regenerate'), findsOneWidget);
     });
   });

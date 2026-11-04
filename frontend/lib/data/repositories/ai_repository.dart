@@ -15,8 +15,8 @@ class RecipeSuggestionResult {
   const RecipeSuggestionResult({
     required this.recipes,
     this.usedDailyQuota = 1,
-    this.maxDailyQuota = 10,
-    this.remainingDailyQuota = 9,
+    this.maxDailyQuota = 3,
+    this.remainingDailyQuota = 2,
   });
 }
 
@@ -142,7 +142,7 @@ class AiRepository {
     return _smartFallback(imageFile.path);
   }
 
-  /// Fetches 3 AI suggested recipes for mainIngredient with daily quota tracking
+  /// Fetches 6 AI suggested recipes for mainIngredient with daily quota tracking (max 3/day)
   Future<RecipeSuggestionResult> getSuggestedRecipes(
     String mainIngredient, {
     String language = 'th',
@@ -151,10 +151,10 @@ class AiRepository {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
       final list = _generateSmartFallbackRecipes(mainIngredient, language: language, offset: offset);
       return RecipeSuggestionResult(
-        recipes: list.take(3).toList(),
-        usedDailyQuota: (offset + 1).clamp(1, 10),
-        maxDailyQuota: 10,
-        remainingDailyQuota: (9 - offset).clamp(0, 10),
+        recipes: list.take(6).toList(),
+        usedDailyQuota: (offset + 1).clamp(1, 3),
+        maxDailyQuota: 3,
+        remainingDailyQuota: (2 - offset).clamp(0, 3),
       );
     }
 
@@ -171,14 +171,14 @@ class AiRepository {
       if (response.statusCode == 200 && response.data is Map) {
         final data = response.data as Map<String, dynamic>;
         final list = data['recipes'] as List<dynamic>?;
-        final used = (data['usedDailyQuota'] as num?)?.toInt() ?? (offset + 1).clamp(1, 10);
-        final max = (data['maxDailyQuota'] as num?)?.toInt() ?? 10;
+        final used = (data['usedDailyQuota'] as num?)?.toInt() ?? (offset + 1).clamp(1, 3);
+        final max = (data['maxDailyQuota'] as num?)?.toInt() ?? 3;
         final remaining = (data['remainingDailyQuota'] as num?)?.toInt() ?? (max - used).clamp(0, max);
 
         if (list != null && list.isNotEmpty) {
           final recipes = list
               .map((item) => RecipeModel.fromJson(item as Map<String, dynamic>, defaultExpiring: mainIngredient))
-              .take(3)
+              .take(6)
               .toList();
           return RecipeSuggestionResult(
             recipes: recipes,
@@ -191,7 +191,7 @@ class AiRepository {
     } on DioException catch (e) {
       if (e.response?.statusCode == 429) {
         final msg = e.response?.data?['error']?.toString() ??
-            'วันนี้คุณใช้โควตาครบ 10 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨';
+            'วันนี้คุณใช้โควตาครบ 3 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨';
         throw Exception(msg);
       }
     } catch (e) {
@@ -200,10 +200,10 @@ class AiRepository {
 
     final fallback = _generateSmartFallbackRecipes(mainIngredient, language: language, offset: offset);
     return RecipeSuggestionResult(
-      recipes: fallback.take(3).toList(),
-      usedDailyQuota: (offset + 1).clamp(1, 10),
-      maxDailyQuota: 10,
-      remainingDailyQuota: (9 - offset).clamp(0, 10),
+      recipes: fallback.take(6).toList(),
+      usedDailyQuota: (offset + 1).clamp(1, 3),
+      maxDailyQuota: 3,
+      remainingDailyQuota: (2 - offset).clamp(0, 3),
     );
   }
 

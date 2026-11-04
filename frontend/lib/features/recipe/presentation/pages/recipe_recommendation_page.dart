@@ -30,11 +30,12 @@ class RecipeRecommendationPage extends ConsumerStatefulWidget {
 class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationPage> {
   late String _currentIngredient;
   List<RecipeModel> _recipes = [];
+  bool _isLoading = true;
   bool _isRegenerating = false;
 
-  // Daily Quota Tracking (Max: 10/day)
+  // Daily Quota Tracking (Max: 3/day)
   int _usedCount = 1;
-  static const int _maxDailyQuota = 10;
+  static const int _maxDailyQuota = 3;
 
   // Anti-Spam Cooldown (3 seconds)
   int _cooldownSeconds = 0;
@@ -44,11 +45,10 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   void initState() {
     super.initState();
     _currentIngredient = widget.initialIngredient.trim().isEmpty
-        ? 'Strawberries'
+        ? 'ค็อกเทลรมควัน'
         : widget.initialIngredient;
 
-    // Load initial recipes immediately from fallback
-    _loadInitialFallback();
+    _isLoading = true;
 
     // Load persisted quota and query fresh AI recipes
     _loadDailyQuota();
@@ -57,7 +57,8 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       try {
         final itemRepo = ref.read(itemRepositoryProvider);
         final expiringItems = await itemRepo.getExpiringSoonItems(widget.fridgeId);
-        if (expiringItems.isNotEmpty && widget.initialIngredient == 'Strawberries') {
+        if (expiringItems.isNotEmpty &&
+            (widget.initialIngredient == 'Strawberries' || widget.initialIngredient.isEmpty)) {
           if (mounted) {
             setState(() {
               _currentIngredient = expiringItems.first.name;
@@ -66,7 +67,16 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         }
 
         await _fetchRecipesFromAi();
-      } catch (_) {}
+      } catch (_) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            if (_recipes.isEmpty) {
+              _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
+            }
+          });
+        }
+      }
     });
   }
 
@@ -102,10 +112,6 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       await prefs.setString('gemini_recipe_date', today);
       await prefs.setInt('gemini_recipe_count', count);
     } catch (_) {}
-  }
-
-  void _loadInitialFallback() {
-    _recipes = _getQuickLocalRecipes(_currentIngredient).take(3).toList();
   }
 
   List<RecipeModel> _getQuickLocalRecipes(String ingredient) {
@@ -337,7 +343,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       ];
     }
 
-    // Default for any custom ingredient like "แครอท" or "ค็อกเทลรมควัน"
+    // Default 6 fallback recipes for custom ingredient like "ค็อกเทลรมควัน"
     return [
       RecipeModel(
         id: 'recipe_local_1',
@@ -375,10 +381,50 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         ingredients: [ingredient, 'ข้าวสวย 1 จาน', 'ไข่ไก่ 1 ฟอง', 'ซีอิ๊วขาว'],
         steps: ['ผัดไข่พอสุก', 'ใส่ข้าวสวยและ$ingredient ผัดไฟแรงจนหอม'],
       ),
+      RecipeModel(
+        id: 'recipe_local_4',
+        title: 'ต้มจืดซุปร้อนๆ ใส่$ingredient',
+        description: 'น้ำซุปใสกลมกล่อม ซดคล่องคอ สบายท้อง',
+        imageUrl: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_salmon.png',
+        cookingTime: '15 min',
+        difficulty: 'Easy',
+        expiringIngredient: ingredient,
+        ingredients: [ingredient, 'น้ำซุป 2 ถ้วย', 'ซีอิ๊วขาว', 'ต้นหอมผักชี'],
+        steps: ['ต้มน้ำซุปให้เดือด', 'ใส่$ingredient ต้มจนสุกหอม', 'ปรุงรสและโรยต้นหอมผักชี'],
+      ),
+      RecipeModel(
+        id: 'recipe_local_5',
+        title: 'ยำหรือสลัดคลีนๆ ใส่$ingredient',
+        description: 'รสชาติสดชื่น อิ่มเบาสบายท้อง ไม่เลี่ยน',
+        imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_spinach.png',
+        cookingTime: '8 min',
+        difficulty: 'Very easy',
+        expiringIngredient: ingredient,
+        ingredients: [ingredient, 'ผักสลัดหรือมะเขือเทศ', 'น้ำมะนาว', 'น้ำปลาหรือน้ำสลัด'],
+        steps: ['เตรียม$ingredient ให้พร้อม', 'คลุกเคล้ากับผักและน้ำยำเบาๆ พร้อมเสิร์ฟ'],
+      ),
+      RecipeModel(
+        id: 'recipe_local_6',
+        title: 'แซนด์วิชขนมปังปิ้งไส้$ingredient',
+        description: 'กรอบนอกนุ่มใน อร่อยอยู่ท้อง ทำเสร็จไวสุดๆ',
+        imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_lasagna.png',
+        cookingTime: '10 min',
+        difficulty: 'Very easy',
+        expiringIngredient: ingredient,
+        ingredients: [ingredient, 'ขนมปัง 2 แผ่น', 'มายองเนสหรือเนย', 'ผักสลัด'],
+        steps: ['ปิ้งขนมปังให้กรอบ', 'ทามายองเนส วาง$ingredient ประกบแล้วหั่นครึ่ง'],
+      ),
     ];
   }
 
   Future<void> _fetchRecipesFromAi() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
       final result = await aiRepo.getSuggestedRecipes(
@@ -390,16 +436,35 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         setState(() {
           _recipes = result.recipes;
           _usedCount = result.usedDailyQuota;
+          _isLoading = false;
         });
         _saveDailyQuota(_usedCount);
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+          if (_recipes.isEmpty) {
+            _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
+          }
+        });
       }
     } catch (e) {
-      if (mounted && e.toString().contains('วันนี้คุณ')) {
+      if (mounted) {
         setState(() {
-          _usedCount = _maxDailyQuota;
+          _isLoading = false;
         });
-        _saveDailyQuota(_maxDailyQuota);
-        _showDailyLimitAlert();
+        if (e.toString().contains('วันนี้คุณ')) {
+          setState(() {
+            _usedCount = _maxDailyQuota;
+          });
+          _saveDailyQuota(_maxDailyQuota);
+          _showDailyLimitAlert();
+        } else {
+          if (_recipes.isEmpty) {
+            setState(() {
+              _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
+            });
+          }
+        }
       }
     }
   }
@@ -430,7 +495,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   void _showDailyLimitAlert() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('วันนี้คุณใช้โควตาครบ 10 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨'),
+        content: Text('วันนี้คุณใช้โควตาครบ 3 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨'),
         backgroundColor: Color(0xFFFA8B28),
         duration: Duration(seconds: 4),
       ),
@@ -438,14 +503,14 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   }
 
   void _onRegenerate() async {
-    // Check if daily quota is reached (10/10)
+    // Check if daily quota is reached (3/3)
     if (_usedCount >= _maxDailyQuota) {
       _showDailyLimitAlert();
       return;
     }
 
-    // Prevent spam if cooling down or currently regenerating
-    if (_cooldownSeconds > 0 || _isRegenerating) return;
+    // Prevent spam if cooling down or currently regenerating or loading
+    if (_isLoading || _isRegenerating || _cooldownSeconds > 0) return;
 
     // Start 3-second button cooldown
     _startCooldown();
@@ -473,7 +538,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✨ Gemini AI สุ่ม 3 เมนูใหม่เรียบร้อย! (ใช้ไปแล้ว $_usedCount/$_maxDailyQuota ครั้ง)'),
+          content: Text('✨ Gemini AI สุ่ม 6 เมนูใหม่เรียบร้อย! (ใช้ไปแล้ว $_usedCount/$_maxDailyQuota ครั้ง)'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -493,7 +558,11 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         // Local fallback rotation
         setState(() {
           _usedCount = (_usedCount + 1).clamp(1, _maxDailyQuota);
-          _recipes = List.from(_recipes.reversed);
+          if (_recipes.isEmpty) {
+            _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
+          } else {
+            _recipes = List.from(_recipes.reversed);
+          }
         });
         _saveDailyQuota(_usedCount);
       }
@@ -544,21 +613,64 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                   children: [
                     const SizedBox(height: 8),
                     // Recipe Cards or Loading Shimmer
-                    if (_isRegenerating)
+                    if (_isLoading && _recipes.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2E6A44).withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: Color(0xFF2E6A44),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              const Text(
+                                '✨ Gemini AI กำลังคิด 6 เมนูสุดพิเศษ...',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E281E),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'กำลังสร้างสรรค์ไอเดียเมนูจาก "$_currentIngredient" ให้คุณ',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF555F55),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (_isRegenerating)
                       const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 40),
+                        padding: EdgeInsets.symmetric(vertical: 60, horizontal: 24),
                         child: Center(
                           child: Column(
                             children: [
                               CircularProgressIndicator(
+                                strokeWidth: 3,
                                 color: Color(0xFF2E6A44),
                               ),
-                              SizedBox(height: 12),
+                              SizedBox(height: 16),
                               Text(
-                                'Gemini AI is crafting 3 fresh recipes...',
+                                '✨ Gemini AI กำลังสุ่ม 6 เมนูใหม่...',
                                 style: TextStyle(
-                                  color: Color(0xFF414942),
-                                  fontSize: 13,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E281E),
                                 ),
                               ),
                             ],
@@ -568,26 +680,26 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                     else
                       ..._recipes.map((recipe) => _buildRecipeCard(recipe)),
                     const SizedBox(height: 16),
-                    // Regenerate Button with Usage Counter and Cooldown
+                    // Regenerate Button with Usage Counter, Lock state and Loading lock
                     Center(
                       child: isQuotaFull
                           ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE4E9E2),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(24),
                               ),
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.block,
+                                    Icons.lock_rounded,
                                     color: Color(0xFF8A938A),
-                                    size: 16,
+                                    size: 18,
                                   ),
-                                  SizedBox(width: 6),
+                                  SizedBox(width: 8),
                                   Text(
-                                    'Regenerate (10/10 - ครบโควตาวันนี้แล้ว)',
+                                    'Regenerate (3/3 - ครบโควตาวันนี้แล้ว 🔒)',
                                     style: TextStyle(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w600,
@@ -597,52 +709,89 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                 ],
                               ),
                             )
-                          : InkWell(
-                              borderRadius: BorderRadius.circular(20),
-                              onTap: (_cooldownSeconds > 0 || _isRegenerating) ? null : _onRegenerate,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (_cooldownSeconds > 0) ...[
-                                      const SizedBox(
+                          : (_isLoading || _isRegenerating)
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE4E9E2),
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
                                         width: 14,
                                         height: 14,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          color: Color(0xFF717971),
+                                          color: Color(0xFF8A938A),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
+                                      SizedBox(width: 8),
                                       Text(
-                                        'Regenerate (${_cooldownSeconds}s) · ($_usedCount/$_maxDailyQuota)',
-                                        style: const TextStyle(
-                                          fontSize: 14,
+                                        'กำลังโหลดเมนูใหม่...',
+                                        style: TextStyle(
+                                          fontSize: 13.5,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFF717971),
-                                        ),
-                                      ),
-                                    ] else ...[
-                                      const Icon(
-                                        Icons.sync,
-                                        color: Color(0xFF2E6A44),
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'Regenerate ($_usedCount/$_maxDailyQuota)',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF2E6A44),
+                                          color: Color(0xFF8A938A),
                                         ),
                                       ),
                                     ],
-                                  ],
+                                  ),
+                                )
+                              : InkWell(
+                                  borderRadius: BorderRadius.circular(24),
+                                  onTap: (_cooldownSeconds > 0) ? null : _onRegenerate,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE8F2EA),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                        color: const Color(0xFF2E6A44).withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (_cooldownSeconds > 0) ...[
+                                          const SizedBox(
+                                            width: 14,
+                                            height: 14,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Color(0xFF717971),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Regenerate (${_cooldownSeconds}s) · ($_usedCount/$_maxDailyQuota)',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF717971),
+                                            ),
+                                          ),
+                                        ] else ...[
+                                          const Icon(
+                                            Icons.sync_rounded,
+                                            color: Color(0xFF2E6A44),
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Regenerate ($_usedCount/$_maxDailyQuota ครั้ง)',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF2E6A44),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
                     ),
                     const SizedBox(height: 24),
                   ],
