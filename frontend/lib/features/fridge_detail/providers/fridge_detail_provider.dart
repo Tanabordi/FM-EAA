@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/freshness_colors.dart';
 import '../../../data/models/item_model.dart';
 import '../../../data/repositories/item_repository.dart';
+import '../../../shared/utils/environment.dart';
 import '../../fridges/providers/fridges_provider.dart';
 
 class FridgeFilterState {
@@ -54,6 +56,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
   final ItemRepository? _repository;
   final Ref? _ref;
   final Set<String> _consumedIds = {};
+  Timer? _pollingTimer;
 
   FridgeItemsNotifier(this.fridgeId, [this._repository, this._ref])
       : super(getInitialFridgeItems(fridgeId)) {
@@ -94,7 +97,21 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
           _syncFridgeItemCount();
         }, onError: (_) {});
       } catch (_) {}
+
+      // Periodic auto-refresh every 2 seconds while viewing fridge (skipped in flutter test)
+      if (!isTestEnvironment()) {
+        _pollingTimer?.cancel();
+        _pollingTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+          _loadItemsFromApi();
+        });
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadItemsFromApi() async {

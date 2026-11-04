@@ -90,9 +90,42 @@ class AuthRepository {
       final response = await apiClient.dio.get('/auth/me');
       final data = response.data as Map<String, dynamic>;
       final userJson = data['user'] as Map<String, dynamic>;
-      return UserModel.fromJson(userJson);
+      final user = UserModel.fromJson(userJson);
+
+      await apiClient.storage.write(key: 'user_id', value: user.id);
+      await apiClient.storage.write(key: 'user_username', value: user.username);
+      await apiClient.storage.write(key: 'user_email', value: user.email);
+
+      return user;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        await logout();
+        return null;
+      }
+      final userId = await apiClient.storage.read(key: 'user_id');
+      final username = await apiClient.storage.read(key: 'user_username');
+      final email = await apiClient.storage.read(key: 'user_email');
+      if (userId != null && username != null && email != null) {
+        return UserModel(
+          id: userId,
+          username: username,
+          email: email,
+          updatedAt: DateTime.now(),
+        );
+      }
+      return null;
     } catch (_) {
-      await logout();
+      final userId = await apiClient.storage.read(key: 'user_id');
+      final username = await apiClient.storage.read(key: 'user_username');
+      final email = await apiClient.storage.read(key: 'user_email');
+      if (userId != null && username != null && email != null) {
+        return UserModel(
+          id: userId,
+          username: username,
+          email: email,
+          updatedAt: DateTime.now(),
+        );
+      }
       return null;
     }
   }

@@ -765,9 +765,28 @@ class AppDatabase extends _$AppDatabase implements AppDatabaseSkeleton {
     return (delete(notifications)..where((t) => t.id.equals(id))).go();
   }
 
+  /// Mark all notifications as read for a user
+  Future<int> markAllNotificationsAsRead(String userId) {
+    return (update(notifications)..where((t) => t.userId.equals(userId))).write(
+      const NotificationsCompanion(isRead: Value(true)),
+    );
+  }
+
+  /// Watch unread notifications count for a user
+  Stream<int> watchUnreadNotificationCount(String userId) {
+    return watchNotifications(userId).map(
+      (list) => list.where((n) => !n.isRead).length,
+    );
+  }
+
   /// Clear all notifications for a user
   Future<int> clearNotifications(String userId) {
     return (delete(notifications)..where((t) => t.userId.equals(userId))).go();
+  }
+
+  /// Purge all legacy mock demo notifications
+  Future<int> purgeDemoNotifications() {
+    return (delete(notifications)..where((t) => t.id.like('notif_demo_%'))).go();
   }
 }
 
