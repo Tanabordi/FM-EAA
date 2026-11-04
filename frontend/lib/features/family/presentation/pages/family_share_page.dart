@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
+import '../../../../shared/widgets/user_avatar.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../domain/models/family_member.dart';
 
@@ -57,29 +58,6 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
     }
   }
 
-  Widget _buildAvatar(FamilyMemberItem member) {
-    final initials = member.name.isNotEmpty
-        ? member.name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase()
-        : '?';
-
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: const Color(0xFFD3DDD1),
-      backgroundImage: member.avatarUrl.isNotEmpty ? NetworkImage(member.avatarUrl) : null,
-      onBackgroundImageError: member.avatarUrl.isNotEmpty ? (_, __) {} : null,
-      child: member.avatarUrl.isEmpty
-
-          ? Text(
-              initials,
-              style: const TextStyle(
-                color: Color(0xFF181D18),
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            )
-          : null,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +207,11 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: Row(
                             children: [
-                              _buildAvatar(member),
+                              UserAvatar(
+                                name: member.name,
+                                avatarUrl: member.avatarUrl,
+                                radius: 24,
+                              ),
                               const SizedBox(width: 14),
                               Expanded(
                                 child: Text(

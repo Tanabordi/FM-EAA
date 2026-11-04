@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
+import '../../../../shared/widgets/user_avatar.dart';
 import '../../domain/models/family_member.dart';
 import '../../providers/family_provider.dart';
 
@@ -106,26 +107,6 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
     }
   }
 
-  Widget _buildAvatar(UserSearchResult user) {
-    final initials = user.username.isNotEmpty ? user.username[0].toUpperCase() : '?';
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: const Color(0xFFD3DDD1),
-      backgroundImage: user.avatarUrl.isNotEmpty ? NetworkImage(user.avatarUrl) : null,
-      onBackgroundImageError: user.avatarUrl.isNotEmpty ? (_, __) {} : null,
-      child: user.avatarUrl.isEmpty
-
-          ? Text(
-              initials,
-              style: const TextStyle(
-                color: Color(0xFF181D18),
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            )
-          : null,
-    );
-  }
 
   Widget _buildUserTile(UserSearchResult user) {
     final currentStatus = _userStatuses[user.username] ?? user.status;
@@ -133,7 +114,11 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          _buildAvatar(user),
+          UserAvatar(
+            name: user.username,
+            avatarUrl: user.avatarUrl,
+            radius: 24,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Text(
