@@ -18,7 +18,9 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repo;
 
-  AuthNotifier(this._repo) : super(const AuthState());
+  AuthNotifier(this._repo) : super(const AuthState()) {
+    restoreSession();
+  }
 
   Future<void> restoreSession() async {
     state = const AuthState(isLoading: true);

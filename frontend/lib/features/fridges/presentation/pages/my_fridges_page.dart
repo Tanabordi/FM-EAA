@@ -6,6 +6,7 @@ import '../widgets/cute_fridge_illustration.dart';
 import '../widgets/edit_fridge_sheet.dart';
 import '../widgets/delete_fridge_dialog.dart';
 import '../../providers/fridges_provider.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../../notifications/providers/notifications_provider.dart';
 
 /// Screen #5: My Fridges (Supports both Empty State [Image 1] and Populated State [Image 2 / 10])
@@ -27,6 +28,12 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.isAuthenticated && next.user != null) {
+        ref.read(fridgesProvider.notifier).loadFridges();
+      }
+    });
+
     final fridges = ref.watch(fridgesProvider);
     final unreadNotifs = ref.watch(unreadNotificationCountProvider).value ?? 0;
     final theme = Theme.of(context);
