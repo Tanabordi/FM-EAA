@@ -799,12 +799,14 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
       await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✨ Gemini AI generated 6 fresh recipes! (Used $_usedCount/$_maxDailyQuota times)'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✨ Gemini AI generated 6 fresh recipes! (Used $_usedCount/$_maxDailyQuota times)'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {

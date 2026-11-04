@@ -68,7 +68,7 @@ class HistoryRepository {
             );
           }
           await database.itemDao.autoRecordExpiredItems(fridgeId);
-          return getHistory(fridgeId, kind);
+          return await getHistory(fridgeId, kind);
         }
       }
     } catch (_) {

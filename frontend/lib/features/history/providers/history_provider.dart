@@ -40,11 +40,11 @@ class HistoryController extends StateNotifier<AsyncValue<void>> {
       if (fridgeId != null && _ref != null) {
         try {
           if (deletedItemId != null) {
-            _ref!.read(fridgeItemsProvider(fridgeId).notifier).deleteItem(deletedItemId);
+            _ref.read(fridgeItemsProvider(fridgeId).notifier).deleteItem(deletedItemId);
           } else {
-            _ref!.read(fridgeItemsProvider(fridgeId).notifier).loadItems();
+            _ref.read(fridgeItemsProvider(fridgeId).notifier).loadItems();
           }
-          _ref!.read(fridgesProvider.notifier).loadFridges();
+          _ref.read(fridgesProvider.notifier).loadFridges();
         } catch (_) {}
       }
     });
@@ -57,11 +57,11 @@ class HistoryController extends StateNotifier<AsyncValue<void>> {
       if (_ref != null) {
         try {
           if (kind == 'expired') {
-            _ref!.read(fridgeItemsProvider(fridgeId).notifier).removeExpiredItems();
+            _ref.read(fridgeItemsProvider(fridgeId).notifier).removeExpiredItems();
           } else {
-            _ref!.read(fridgeItemsProvider(fridgeId).notifier).loadItems();
+            _ref.read(fridgeItemsProvider(fridgeId).notifier).loadItems();
           }
-          _ref!.read(fridgesProvider.notifier).loadFridges();
+          _ref.read(fridgesProvider.notifier).loadFridges();
         } catch (_) {}
       }
     });

@@ -66,7 +66,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
           .where((it) => it.quantity > 0)
           .length;
       try {
-        _ref!.read(fridgesProvider.notifier).updateItemCount(fridgeId, totalCount);
+        _ref.read(fridgesProvider.notifier).updateItemCount(fridgeId, totalCount);
       } catch (_) {}
     }
   }

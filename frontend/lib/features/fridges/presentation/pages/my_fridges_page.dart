@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/freshness_colors.dart';
-import '../../../../data/models/item_model.dart';
 import '../../../../shared/widgets/fridge_card.dart';
 import '../widgets/cute_fridge_illustration.dart';
 import '../widgets/edit_fridge_sheet.dart';

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/freshness_colors.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/category_chips.dart';
