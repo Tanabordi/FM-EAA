@@ -127,6 +127,21 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
     }
   }
 
+  Future<void> leaveFridge(String id, String? userId) async {
+    final previousState = state;
+    state = state.where((f) => f.id != id).toList();
+    try {
+      if (userId != null && userId.isNotEmpty) {
+        await _repository?.leaveFridge(id, userId);
+      } else {
+        await _repository?.deleteFridge(id);
+      }
+    } catch (e) {
+      state = previousState;
+      rethrow;
+    }
+  }
+
   void clearAll() {
     state = [];
   }

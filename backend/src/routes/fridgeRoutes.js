@@ -76,6 +76,16 @@ router.delete('/:id/members/:userId', async (req, res, next) => {
   }
 });
 
+// POST /api/fridges/:id/leave - Member leaves fridge
+router.post('/:id/leave', async (req, res, next) => {
+  try {
+    const result = await fridgeService.removeMember(req.params.id, req.user.id, req.user.id);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/fridges/:id/search-users - Search users for inviting to fridge
 router.get('/:id/search-users', async (req, res, next) => {
   try {

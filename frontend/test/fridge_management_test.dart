@@ -2,12 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/data/models/fridge_model.dart';
+import 'package:fm_eaa/data/models/user_model.dart';
+import 'package:fm_eaa/features/auth/providers/auth_provider.dart';
 import 'package:fm_eaa/features/fridges/presentation/pages/add_fridge_page.dart';
 import 'package:fm_eaa/features/fridges/presentation/pages/my_fridges_page.dart';
 import 'package:fm_eaa/features/fridges/presentation/widgets/cute_fridge_illustration.dart';
 import 'package:fm_eaa/features/fridges/presentation/widgets/delete_fridge_dialog.dart';
 import 'package:fm_eaa/features/fridges/presentation/widgets/edit_fridge_sheet.dart';
+import 'package:fm_eaa/features/fridges/presentation/widgets/leave_fridge_dialog.dart';
 import 'package:fm_eaa/features/fridges/providers/fridges_provider.dart';
+import 'package:fm_eaa/data/remote/api_client.dart';
+import 'package:fm_eaa/data/repositories/auth_repository.dart';
+import 'package:fm_eaa/shared/widgets/fridge_card.dart';
+
+class FakeAuthNotifier extends AuthNotifier {
+  FakeAuthNotifier(AuthState initialState)
+      : super(AuthRepository(apiClient: ApiClient())) {
+    state = initialState;
+  }
+}
 
 void main() {
   group('FridgeModel Unit Tests', () {
@@ -72,6 +85,30 @@ void main() {
       expect(updated.description, 'New Desc');
       expect(updated.memberCount, 2);
       expect(updated.itemCount, 5);
+    });
+
+    test('Calculates isUserOwner and isOwner correctly', () {
+      final ownerFridge = FridgeModel(
+        id: '1',
+        name: 'My Fridge',
+        ownerId: 'u1',
+        role: 'owner',
+        updatedAt: DateTime.now(),
+      );
+      expect(ownerFridge.isOwner, isTrue);
+      expect(ownerFridge.isUserOwner('u1'), isTrue);
+      expect(ownerFridge.isUserOwner('u2'), isTrue);
+
+      final memberFridge = FridgeModel(
+        id: '2',
+        name: 'Shared Fridge',
+        ownerId: 'u1',
+        role: 'member',
+        updatedAt: DateTime.now(),
+      );
+      expect(memberFridge.isOwner, isFalse);
+      expect(memberFridge.isUserOwner('u1'), isTrue);
+      expect(memberFridge.isUserOwner('u2'), isFalse);
     });
   });
 
@@ -435,5 +472,109 @@ void main() {
       // Verify fridge removed from state
       expect(container.read(fridgesProvider).any((f) => f.id == targetFridge.id), isFalse);
     });
+
+    testWidgets('FridgeCard: hides 3-dots more options when onMoreOptions is null', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: FridgeCard(
+              name: 'Member Fridge',
+              description: 'Shared with me',
+              itemsCountText: '5 Items',
+              memberCount: 3,
+              isPersonal: false,
+              onMoreOptions: null,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Member Fridge'), findsOneWidget);
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+    });
+
+    testWidgets('FridgeCard: shows 3-dots more options when onMoreOptions is provided', (tester) async {
+      bool moreTapped = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: FridgeCard(
+              name: 'Owner Fridge',
+              description: 'My fridge',
+              itemsCountText: '2 Items',
+              memberCount: 1,
+              onMoreOptions: () => moreTapped = true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.more_vert));
+      expect(moreTapped, isTrue);
+    });
+
+    testWidgets('MyFridgesPage: non-owner fridge hides 3-dots button and long-press opens LeaveFridgeDialog', (tester) async {
+      final memberFridge = FridgeModel(
+        id: 'shared_1',
+        name: 'Roommate Fridge',
+        description: 'Living room',
+        ownerId: 'owner_user_id',
+        role: 'member',
+        memberCount: 2,
+        itemCount: 4,
+        updatedAt: DateTime.now(),
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          fridgesProvider.overrideWith((ref) {
+            final notifier = FridgesNotifier(null, false);
+            notifier.state = [memberFridge];
+            return notifier;
+          }),
+          authProvider.overrideWith((ref) => FakeAuthNotifier(
+            AuthState(
+              isAuthenticated: true,
+              user: UserModel(
+                id: 'current_user_id',
+                username: 'MemberUser',
+                email: 'mem@test.com',
+                updatedAt: DateTime.now(),
+              ),
+            ),
+          )),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: MyFridgesPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify fridge is displayed
+      expect(find.text('Roommate Fridge'), findsOneWidget);
+
+      // Verify NO 3-dots more_vert icon is rendered for non-owner
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+
+      // Long press on fridge card
+      await tester.longPress(find.text('Roommate Fridge'));
+      await tester.pumpAndSettle();
+
+      // Verify LeaveFridgeDialog is shown (not DeleteFridgeDialog)
+      expect(find.byType(LeaveFridgeDialog), findsOneWidget);
+      expect(find.text('Leave Fridge?'), findsOneWidget);
+      expect(find.textContaining('You will lose access to its items'), findsOneWidget);
+      expect(find.text('Leave'), findsOneWidget);
+      expect(find.text('Delete Fridge?'), findsNothing);
+    });
   });
 }
+

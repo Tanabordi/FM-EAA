@@ -131,28 +131,29 @@ class FridgeCard extends StatelessWidget {
           ),
         ),
       ),
-      Positioned(
-        top: 6,
-        right: 6,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: onMoreOptions,
-            child: const SizedBox(
-              width: 44,
-              height: 44,
-              child: Center(
-                child: Icon(
-                  Icons.more_vert,
-                  size: 20,
-                  color: Color(0xFF2E6A44),
+      if (onMoreOptions != null)
+        Positioned(
+          top: 6,
+          right: 6,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: onMoreOptions,
+              child: const SizedBox(
+                width: 44,
+                height: 44,
+                child: Center(
+                  child: Icon(
+                    Icons.more_vert,
+                    size: 20,
+                    color: Color(0xFF2E6A44),
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
     ],
   ),
 );
