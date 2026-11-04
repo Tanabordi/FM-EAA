@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../local/app_database.dart';
 import '../models/notification_model.dart';
@@ -8,6 +9,7 @@ import '../../shared/utils/environment.dart';
 class NotificationRepository {
   final ApiClient apiClient;
   final AppDatabase database;
+  bool _isSyncing = false;
 
   NotificationRepository({
     required this.apiClient,
@@ -40,12 +42,27 @@ class NotificationRepository {
 
   /// Fetch notifications from Backend API and sync into local Drift SQLite database
   Future<List<NotificationModel>> syncNotifications(String userId) async {
-    // Purge any legacy demo notifications
-    try {
-      await database.purgeDemoNotifications();
-    } catch (_) {}
+    if (_isSyncing) {
+      return getNotifications(userId);
+    }
 
+    // Skip remote API if user has no valid token
     try {
+      final token = await apiClient.storage.read(key: 'jwt_token');
+      if (token == null || token.isEmpty) {
+        return await getNotifications(userId);
+      }
+    } catch (_) {
+      return await getNotifications(userId);
+    }
+
+    _isSyncing = true;
+    try {
+      // Purge any legacy demo notifications
+      try {
+        await database.purgeDemoNotifications();
+      } catch (_) {}
+
       final response = await apiClient.dio.get('/notifications');
       if (response.statusCode == 200 && response.data != null) {
         final rawList = response.data['notifications'];
@@ -75,7 +92,12 @@ class NotificationRepository {
         }
       }
     } catch (e) {
-      debugPrint('[NotificationRepository] Sync error (offline fallback): $e');
+      if (e is! DioException ||
+          (e.type != DioExceptionType.connectionTimeout && e.response?.statusCode != 401)) {
+        debugPrint('[NotificationRepository] Sync error (offline fallback): $e');
+      }
+    } finally {
+      _isSyncing = false;
     }
 
     return getNotifications(userId);

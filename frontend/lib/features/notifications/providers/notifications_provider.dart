@@ -23,14 +23,18 @@ final currentNotificationUserIdProvider = Provider<String>((ref) {
 /// Reactive stream of notifications for a user with auto-sync polling
 final notificationsStreamProvider = StreamProvider.family<List<NotificationModel>, String>((ref, userId) {
   final repo = ref.watch(notificationRepositoryProvider);
-  unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+  final authState = ref.watch(authProvider);
 
-  // Periodic polling every 2 seconds for real-time notification delivery (skipped during flutter test)
-  if (!isTestEnvironment()) {
-    final timer = Timer.periodic(const Duration(seconds: 2), (_) {
-      unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
-    });
-    ref.onDispose(() => timer.cancel());
+  if (authState.user != null) {
+    unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+
+    // Periodic polling every 10 seconds for real-time notification delivery (skipped during flutter test)
+    if (!isTestEnvironment()) {
+      final timer = Timer.periodic(const Duration(seconds: 10), (_) {
+        unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+      });
+      ref.onDispose(() => timer.cancel());
+    }
   }
 
   return repo.watchNotifications(userId);
@@ -40,16 +44,19 @@ final notificationsStreamProvider = StreamProvider.family<List<NotificationModel
 final defaultNotificationsStreamProvider = StreamProvider<List<NotificationModel>>((ref) {
   final userId = ref.watch(currentNotificationUserIdProvider);
   final repo = ref.watch(notificationRepositoryProvider);
+  final authState = ref.watch(authProvider);
 
-  // Sync with remote backend API in the background immediately
-  unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+  if (authState.user != null) {
+    // Sync with remote backend API in the background immediately
+    unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
 
-  // Periodic polling every 2 seconds while on the notifications screen (skipped during flutter test)
-  if (!isTestEnvironment()) {
-    final timer = Timer.periodic(const Duration(seconds: 2), (_) {
-      unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
-    });
-    ref.onDispose(() => timer.cancel());
+    // Periodic polling every 10 seconds while on the notifications screen (skipped during flutter test)
+    if (!isTestEnvironment()) {
+      final timer = Timer.periodic(const Duration(seconds: 10), (_) {
+        unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+      });
+      ref.onDispose(() => timer.cancel());
+    }
   }
 
   return repo.watchNotifications(userId);
@@ -59,16 +66,19 @@ final defaultNotificationsStreamProvider = StreamProvider<List<NotificationModel
 final unreadNotificationCountProvider = StreamProvider<int>((ref) {
   final userId = ref.watch(currentNotificationUserIdProvider);
   final repo = ref.watch(notificationRepositoryProvider);
+  final authState = ref.watch(authProvider);
 
-  // Sync initially in the background
-  unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+  if (authState.user != null) {
+    // Sync initially in the background
+    unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
 
-  // Periodic polling every 2 seconds to update badge without page refresh (skipped during flutter test)
-  if (!isTestEnvironment()) {
-    final timer = Timer.periodic(const Duration(seconds: 2), (_) {
-      unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
-    });
-    ref.onDispose(() => timer.cancel());
+    // Periodic polling every 10 seconds to update badge without page refresh (skipped during flutter test)
+    if (!isTestEnvironment()) {
+      final timer = Timer.periodic(const Duration(seconds: 10), (_) {
+        unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+      });
+      ref.onDispose(() => timer.cancel());
+    }
   }
 
   return repo.watchUnreadCount(userId);
