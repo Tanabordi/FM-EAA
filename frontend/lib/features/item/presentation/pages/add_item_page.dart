@@ -249,7 +249,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     _selectedCategory = _normalizeCategory(result.category);
     _categoryError = null;
     if (_quantityController.text.trim().isEmpty) {
-      _quantityController.text = '2';
+      _quantityController.text = '1';
       _quantityError = null;
     }
     _selectedUnit = _normalizeUnit(result.unit);
