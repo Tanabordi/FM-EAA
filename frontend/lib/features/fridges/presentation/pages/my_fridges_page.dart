@@ -266,7 +266,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
-                    backgroundColor: const Color(0xFFEAEFE8),
+                    backgroundColor: const Color(0xFFF6FBF3),
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                     ),

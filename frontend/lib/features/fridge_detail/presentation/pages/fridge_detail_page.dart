@@ -66,13 +66,9 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
         onConsumed: (amount, finishedAll) {
           Navigator.pop(sheetContext);
           ref.read(fridgeItemsProvider(widget.fridgeId).notifier).consumeItem(item.id, amount, finishedAll);
-          FinishAllSnackbar.show(
-            context,
-            itemName: item.name,
-            onUndo: () {
-              ref.read(fridgeItemsProvider(widget.fridgeId).notifier).undoConsume();
-            },
-          );
+          if (context.mounted) {
+            FinishAllSnackbar.show(context, itemName: item.name);
+          }
         },
       ),
     );
@@ -161,13 +157,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                               '/fridges/${widget.fridgeId}/items/${item.id}',
                             );
                             if (result != null && context.mounted) {
-                              FinishAllSnackbar.show(
-                                context,
-                                itemName: result.name,
-                                onUndo: () {
-                                  ref.read(fridgeItemsProvider(widget.fridgeId).notifier).undoConsume();
-                                },
-                              );
+                              FinishAllSnackbar.show(context, itemName: result.name);
                             }
                           },
                           onLongPress: () => _showMarkConsumedSheet(context, item),

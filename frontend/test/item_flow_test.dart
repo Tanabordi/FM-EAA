@@ -310,7 +310,7 @@ void main() {
       expect(deleteConfirmed, true);
     });
 
-    testWidgets('Screen #16: FinishAllSnackbar displays consumed confirmation and Undo restores item', (tester) async {
+    testWidgets('Screen #16: FinishAllSnackbar displays consumed confirmation', (tester) async {
       final container = ProviderContainer();
       final notifier = container.read(fridgeItemsProvider('fridge_kitchen').notifier);
 
@@ -323,8 +323,7 @@ void main() {
       expect(countAfterConsume, initialCount - 1);
       expect(container.read(fridgeItemsProvider('fridge_kitchen')).any((it) => it.id == 'item_milk'), false);
 
-      // Render SnackBar with Undo
-      bool undoClicked = false;
+      // Render SnackBar
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -334,10 +333,6 @@ void main() {
                   FinishAllSnackbar.show(
                     context,
                     itemName: 'Whole milk',
-                    onUndo: () {
-                      undoClicked = true;
-                      notifier.undoConsume();
-                    },
                   );
                 },
                 child: const Text('Show SnackBar'),
@@ -351,18 +346,56 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify SnackBar content
-      expect(find.text('Whole milk marked as consumed'), findsOneWidget);
-      expect(find.text('Undo'), findsOneWidget);
+      expect(find.text('Consumed "Whole milk" successfully'), findsOneWidget);
+    });
 
-      // Tap Undo
-      await tester.tap(find.text('Undo'));
+    testWidgets('Screen #13: EditItemPage shows inline validation error on Save with empty name and discard dialog on back with unsaved edits', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: EditItemPage(fridgeId: 'fridge_kitchen', itemId: 'item_strawberries'),
+          ),
+        ),
+      );
+
+      expect(find.text('Edit Item details'), findsOneWidget);
+
+      // Clear food name and tap Save
+      await tester.enterText(find.byType(TextField).first, '');
       await tester.pumpAndSettle();
 
-      expect(undoClicked, true);
-      // Item restored!
-      final countAfterUndo = container.read(fridgeItemsProvider('fridge_kitchen')).length;
-      expect(countAfterUndo, initialCount);
-      expect(container.read(fridgeItemsProvider('fridge_kitchen')).any((it) => it.id == 'item_milk'), true);
+      await tester.ensureVisible(find.text('Save'));
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      // Verify validation error
+      expect(find.text('Food name is required'), findsOneWidget);
+
+      // Modify food name and tap back
+      await tester.enterText(find.byType(TextField).first, 'Fresh Strawberries');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+
+      // Verify Discard changes dialog matching Image 1
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.text('You have unsaved changes. Are you sure you want to discard them?'), findsOneWidget);
+      expect(find.text('Keep editing'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+
+      // Tap Keep editing
+      await tester.tap(find.text('Keep editing'));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.text('Edit Item details'), findsOneWidget);
+
+      // Tap back and Discard
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Screen #11: AddItemPage allows typing expiration date manually with keyboard and auto-inserts slashes', (tester) async {
