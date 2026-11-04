@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/freshness_colors.dart';
 import 'status_badge.dart';
@@ -137,12 +138,17 @@ class ItemCard extends StatelessWidget {
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
         );
-      } else {
-        return Image.file(
-          File(imagePath!),
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-        );
+      } else if (!kIsWeb) {
+        try {
+          final file = File(imagePath!);
+          if (file.existsSync()) {
+            return Image.file(
+              file,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+            );
+          }
+        } catch (_) {}
       }
     }
     return _buildPlaceholder();

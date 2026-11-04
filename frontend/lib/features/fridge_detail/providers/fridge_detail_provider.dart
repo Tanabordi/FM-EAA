@@ -85,8 +85,12 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
               fridgeId == 'fridge_main' ||
               fridgeId == 'fridge_1' ||
               fridgeId == 'fridge_2';
-          if (sqliteItems.isNotEmpty || !isMock) {
+          if (sqliteItems.isNotEmpty) {
             state = sqliteItems;
+          } else if (!isMock) {
+            if (state.isEmpty) {
+              state = sqliteItems;
+            }
           } else {
             final initial = getInitialFridgeItems(fridgeId);
             final remainingInitial = initial.where(

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -811,13 +812,17 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                                       child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
                                     ),
                                   )
-                                : Image.file(
-                                    File(_imagePath!),
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Center(
-                                      child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
-                                    ),
-                                  ))),
+                                : (!kIsWeb
+                                    ? Image.file(
+                                        File(_imagePath!),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Center(
+                                          child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                                        ),
+                                      )
+                                    : const Center(
+                                        child: Icon(Icons.fastfood, size: 48, color: Colors.grey),
+                                      )))),
                   ),
                 ),
                 Positioned(

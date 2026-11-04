@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -100,39 +101,7 @@ class ItemDetailsPage extends ConsumerWidget {
                       child: Container(
                         height: 240,
                         color: const Color(0xFFEAEFE8),
-                        child: item.imagePath != null && item.imagePath!.isNotEmpty
-                            ? (item.imagePath!.startsWith('http://') || item.imagePath!.startsWith('https://')
-                                ? Image.network(
-                                    item.imagePath!,
-                                    width: double.infinity,
-                                    height: 240,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Center(
-                                      child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
-                                    ),
-                                  )
-                                : (item.imagePath!.startsWith('assets/')
-                                    ? Image.asset(
-                                        item.imagePath!,
-                                        width: double.infinity,
-                                        height: 240,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => const Center(
-                                          child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
-                                        ),
-                                      )
-                                    : Image.file(
-                                        File(item.imagePath!),
-                                        width: double.infinity,
-                                        height: 240,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => const Center(
-                                          child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
-                                        ),
-                                      )))
-                            : const Center(
-                                child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
-                              ),
+                        child: _buildDetailImage(item),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -308,6 +277,51 @@ class ItemDetailsPage extends ConsumerWidget {
           }
         },
       ),
+    );
+  }
+
+  Widget _buildDetailImage(ItemModel item) {
+    final imagePath = item.imagePath;
+    if (imagePath != null && imagePath.isNotEmpty) {
+      if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        return Image.network(
+          imagePath,
+          width: double.infinity,
+          height: 240,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Center(
+            child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
+          ),
+        );
+      } else if (imagePath.startsWith('assets/')) {
+        return Image.asset(
+          imagePath,
+          width: double.infinity,
+          height: 240,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Center(
+            child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
+          ),
+        );
+      } else if (!kIsWeb) {
+        try {
+          final file = File(imagePath);
+          if (file.existsSync()) {
+            return Image.file(
+              file,
+              width: double.infinity,
+              height: 240,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Center(
+                child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
+              ),
+            );
+          }
+        } catch (_) {}
+      }
+    }
+    return const Center(
+      child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
     );
   }
 }

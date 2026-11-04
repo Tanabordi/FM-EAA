@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared/utils/environment.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
@@ -159,7 +159,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       }
     }
 
-    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    if (isTestEnvironment()) {
       return false;
     }
 
@@ -199,7 +199,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     _inMemoryRecipeCache[recipeKey] = encoded;
     _inMemoryQuotaCache[quotaKey] = count;
 
-    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    if (isTestEnvironment()) {
       return;
     }
 

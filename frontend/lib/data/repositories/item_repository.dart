@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../shared/utils/environment.dart';
 import '../local/app_database.dart';
 import '../models/item_model.dart';
 import '../remote/api_client.dart';
@@ -37,7 +38,7 @@ class ItemRepository {
     String? category,
     String? zone,
   }) async {
-    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    if (isTestEnvironment()) {
       final entries = await database.itemDao.getItemsByFridge(
         fridgeId,
         category: category,
@@ -46,19 +47,18 @@ class ItemRepository {
       return entries.map(ItemModel.fromEntry).toList();
     }
     try {
-      final token = await apiClient.storage.read(key: 'jwt_token');
-      if (token != null && token.isNotEmpty) {
-        final res = await apiClient.dio.get(
-          '/fridges/$fridgeId/items',
-          queryParameters: {
-            if (category != null && category.isNotEmpty && category.toLowerCase() != 'all')
-              'category': category,
-            if (zone != null && zone.isNotEmpty) 'zone': zone,
-          },
-        );
-        final list = (res.data['items'] as List?)
-            ?.map((e) => ItemModel.fromJson(e as Map<String, dynamic>))
-            .toList();
+      final res = await apiClient.dio.get(
+        '/fridges/$fridgeId/items',
+        queryParameters: {
+          if (category != null && category.isNotEmpty && category.toLowerCase() != 'all')
+            'category': category,
+          if (zone != null && zone.isNotEmpty) 'zone': zone,
+        },
+      );
+      final rawItems = res.data is Map ? (res.data['items'] as List?) : (res.data is List ? res.data as List : null);
+      final list = rawItems
+          ?.map((e) => ItemModel.fromJson(e as Map<String, dynamic>))
+          .toList();
         if (list != null) {
           try {
             // Reconcile: If this is an unfiltered fetch of the fridge, remove items deleted on the remote server
@@ -89,7 +89,6 @@ class ItemRepository {
           } catch (_) {}
           return list;
         }
-      }
     } catch (_) {
       // Fallback to local SQLite if network is offline or unauthenticated
     }
