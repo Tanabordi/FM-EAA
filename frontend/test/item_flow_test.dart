@@ -346,7 +346,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify SnackBar content
-      expect(find.text('Whole milk marked as consumed'), findsOneWidget);
+      expect(find.text('Consumed "Whole milk" successfully'), findsOneWidget);
     });
 
     testWidgets('Screen #13: EditItemPage shows inline validation error on Save with empty name and discard dialog on back with unsaved edits', (tester) async {

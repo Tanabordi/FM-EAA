@@ -8,6 +8,7 @@ import '../../../../shared/widgets/category_chips.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 import '../widgets/delete_item_dialog.dart';
+import '../widgets/finish_all_snackbar.dart';
 import '../widgets/mark_consumed_sheet.dart';
 
 /// Screen #12 Item details:
@@ -271,8 +272,15 @@ class ItemDetailsPage extends ConsumerWidget {
         onConsumed: (amount, finishedAll) {
           Navigator.pop(sheetContext); // Close sheet
           ref.read(fridgeItemsProvider(fridgeId).notifier).consumeItem(item.id, amount, finishedAll);
-          if (context.canPop()) {
-            context.pop(item); // Return to fridge detail page
+          final isCompletelyFinished = finishedAll || amount >= item.quantity;
+          if (isCompletelyFinished) {
+            if (context.canPop()) {
+              context.pop(item); // Return to fridge detail page with the consumed item
+            } else {
+              FinishAllSnackbar.show(context, itemName: item.name);
+            }
+          } else {
+            FinishAllSnackbar.show(context, itemName: item.name);
           }
         },
       ),
