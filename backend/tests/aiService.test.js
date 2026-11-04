@@ -23,6 +23,23 @@ describe('AI Service Quota & Recipe Logic', () => {
     expect(exceeded.remaining).toBe(0);
   });
 
+  it('should track quota independently per ingredient so different items do not block each other', () => {
+    const userId = 'user_multi_items';
+    // Use up all 3 quotas for Item A
+    for (let i = 1; i <= 3; i++) {
+      const quotaA = checkAndIncrementRecipeQuota(userId, 'Sausage');
+      expect(quotaA.allowed).toBe(true);
+      expect(quotaA.used).toBe(i);
+    }
+    expect(checkAndIncrementRecipeQuota(userId, 'Sausage').allowed).toBe(false);
+
+    // Item B should still have full 3 quotas available
+    const quotaB = checkAndIncrementRecipeQuota(userId, 'Strawberries');
+    expect(quotaB.allowed).toBe(true);
+    expect(quotaB.used).toBe(1);
+    expect(quotaB.remaining).toBe(2);
+  });
+
   it('should generate 6 fallback recipes with mainIngredient when offline or API unavailable', () => {
     const recipes = generateFallbackRecipes('ค็อกเทลรมควัน', 'th');
     expect(recipes).toHaveLength(6);

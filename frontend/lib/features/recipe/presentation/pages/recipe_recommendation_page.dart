@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,9 +13,9 @@ import '../../../../core/l10n/locale_provider.dart';
 import 'recipe_detail_page.dart';
 
 /// Screen #25: AI Suggested Recipes Page
-/// Generates 3 recipes per request focused on selected ingredient,
-/// with 10 requests/day limit, usage counter in button (e.g. Regenerate (1/10)),
-/// and 3-second button cooldown.
+/// Generates recipes per request focused on selected ingredient,
+/// with 3 requests limit per ingredient, usage counter in button (e.g. Regenerate (1/3)),
+/// caching previous recommendations per item, and 3-second button cooldown.
 class RecipeRecommendationPage extends ConsumerStatefulWidget {
   final String fridgeId;
   final String initialIngredient;
@@ -21,7 +23,7 @@ class RecipeRecommendationPage extends ConsumerStatefulWidget {
   const RecipeRecommendationPage({
     super.key,
     required this.fridgeId,
-    this.initialIngredient = 'Strawberries',
+    this.initialIngredient = '',
   });
 
   @override
@@ -34,7 +36,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   bool _isLoading = true;
   bool _isRegenerating = false;
 
-  // Daily Quota Tracking (Max: 3/day)
+  // Daily Quota Tracking (Max: 3/day per item)
   int _usedCount = 1;
   static const int _maxDailyQuota = 3;
 
@@ -47,26 +49,30 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     super.initState();
     _currentIngredient = widget.initialIngredient.trim().isEmpty
         ? 'Strawberries'
-        : widget.initialIngredient;
+        : widget.initialIngredient.trim();
 
     _isLoading = true;
 
-    // Load persisted quota and query fresh AI recipes
-    _loadDailyQuota();
-
     Future.microtask(() async {
       try {
-        final itemRepo = ref.read(itemRepositoryProvider);
-        final expiringItems = await itemRepo.getExpiringSoonItems(widget.fridgeId);
-        if (expiringItems.isNotEmpty &&
-            (widget.initialIngredient == 'Strawberries' || widget.initialIngredient.isEmpty)) {
-          if (mounted) {
+        if (widget.initialIngredient.trim().isEmpty) {
+          final itemRepo = ref.read(itemRepositoryProvider);
+          final expiringItems = await itemRepo.getExpiringSoonItems(widget.fridgeId);
+          if (expiringItems.isNotEmpty && mounted) {
             setState(() {
               _currentIngredient = expiringItems.first.name;
             });
           }
         }
 
+        // 1. Check if we already have saved recipes for this specific ingredient
+        final hasCached = await _loadCachedRecipesForIngredient(_currentIngredient);
+        if (hasCached) {
+          // Found cached recommendations! Do NOT call AI, do not increment quota!
+          return;
+        }
+
+        // 2. No cached recipes yet -> fetch initial recommendations
         await _fetchRecipesFromAi();
       } catch (_) {
         if (mounted) {
@@ -74,11 +80,28 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
             _isLoading = false;
             if (_recipes.isEmpty) {
               _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
+              _usedCount = 1;
             }
           });
+          _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
         }
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant RecipeRecommendationPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIngredient != widget.initialIngredient && widget.initialIngredient.isNotEmpty) {
+      _currentIngredient = widget.initialIngredient.trim();
+      _isLoading = true;
+      _recipes = [];
+      _loadCachedRecipesForIngredient(_currentIngredient).then((hasCached) {
+        if (!hasCached) {
+          _fetchRecipesFromAi();
+        }
+      });
+    }
   }
 
   @override
@@ -87,31 +110,95 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     super.dispose();
   }
 
-  Future<void> _loadDailyQuota() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final today = DateTime.now().toIso8601String().split('T')[0];
-      final savedDate = prefs.getString('gemini_recipe_date');
-      if (savedDate == today) {
-        final savedCount = prefs.getInt('gemini_recipe_count') ?? 1;
-        if (mounted) {
-          setState(() {
-            _usedCount = savedCount;
-          });
-        }
-      } else {
-        await prefs.setString('gemini_recipe_date', today);
-        await prefs.setInt('gemini_recipe_count', 1);
-      }
-    } catch (_) {}
+  static final Map<String, String> _inMemoryRecipeCache = {};
+  static final Map<String, int> _inMemoryQuotaCache = {};
+
+  String _getIngredientCacheKey(String ingredient) {
+    final clean = ingredient.trim().toLowerCase();
+    return 'gemini_recipes_${widget.fridgeId}_$clean';
   }
 
-  Future<void> _saveDailyQuota(int count) async {
+  String _getQuotaCacheKey(String ingredient) {
+    final clean = ingredient.trim().toLowerCase();
+    return 'gemini_quota_${widget.fridgeId}_$clean';
+  }
+
+  Future<bool> _loadCachedRecipesForIngredient(String ingredient) async {
+    final recipeKey = _getIngredientCacheKey(ingredient);
+    final quotaKey = _getQuotaCacheKey(ingredient);
+
+    // 1. Check in-memory cache first (instant!)
+    if (_inMemoryRecipeCache.containsKey(recipeKey)) {
+      final cachedJson = _inMemoryRecipeCache[recipeKey];
+      if (cachedJson != null && cachedJson.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(cachedJson) as List<dynamic>;
+          if (decoded.isNotEmpty) {
+            final loaded = decoded
+                .map((item) => RecipeModel.fromJson(item as Map<String, dynamic>, defaultExpiring: ingredient))
+                .toList();
+            final savedCount = _inMemoryQuotaCache[quotaKey] ?? 1;
+            if (mounted) {
+              setState(() {
+                _recipes = loaded;
+                _usedCount = savedCount;
+                _isLoading = false;
+              });
+            }
+            return true;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return false;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      final today = DateTime.now().toIso8601String().split('T')[0];
-      await prefs.setString('gemini_recipe_date', today);
-      await prefs.setInt('gemini_recipe_count', count);
+      final cachedJson = prefs.getString(recipeKey);
+      if (cachedJson != null && cachedJson.isNotEmpty) {
+        final decoded = jsonDecode(cachedJson) as List<dynamic>;
+        if (decoded.isNotEmpty) {
+          final loadedRecipes = decoded
+              .map((item) => RecipeModel.fromJson(item as Map<String, dynamic>, defaultExpiring: ingredient))
+              .toList();
+          final savedCount = prefs.getInt(quotaKey) ?? 1;
+
+          _inMemoryRecipeCache[recipeKey] = cachedJson;
+          _inMemoryQuotaCache[quotaKey] = savedCount;
+
+          if (mounted) {
+            setState(() {
+              _recipes = loadedRecipes;
+              _usedCount = savedCount;
+              _isLoading = false;
+            });
+          }
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  Future<void> _persistRecipesForIngredient(String ingredient, List<RecipeModel> recipes, int count) async {
+    final recipeKey = _getIngredientCacheKey(ingredient);
+    final quotaKey = _getQuotaCacheKey(ingredient);
+
+    final encoded = jsonEncode(recipes.map((r) => r.toJson()).toList());
+    _inMemoryRecipeCache[recipeKey] = encoded;
+    _inMemoryQuotaCache[quotaKey] = count;
+
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(recipeKey, encoded);
+      await prefs.setInt(quotaKey, count);
     } catch (_) {}
   }
 
@@ -439,17 +526,19 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       if (result.recipes.isNotEmpty && mounted) {
         setState(() {
           _recipes = result.recipes;
-          _usedCount = result.usedDailyQuota;
+          _usedCount = 1;
           _isLoading = false;
         });
-        _saveDailyQuota(_usedCount);
+        await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
       } else if (mounted) {
         setState(() {
           _isLoading = false;
           if (_recipes.isEmpty) {
             _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
+            _usedCount = 1;
           }
         });
+        await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
       }
     } catch (e) {
       if (mounted) {
@@ -460,13 +549,15 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
           setState(() {
             _usedCount = _maxDailyQuota;
           });
-          _saveDailyQuota(_maxDailyQuota);
+          await _persistRecipesForIngredient(_currentIngredient, _recipes, _maxDailyQuota);
           _showDailyLimitAlert();
         } else {
           if (_recipes.isEmpty) {
             setState(() {
               _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
+              _usedCount = 1;
             });
+            await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
           }
         }
       }
@@ -526,6 +617,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
       final lang = ref.read(localeProvider).languageCode;
+      final nextCount = (_usedCount + 1).clamp(1, _maxDailyQuota);
       final result = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
         language: lang,
@@ -536,11 +628,11 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
       setState(() {
         _recipes = result.recipes;
-        _usedCount = result.usedDailyQuota;
+        _usedCount = nextCount;
         _isRegenerating = false;
       });
 
-      _saveDailyQuota(_usedCount);
+      await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -558,7 +650,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         setState(() {
           _usedCount = _maxDailyQuota;
         });
-        _saveDailyQuota(_maxDailyQuota);
+        await _persistRecipesForIngredient(_currentIngredient, _recipes, _maxDailyQuota);
         _showDailyLimitAlert();
       } else {
         // Local fallback rotation
@@ -570,7 +662,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
             _recipes = List.from(_recipes.reversed);
           }
         });
-        _saveDailyQuota(_usedCount);
+        await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
       }
     }
   }

@@ -112,16 +112,18 @@ Rules:
 
 const PROMPT = getScanLabelPrompt('en');
 
-// Daily in-memory quota tracking per user: 3 generations per day
+// Daily in-memory quota tracking per user and ingredient: 3 generations per day per ingredient
 const DAILY_RECIPE_LIMIT = 3;
 const recipeQuotaTracker = new Map();
 
-function checkAndIncrementRecipeQuota(userId) {
+function checkAndIncrementRecipeQuota(userId, ingredient = '') {
   const today = new Date().toISOString().split('T')[0];
-  const userRecord = recipeQuotaTracker.get(userId);
+  const cleanIngredient = ingredient ? ingredient.toLowerCase().trim() : '';
+  const key = cleanIngredient ? `${userId}:${cleanIngredient}` : userId;
+  const userRecord = recipeQuotaTracker.get(key);
 
   if (!userRecord || userRecord.date !== today) {
-    recipeQuotaTracker.set(userId, { date: today, count: 1 });
+    recipeQuotaTracker.set(key, { date: today, count: 1 });
     return { allowed: true, used: 1, remaining: DAILY_RECIPE_LIMIT - 1, limit: DAILY_RECIPE_LIMIT };
   }
 
@@ -133,9 +135,11 @@ function checkAndIncrementRecipeQuota(userId) {
   return { allowed: true, used: userRecord.count, remaining: DAILY_RECIPE_LIMIT - userRecord.count, limit: DAILY_RECIPE_LIMIT };
 }
 
-function getRecipeQuota(userId) {
+function getRecipeQuota(userId, ingredient = '') {
   const today = new Date().toISOString().split('T')[0];
-  const userRecord = recipeQuotaTracker.get(userId);
+  const cleanIngredient = ingredient ? ingredient.toLowerCase().trim() : '';
+  const key = cleanIngredient ? `${userId}:${cleanIngredient}` : userId;
+  const userRecord = recipeQuotaTracker.get(key);
   if (!userRecord || userRecord.date !== today) {
     return { used: 0, remaining: DAILY_RECIPE_LIMIT, limit: DAILY_RECIPE_LIMIT };
   }
@@ -507,7 +511,7 @@ async function suggestRecipes({ userId, mainIngredient, language = 'en', offset 
   let remainingQuota = DAILY_RECIPE_LIMIT;
   let usedQuota = 1;
   if (userId) {
-    const quota = checkAndIncrementRecipeQuota(userId);
+    const quota = checkAndIncrementRecipeQuota(userId, mainIngredient);
     if (!quota.allowed) {
       const errorMsg = language === 'en'
         ? 'You have reached your daily limit of 3 recipe generations. Try making one of your suggested recipes! ✨'

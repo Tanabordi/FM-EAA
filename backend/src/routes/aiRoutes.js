@@ -46,7 +46,7 @@ router.post('/scan-label', authenticateToken, handleUpload, async (req, res, nex
 
 router.get('/recipes/quota', authenticateToken, (req, res) => {
   const userId = req.user?.userId || 'anonymous';
-  const quota = getRecipeQuota(userId);
+  const quota = getRecipeQuota(userId, req.query.mainIngredient || req.query.ingredient || '');
   res.json(quota);
 });
 

@@ -129,6 +129,71 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('Regenerate'), findsOneWidget);
     });
+
+    testWidgets('persists recipes and regenerate count per ingredient when navigating away and back', (tester) async {
+      // 1. Visit recipe recommendations for 'Cheddar Cheese'
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'Cheddar Cheese',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Regenerate (1/3)'), findsOneWidget);
+
+      // Tap regenerate once -> becomes 2/3
+      await tester.ensureVisible(find.textContaining('Regenerate'));
+      await tester.tap(find.textContaining('Regenerate'));
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Regenerate (2/3)'), findsOneWidget);
+
+      // 2. Navigate away and re-open 'Cheddar Cheese' -> count MUST remain 2/3!
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'Cheddar Cheese',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Must NOT increment to 3/3 on entry; must retain 2/3!
+      expect(find.textContaining('Regenerate (2/3)'), findsOneWidget);
+
+      // 3. Open a DIFFERENT ingredient ('Avocados') -> must start fresh independently
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'Avocados',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.textContaining('Regenerate'));
+      expect(find.textContaining('Regenerate (1/3)'), findsOneWidget);
+    });
   });
 
   group('Screen #26: Recipe Details Tests', () {
