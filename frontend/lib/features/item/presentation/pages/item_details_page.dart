@@ -273,15 +273,12 @@ class ItemDetailsPage extends ConsumerWidget {
           Navigator.pop(sheetContext); // Close sheet
           ref.read(fridgeItemsProvider(fridgeId).notifier).consumeItem(item.id, amount, finishedAll);
           if (context.canPop()) {
-            context.pop(item); // Return to fridge detail page with the consumed item
+            context.pop(item); // Always return to fridge detail page with the consumed item
           } else {
-            FinishAllSnackbar.show(
-              context,
-              itemName: item.name,
-              onUndo: () {
-                ref.read(fridgeItemsProvider(fridgeId).notifier).undoConsume();
-              },
-            );
+            try {
+              context.go('/fridges/$fridgeId');
+            } catch (_) {}
+            FinishAllSnackbar.show(context, itemName: item.name);
           }
         },
       ),
