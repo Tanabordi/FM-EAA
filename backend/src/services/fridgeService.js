@@ -380,6 +380,344 @@ class FridgeService {
       }
     }
   }
+
+  /**
+   * Search users to invite to a fridge with status: 'already' | 'pending' | 'available'
+   * @param {string} fridgeId 
+   * @param {string} currentUserId 
+   * @param {string} query 
+   */
+  async searchUsersForFridge(fridgeId, currentUserId, query) {
+    if (!query || typeof query !== 'string' || !query.trim()) {
+      return [];
+    }
+
+    let conn;
+    try {
+      conn = await db.getDbConnection();
+      const access = await this.checkUserAccess(conn, fridgeId, currentUserId);
+      if (!access.isMember) {
+        const err = new Error('Fridge not found or access denied');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const searchSql = `
+        SELECT id, username, email, avatar_url
+        FROM users
+        WHERE LOWER(username) LIKE LOWER(:term)
+          AND id != :currentUserId
+        FETCH FIRST 20 ROWS ONLY
+      `;
+      const searchResult = await conn.execute(searchSql, [`%${query.trim()}%`, currentUserId]);
+      const foundUsers = (searchResult.rows || []).map(r => ({
+        id: r[0],
+        username: r[1],
+        email: r[2],
+        avatarUrl: r[3] || '',
+      }));
+
+      if (foundUsers.length === 0) {
+        return [];
+      }
+
+      // Check member status
+      const memberSql = `
+        SELECT user_id FROM fridge_members WHERE fridge_id = :fridgeId
+      `;
+      const memberRes = await conn.execute(memberSql, [fridgeId]);
+      const memberSet = new Set((memberRes.rows || []).map(r => r[0]));
+
+      // Check pending invite status
+      const inviteSql = `
+        SELECT to_user_id FROM fridge_invites 
+        WHERE fridge_id = :fridgeId AND status = 'pending'
+      `;
+      const inviteRes = await conn.execute(inviteSql, [fridgeId]);
+      const pendingSet = new Set((inviteRes.rows || []).map(r => r[0]));
+
+      return foundUsers.map(u => {
+        let status = 'available';
+        if (memberSet.has(u.id)) {
+          status = 'already';
+        } else if (pendingSet.has(u.id)) {
+          status = 'pending';
+        }
+        return {
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          avatarUrl: u.avatarUrl,
+          status,
+        };
+      });
+    } finally {
+      if (conn) {
+        try { await conn.close(); } catch (_) {}
+      }
+    }
+  }
+
+  /**
+   * Invite a user to a fridge by username
+   * @param {string} fridgeId 
+   * @param {string} currentUserId 
+   * @param {string} username 
+   */
+  async inviteMember(fridgeId, currentUserId, username) {
+    if (!username || typeof username !== 'string' || !username.trim()) {
+      const err = new Error('Username is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const cleanUsername = username.trim();
+
+    let conn;
+    try {
+      conn = await db.getDbConnection();
+      const access = await this.checkUserAccess(conn, fridgeId, currentUserId);
+      if (!access.isMember) {
+        const err = new Error('Fridge not found or access denied');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      // 1. Find target user
+      const userRes = await conn.execute(
+        `SELECT id, username, email, avatar_url FROM users WHERE LOWER(username) = LOWER(:username)`,
+        [cleanUsername]
+      );
+      if (!userRes.rows || userRes.rows.length === 0) {
+        const err = new Error(`User '${cleanUsername}' not found`);
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const targetUser = {
+        id: userRes.rows[0][0],
+        username: userRes.rows[0][1],
+        email: userRes.rows[0][2],
+        avatarUrl: userRes.rows[0][3] || '',
+      };
+
+      if (targetUser.id === currentUserId) {
+        const err = new Error('Cannot invite yourself');
+        err.statusCode = 400;
+        throw err;
+      }
+
+      // 2. Check if already member
+      const memberRes = await conn.execute(
+        `SELECT 1 FROM fridge_members WHERE fridge_id = :fridgeId AND user_id = :targetUserId`,
+        [fridgeId, targetUser.id]
+      );
+      if (memberRes.rows && memberRes.rows.length > 0) {
+        const err = new Error(`User '${targetUser.username}' is already in this family`);
+        err.statusCode = 400;
+        throw err;
+      }
+
+      // 3. Check if pending invite exists
+      const inviteRes = await conn.execute(
+        `SELECT id FROM fridge_invites WHERE fridge_id = :fridgeId AND to_user_id = :targetUserId AND status = 'pending'`,
+        [fridgeId, targetUser.id]
+      );
+      if (inviteRes.rows && inviteRes.rows.length > 0) {
+        const err = new Error(`Invitation already sent to '${targetUser.username}'`);
+        err.statusCode = 400;
+        throw err;
+      }
+
+      // 4. Fetch fridge name & inviter username for notification
+      const fridgeRes = await conn.execute(`SELECT name FROM fridges WHERE id = :fridgeId`, [fridgeId]);
+      const fridgeName = (fridgeRes.rows && fridgeRes.rows[0]) ? fridgeRes.rows[0][0] : 'Fridge';
+
+      const inviterRes = await conn.execute(`SELECT username FROM users WHERE id = :currentUserId`, [currentUserId]);
+      const inviterUsername = (inviterRes.rows && inviterRes.rows[0]) ? inviterRes.rows[0][0] : 'Someone';
+
+      const inviteId = crypto.randomUUID();
+      const notifId = crypto.randomUUID();
+
+      // 5. Insert fridge_invites
+      await conn.execute(
+        `INSERT INTO fridge_invites (id, fridge_id, from_user_id, to_user_id, status, created_at, updated_at)
+         VALUES (:id, :fridgeId, :fromUserId, :toUserId, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [inviteId, fridgeId, currentUserId, targetUser.id]
+      );
+
+      // 6. Insert notification for target user
+      const notifPayload = JSON.stringify({
+        title: 'Fridge Invitation',
+        message: `${inviterUsername} invited you to join '${fridgeName}'`,
+        fridge_id: fridgeId,
+        fridge_name: fridgeName,
+        invite_id: inviteId,
+        from_user_id: currentUserId,
+        from_username: inviterUsername,
+      });
+
+      await conn.execute(
+        `INSERT INTO notifications (id, user_id, type, payload_json, is_read, created_at)
+         VALUES (:id, :userId, 'invite', :payload, 0, CURRENT_TIMESTAMP)`,
+        [notifId, targetUser.id, notifPayload]
+      );
+
+      await conn.commit();
+
+      return {
+        success: true,
+        message: `Invitation sent to ${targetUser.username}`,
+        invite: {
+          id: inviteId,
+          fridgeId,
+          toUserId: targetUser.id,
+          username: targetUser.username,
+          status: 'pending',
+        },
+      };
+    } catch (err) {
+      if (conn) {
+        try { await conn.rollback(); } catch (_) {}
+      }
+      throw err;
+    } finally {
+      if (conn) {
+        try { await conn.close(); } catch (_) {}
+      }
+    }
+  }
+
+  /**
+   * Get pending invitations for a fridge
+   * @param {string} fridgeId 
+   * @param {string} currentUserId 
+   */
+  async getPendingInvites(fridgeId, currentUserId) {
+    let conn;
+    try {
+      conn = await db.getDbConnection();
+      const access = await this.checkUserAccess(conn, fridgeId, currentUserId);
+      if (!access.isMember) {
+        const err = new Error('Fridge not found or access denied');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const sql = `
+        SELECT 
+          fi.id,
+          fi.from_user_id,
+          u_from.username,
+          fi.to_user_id,
+          u_to.username,
+          u_to.email,
+          u_to.avatar_url,
+          fi.status,
+          fi.created_at
+        FROM fridge_invites fi
+        JOIN users u_from ON fi.from_user_id = u_from.id
+        JOIN users u_to ON fi.to_user_id = u_to.id
+        WHERE fi.fridge_id = :fridgeId AND fi.status = 'pending'
+        ORDER BY fi.created_at DESC
+      `;
+      const result = await conn.execute(sql, [fridgeId]);
+      return (result.rows || []).map(r => ({
+        id: r[0],
+        fromUserId: r[1],
+        fromUsername: r[2],
+        toUserId: r[3],
+        toUsername: r[4],
+        toEmail: r[5],
+        toAvatarUrl: r[6] || null,
+        status: r[7],
+        createdAt: r[8],
+      }));
+    } finally {
+      if (conn) {
+        try { await conn.close(); } catch (_) {}
+      }
+    }
+  }
+
+  /**
+   * Accept or decline a fridge invitation
+   * @param {string} inviteId 
+   * @param {string} currentUserId 
+   * @param {boolean} accept 
+   */
+  async respondToInvite(inviteId, currentUserId, accept) {
+    let conn;
+    try {
+      conn = await db.getDbConnection();
+      const inviteRes = await conn.execute(
+        `SELECT id, fridge_id, to_user_id, status FROM fridge_invites WHERE id = :inviteId`,
+        [inviteId]
+      );
+
+      if (!inviteRes.rows || inviteRes.rows.length === 0) {
+        const err = new Error('Invitation not found');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const [id, fridgeId, toUserId, status] = inviteRes.rows[0];
+
+      if (toUserId !== currentUserId) {
+        const err = new Error('Unauthorized to respond to this invitation');
+        err.statusCode = 403;
+        throw err;
+      }
+
+      if (status !== 'pending') {
+        const err = new Error(`Invitation has already been ${status}`);
+        err.statusCode = 400;
+        throw err;
+      }
+
+      const newStatus = accept ? 'accepted' : 'declined';
+
+      // 1. Update fridge_invites
+      await conn.execute(
+        `UPDATE fridge_invites SET status = :status, updated_at = CURRENT_TIMESTAMP WHERE id = :inviteId`,
+        [newStatus, inviteId]
+      );
+
+      // 2. If accepted, add to fridge_members
+      if (accept) {
+        await conn.execute(
+          `INSERT INTO fridge_members (fridge_id, user_id, role, created_at, updated_at)
+           VALUES (:fridgeId, :userId, 'member', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          [fridgeId, currentUserId]
+        );
+      }
+
+      // 3. Mark notification as read
+      await conn.execute(
+        `UPDATE notifications SET is_read = 1 
+         WHERE user_id = :userId AND payload_json LIKE :pattern`,
+        [currentUserId, `%${inviteId}%`]
+      );
+
+      await conn.commit();
+
+      return {
+        success: true,
+        message: accept ? 'Invitation accepted successfully' : 'Invitation declined',
+        status: newStatus,
+        fridgeId,
+      };
+    } catch (err) {
+      if (conn) {
+        try { await conn.rollback(); } catch (_) {}
+      }
+      throw err;
+    } finally {
+      if (conn) {
+        try { await conn.close(); } catch (_) {}
+      }
+    }
+  }
 }
 
 module.exports = new FridgeService();

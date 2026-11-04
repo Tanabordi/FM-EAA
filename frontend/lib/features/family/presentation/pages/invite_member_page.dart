@@ -18,32 +18,14 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
   List<UserSearchResult> _searchResults = [];
-
-  final List<UserSearchResult> _allMockUsers = [
-    const UserSearchResult(
-      username: 'Mint',
-      status: 'already',
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    ),
-    const UserSearchResult(
-      username: 'Minty',
-      status: 'available',
-      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-    ),
-    const UserSearchResult(
-      username: 'Mintra',
-      status: 'pending',
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-    ),
-  ];
-
-  late Map<String, String> _userStatuses;
+  Map<String, String> _userStatuses = {};
+  bool _isSearching = false;
   bool _isInviting = false;
+  String? _searchMessage;
 
   @override
   void initState() {
     super.initState();
-    _userStatuses = {for (var u in _allMockUsers) u.username: u.status};
     _searchController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -62,21 +44,45 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
     }
   }
 
-  void _doSearch() {
-    final query = _searchController.text.trim().toLowerCase();
+  Future<void> _doSearch() async {
+    final query = _searchController.text.trim();
     if (query.isEmpty) return;
     _dismissKeyboard();
     setState(() {
-      _searchResults = _allMockUsers
-          .where((u) => u.username.toLowerCase().contains(query))
-          .toList();
+      _isSearching = true;
+      _searchMessage = null;
     });
+
+    try {
+      final results = await ref
+          .read(familyRepositoryProvider)
+          .searchUsers(widget.fridgeId, query);
+
+      if (!mounted) return;
+      setState(() {
+        _searchResults = results;
+        _userStatuses = {for (var u in results) u.username: u.status};
+        _isSearching = false;
+        if (results.isEmpty) {
+          _searchMessage = 'No users found matching "$query"';
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        _searchMessage = 'Failed to search users. Please try again.';
+      });
+    }
   }
 
   void _clearSearch() {
     _searchController.clear();
     _dismissKeyboard();
-    setState(() => _searchResults = []);
+    setState(() {
+      _searchResults = [];
+      _searchMessage = null;
+    });
   }
 
   Future<void> _handleInvite(String username) async {
@@ -85,6 +91,8 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
       await ref.read(familyRepositoryProvider).inviteMember(widget.fridgeId, username);
       if (!mounted) return;
       setState(() => _userStatuses[username] = 'pending');
+      // Trigger update on fridge members provider
+      ref.read(familyMembersProvider(widget.fridgeId).notifier).loadMembers();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Invitation sent to $username')),
       );
@@ -104,8 +112,9 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
       radius: 24,
       backgroundColor: const Color(0xFFD3DDD1),
       backgroundImage: user.avatarUrl.isNotEmpty ? NetworkImage(user.avatarUrl) : null,
-      onBackgroundImageError: (_, __) {},
+      onBackgroundImageError: user.avatarUrl.isNotEmpty ? (_, __) {} : null,
       child: user.avatarUrl.isEmpty
+
           ? Text(
               initials,
               style: const TextStyle(
@@ -119,7 +128,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
   }
 
   Widget _buildUserTile(UserSearchResult user) {
-    final currentStatus = _userStatuses[user.username] ?? 'available';
+    final currentStatus = _userStatuses[user.username] ?? user.status;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
@@ -163,7 +172,6 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                 backgroundColor: const Color(0xFF2E6A44),
                 foregroundColor: Colors.white,
                 shape: const StadiumBorder(),
-                // ล้าง minimumSize จาก AppTheme ที่บังคับ infinity width ออก!
                 minimumSize: const Size(76, 38),
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                 elevation: 0,
@@ -213,7 +221,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  // ช่องค้นหาทรงแคปซูลมน
+                  // Search Box Pill (Figma)
                   Container(
                     height: 52,
                     decoration: BoxDecoration(
@@ -222,7 +230,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                     ),
                     child: Row(
                       children: [
-                        // ปุ่มค้นหา (แว่นขยาย)
+                        // Search Button
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: _doSearch,
@@ -234,7 +242,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                             ),
                           ),
                         ),
-                        // ช่องพิมพ์ข้อความ
+                        // Input Field
                         Expanded(
                           child: TextField(
                             controller: _searchController,
@@ -258,7 +266,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                             ),
                           ),
                         ),
-                        // ปุ่มกากบาท
+                        // Clear Button
                         if (_searchController.text.isNotEmpty)
                           GestureDetector(
                             behavior: HitTestBehavior.opaque,
@@ -284,8 +292,31 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
               ),
             ),
 
+            // ─── Search Progress or Message ───
+            if (_isSearching)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Center(
+                  child: CircularProgressIndicator(color: Color(0xFF2E6A44)),
+                ),
+              )
+            else if (_searchMessage != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                child: Center(
+                  child: Text(
+                    _searchMessage!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF414942),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+
             // ─── Search Results ───
-            if (_searchResults.isNotEmpty)
+            if (!_isSearching && _searchResults.isNotEmpty)
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
@@ -302,7 +333,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                           ),
                         ),
                         Text(
-                          '${_searchResults.length} User',
+                          '${_searchResults.length} ${_searchResults.length == 1 ? "User" : "Users"}',
                           style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF414942),

@@ -7,6 +7,7 @@ const fridgeRoutes = require('./routes/fridgeRoutes');
 const itemRoutes = require('./routes/itemRoutes');
 const historyRoutes = require('./routes/historyRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const inviteRoutes = require('./routes/inviteRoutes');
 const syncRoutes = require('./routes/syncRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 
@@ -46,8 +47,10 @@ app.use('/api/fridges/:id/items', itemRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/fridges/:id/history', historyRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/invites', inviteRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/ai', aiRoutes);
+
 
 // Error Handling Middleware
 app.use(errorHandler);

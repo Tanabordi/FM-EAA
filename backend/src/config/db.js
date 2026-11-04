@@ -1,8 +1,9 @@
 const oracledb = require('oracledb');
 const config = require('./env');
 
-// TODO(backend db): Configure connection pool for Oracle Cloud Autonomous Database (OCI)
-// Note: When connecting to OCI, ensure TNS_ADMIN or wallet path is configured if using mTLS.
+// Automatically fetch CLOB columns as strings instead of Lob instances
+oracledb.fetchAsString = [oracledb.CLOB];
+
 
 let pool = null;
 
