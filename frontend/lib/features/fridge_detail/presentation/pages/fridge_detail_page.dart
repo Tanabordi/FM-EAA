@@ -35,6 +35,9 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
       }
     });
     Future.microtask(() {
+      ref.read(fridgeDetailFilterProvider.notifier).setCategory('All');
+      ref.read(fridgeDetailFilterProvider.notifier).setZone('fridge');
+      ref.read(fridgeDetailFilterProvider.notifier).setSearchQuery('');
       ref.read(fridgeItemsProvider(widget.fridgeId).notifier).loadItems();
     });
   }
@@ -79,8 +82,8 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     final allItems = ref.watch(fridgeItemsProvider(widget.fridgeId));
 
     final items = allItems.where((item) {
-      final matchesZone = item.zone == filter.zone;
-      final matchesCategory = filter.category == 'All' ||
+      final matchesZone = item.zone.toLowerCase() == filter.zone.toLowerCase();
+      final matchesCategory = filter.category.toLowerCase() == 'all' ||
           item.category.toLowerCase() == filter.category.toLowerCase();
       return matchesZone && matchesCategory;
     }).toList();

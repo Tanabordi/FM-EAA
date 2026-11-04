@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared/utils/environment.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
 import 'package:go_router/go_router.dart';
@@ -355,7 +357,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
   Future<void> _pickImage(ImageSource source) async {
     try {
       final picker = ImagePicker();
-      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+      final isTest = isTestEnvironment();
 
       final XFile? picked;
       if (isTest) {
@@ -401,7 +403,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       }
     } catch (_) {
       if (!mounted) return;
-      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+      final isTest = isTestEnvironment();
       if (isTest) {
         setState(() {
           _imagePath = 'assets/images/food_strawberries.png';
@@ -421,7 +423,15 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
         ),
       );
     } else if (_imagePath != null && _imagePath!.isNotEmpty) {
-      if (_imagePath!.startsWith('assets/')) {
+      if (_imagePath!.startsWith('http://') || _imagePath!.startsWith('https://')) {
+        return Image.network(
+          _imagePath!,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Center(
+            child: Icon(Icons.fastfood, size: 64, color: Colors.grey),
+          ),
+        );
+      } else if (_imagePath!.startsWith('assets/')) {
         return Image.asset(
           _imagePath!,
           fit: BoxFit.cover,
@@ -429,14 +439,19 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
             child: Icon(Icons.fastfood, size: 64, color: Colors.grey),
           ),
         );
-      } else {
-        return Image.file(
-          File(_imagePath!),
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Center(
-            child: Icon(Icons.fastfood, size: 64, color: Colors.grey),
-          ),
-        );
+      } else if (!kIsWeb) {
+        try {
+          final file = File(_imagePath!);
+          if (file.existsSync()) {
+            return Image.file(
+              file,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Center(
+                child: Icon(Icons.fastfood, size: 64, color: Colors.grey),
+              ),
+            );
+          }
+        } catch (_) {}
       }
     }
     return const Center(

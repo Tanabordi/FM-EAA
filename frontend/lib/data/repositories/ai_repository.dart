@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../shared/utils/environment.dart';
 import '../remote/api_client.dart';
 import '../../features/recipe/data/models/recipe_model.dart';
 
@@ -124,7 +125,7 @@ class AiRepository {
   /// Scans food label from in-memory image bytes
   Future<AiScanResult> scanLabelBytes(Uint8List bytes, {String? filename, String language = 'en'}) async {
     final name = filename ?? 'photo.jpg';
-    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    if (isTestEnvironment()) {
       return _smartFallbackBytes(bytes, name);
     }
     try {
@@ -161,7 +162,7 @@ class AiRepository {
 
   /// Scans food label from image file and extracts food name, expiration date, and category
   Future<AiScanResult> scanLabel(File imageFile, {String language = 'en'}) async {
-    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    if (isTestEnvironment()) {
       return _smartFallback(imageFile.path);
     }
     if (imageFile.path.isEmpty || !imageFile.existsSync()) {
@@ -169,7 +170,7 @@ class AiRepository {
     }
 
     try {
-      final fileName = imageFile.path.split(Platform.pathSeparator).last;
+      final fileName = imageFile.path.split(RegExp(r'[/\\]')).last;
       final formData = FormData.fromMap({
         'image': await MultipartFile.fromFile(
           imageFile.path,
@@ -212,7 +213,7 @@ class AiRepository {
     String language = 'en',
     int offset = 0,
   }) async {
-    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    if (isTestEnvironment()) {
       final list = _generateSmartFallbackRecipes(mainIngredient, category: category, language: language, offset: offset);
       return RecipeSuggestionResult(
         recipes: list.take(6).toList(),

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared/utils/environment.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../data/repositories/ai_repository.dart';
@@ -65,7 +66,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       duration: const Duration(milliseconds: 1800),
     );
 
-    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+    if (!isTestEnvironment()) {
       _laserController.repeat(reverse: true);
       _initCamera();
     }
@@ -177,7 +178,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   }
 
   Future<void> _takePicture() async {
-    final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+    final isTest = isTestEnvironment();
     if (isTest) {
       setState(() {
         _imagePath = 'assets/images/food_avocados.png';
@@ -256,7 +257,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
   Future<void> _pickFromGallery() async {
     try {
-      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+      final isTest = isTestEnvironment();
       if (isTest) {
         setState(() {
           _imagePath = 'assets/images/food_avocados.png';
@@ -331,7 +332,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       if (_imageBytes != null) {
         result = await aiRepo.scanLabelBytes(
           _imageBytes!,
-          filename: _pickedFileName ?? _imagePath?.split(Platform.pathSeparator).last ?? 'label.jpg',
+          filename: _pickedFileName ?? _imagePath?.split(RegExp(r'[/\\]')).last ?? 'label.jpg',
           language: lang,
         );
       } else {
