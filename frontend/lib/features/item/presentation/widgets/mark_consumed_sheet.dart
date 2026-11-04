@@ -8,6 +8,7 @@ class MarkConsumedSheet extends StatefulWidget {
   final String itemName;
   final double availablePieces;
   final String unit;
+  final String? category;
   final void Function(double amount, bool finishedAll) onConsumed;
   final VoidCallback? onRecommendRecipe;
   final bool hideGeminiShortcut;
@@ -17,6 +18,7 @@ class MarkConsumedSheet extends StatefulWidget {
     required this.itemName,
     required this.availablePieces,
     required this.unit,
+    this.category,
     required this.onConsumed,
     this.onRecommendRecipe,
     this.hideGeminiShortcut = false,
@@ -40,7 +42,8 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
       widget.onRecommendRecipe!();
     } else {
       Navigator.of(context).pop();
-      context.push('/recipes?ingredient=${Uri.encodeComponent(widget.itemName)}');
+      final catParam = widget.category != null ? '&category=${Uri.encodeComponent(widget.category!)}' : '';
+      context.push('/recipes?ingredient=${Uri.encodeComponent(widget.itemName)}$catParam');
     }
   }
 

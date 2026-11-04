@@ -2,6 +2,7 @@ const {
   checkAndIncrementRecipeQuota,
   clearRecipeQuotaForTest,
   generateFallbackRecipes,
+  detectCategory,
 } = require('../src/services/aiService');
 
 describe('AI Service Quota & Recipe Logic', () => {
@@ -54,5 +55,37 @@ describe('AI Service Quota & Recipe Logic', () => {
     expect(recipes[0].expiringIngredient).toBe('Smoked Cocktail Sausage');
     expect(recipes[0].title).toBe('Stir-fried Smoked Cocktail Sausage with Garlic & Pepper');
     expect(recipes[1].title).toBe('Golden Fluffy Omelet with Smoked Cocktail Sausage');
+  });
+
+  it('should correctly detect categories from ingredient names or explicit category', () => {
+    expect(detectCategory('Cold Brew Coffee')).toBe('beverages');
+    expect(detectCategory('นมสด')).toBe('beverages');
+    expect(detectCategory('Orange Juice')).toBe('beverages');
+    expect(detectCategory('Tomato Ketchup')).toBe('sauces');
+    expect(detectCategory('มายองเนส')).toBe('sauces');
+    expect(detectCategory('Baby Spinach')).toBe('veggies');
+    expect(detectCategory('หมูสับ')).toBe('proteins');
+    expect(detectCategory('Fried Rice Leftover')).toBe('meals');
+    // Explicit override
+    expect(detectCategory('Something strange', 'beverages')).toBe('beverages');
+    expect(detectCategory('Something strange', 'sauces')).toBe('sauces');
+  });
+
+  it('should generate beverage-appropriate recipes for beverages category and never savory fried rice/garlic stir-fry', () => {
+    const recipes = generateFallbackRecipes('Milk', 'en', 0, 'beverages');
+    expect(recipes).toHaveLength(6);
+    const titles = recipes.map((r) => r.title.toLowerCase());
+    // Must NOT contain savory fried rice or garlic pepper stir-fry
+    expect(titles.some((t) => t.includes('garlic') && t.includes('stir-fry'))).toBe(false);
+    expect(titles.some((t) => t.includes('fried rice'))).toBe(false);
+    // Must contain drink / pancake / smoothie / latte
+    expect(titles.some((t) => t.includes('smoothie') || t.includes('pancake') || t.includes('latte') || t.includes('splash') || t.includes('pudding'))).toBe(true);
+  });
+
+  it('should generate sauce-appropriate recipes for sauces category', () => {
+    const recipes = generateFallbackRecipes('Ketchup', 'en', 0, 'sauces');
+    expect(recipes).toHaveLength(6);
+    const titles = recipes.map((r) => r.title.toLowerCase());
+    expect(titles.some((t) => t.includes('glazed') || t.includes('pasta') || t.includes('dressing') || t.includes('toast') || t.includes('dip'))).toBe(true);
   });
 });

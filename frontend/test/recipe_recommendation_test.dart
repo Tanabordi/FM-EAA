@@ -98,6 +98,54 @@ void main() {
       expect(find.text('Classic Fried Rice with Smoked Cocktail Sausage'), findsOneWidget);
     });
 
+    testWidgets('renders beverage-appropriate recipes for Beverages category and avoids savory stir-fry', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'Cold Brew Coffee',
+              category: 'beverages',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Beverage recipes should be suggested
+      expect(find.textContaining('Splash'), findsOneWidget);
+      expect(find.textContaining('Smoothie'), findsOneWidget);
+      expect(find.textContaining('Pancakes'), findsOneWidget);
+
+      // Savory fried rice / garlic stir fry must NOT appear for beverages
+      expect(find.textContaining('Stir-fried Cold Brew Coffee with Garlic'), findsNothing);
+      expect(find.textContaining('Classic Fried Rice with Cold Brew Coffee'), findsNothing);
+    });
+
+    testWidgets('renders sauce-appropriate recipes for Sauces category', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'BBQ Sauce',
+              category: 'sauces',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Golden Glazed Pan-Sear with BBQ Sauce'), findsOneWidget);
+      expect(find.textContaining('Quick Tossed Garlic Pasta with BBQ Sauce'), findsOneWidget);
+    });
+
     testWidgets('triggers cooldown and locks on regenerate button tap', (tester) async {
       await tester.pumpWidget(
         ProviderScope(

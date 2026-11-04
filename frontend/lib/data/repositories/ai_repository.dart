@@ -208,11 +208,12 @@ class AiRepository {
   /// Fetches 6 AI suggested recipes for mainIngredient with daily quota tracking (max 3/day)
   Future<RecipeSuggestionResult> getSuggestedRecipes(
     String mainIngredient, {
+    String? category,
     String language = 'en',
     int offset = 0,
   }) async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
-      final list = _generateSmartFallbackRecipes(mainIngredient, language: language, offset: offset);
+      final list = _generateSmartFallbackRecipes(mainIngredient, category: category, language: language, offset: offset);
       return RecipeSuggestionResult(
         recipes: list.take(6).toList(),
         usedDailyQuota: (offset + 1).clamp(1, 3),
@@ -226,6 +227,7 @@ class AiRepository {
         '/ai/recipes',
         data: {
           'mainIngredient': mainIngredient,
+          if (category != null && category.trim().isNotEmpty) 'category': category.trim(),
           'language': language,
           'offset': offset,
         },
@@ -265,7 +267,7 @@ class AiRepository {
       }
     }
 
-    final fallback = _generateSmartFallbackRecipes(mainIngredient, language: language, offset: offset);
+    final fallback = _generateSmartFallbackRecipes(mainIngredient, category: category, language: language, offset: offset);
     return RecipeSuggestionResult(
       recipes: fallback.take(6).toList(),
       usedDailyQuota: (offset + 1).clamp(1, 3),
@@ -274,8 +276,282 @@ class AiRepository {
     );
   }
 
-  List<RecipeModel> _generateSmartFallbackRecipes(String ingredient, {String language = 'en', int offset = 0}) {
+  static String detectCategory(String ingredient, [String? explicitCategory]) {
+    if (explicitCategory != null && explicitCategory.trim().isNotEmpty) {
+      final clean = explicitCategory.trim().toLowerCase();
+      if (['proteins', 'veggies', 'beverages', 'meals', 'sauces'].contains(clean)) {
+        return clean;
+      }
+    }
+
+    final text = ingredient.toLowerCase();
+
+    const beverageKeywords = [
+      'milk', 'coffee', 'tea', 'latte', 'juice', 'soda', 'water', 'smoothie', 'kombucha',
+      'cider', 'cola', 'shake', 'lemonade', 'espresso', 'matcha', 'drink', 'beverage', 'oat milk',
+      'นม', 'ชา', 'กาแฟ', 'น้ำผลไม้', 'น้ำส้ม', 'น้ำเปล่า', 'โซดา', 'เครื่องดื่ม',
+      'นมเปรี้ยว', 'โกโก้', 'มัทฉะ', 'น้ำอัดลม', 'โค้ก', 'ชานม', 'น้ำเต้าหู้', 'ลาเต้', 'น้ำมะนาว',
+    ];
+    if (beverageKeywords.any((k) => text.contains(k))) {
+      return 'beverages';
+    }
+
+    const sauceKeywords = [
+      'sauce', 'mayo', 'mayonnaise', 'ketchup', 'mustard', 'dressing', 'dip', 'salsa',
+      'chili paste', 'jam', 'spread', 'vinaigrette', 'marinade', 'pesto', 'syrup', 'gravy',
+      'soy sauce', 'oyster sauce', 'fish sauce', 'ซอส', 'มายองเนส', 'มัสตาร์ด', 'น้ำสลัด',
+      'น้ำจิ้ม', 'แยม', 'สเปรด', 'ซีอิ๊ว', 'น้ำปลา', 'น้ำมันหอย', 'น้ำพริก', 'ซอสมะเขือเทศ', 'ซอสพริก',
+    ];
+    if (sauceKeywords.any((k) => text.contains(k))) {
+      return 'sauces';
+    }
+
+    const veggieKeywords = [
+      'veggie', 'vegetable', 'spinach', 'tomato', 'avocado', 'strawberry', 'strawberries',
+      'apple', 'fruit', 'banana', 'onion', 'garlic', 'carrot', 'broccoli', 'cabbage',
+      'lettuce', 'mushroom', 'cucumber', 'potato', 'lemon', 'lime', 'bell pepper', 'kale',
+      'herbs', 'greens', 'berries', 'berry', 'orange', 'ผัก', 'สลัด', 'มะเขือเทศ', 'อะโวคาโด',
+      'สตรอว์เบอร์รี', 'สตรอเบอรี่', 'แอปเปิ้ล', 'กล้วย', 'กะหล่ำ', 'ผักกาด',
+      'แครอท', 'บรอกโคลี', 'เห็ด', 'แตงกวา', 'ผักชี', 'ต้นหอม', 'หัวหอม', 'พริก', 'มะนาว', 'ผลไม้',
+    ];
+    if (veggieKeywords.any((k) => text.contains(k))) {
+      return 'veggies';
+    }
+
+    const mealKeywords = [
+      'noodle', 'noodles', 'pasta', 'rice', 'pizza', 'sandwich', 'bread', 'curry',
+      'lasagna', 'leftover', 'meal', 'bento', 'spaghetti', 'ข้าว', 'ก๋วยเตี๋ยว', 'เส้น',
+      'พาสต้า', 'ข้าวกล่อง', 'แกง', 'ขนมปัง',
+    ];
+    if (mealKeywords.any((k) => text.contains(k))) {
+      return 'meals';
+    }
+
+    return 'proteins';
+  }
+
+  List<RecipeModel> _generateSmartFallbackRecipes(
+    String ingredient, {
+    String? category,
+    String language = 'en',
+    int offset = 0,
+  }) {
     final lower = ingredient.toLowerCase();
+    final isEn = language == 'en';
+    final displayIngredient = isEn ? translateThaiToEnglish(ingredient) : ingredient;
+    final detectedCat = detectCategory(ingredient, category);
+
+    if (detectedCat == 'beverages') {
+      final bevPool = [
+        RecipeModel(
+          id: 'recipe_quick_bev_1',
+          title: isEn ? 'Refreshing Iced $displayIngredient Splash' : 'เครื่องดื่มเย็นชื่นใจสูตร$ingredient',
+          description: isEn ? 'Cool, vibrant, and incredibly refreshing beverage.' : 'สดชื่น ดับกระหาย คลายร้อน ทำง่ายใน 3 นาที',
+          imageUrl: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? [displayIngredient, '1 cup ice cubes', '1 tbsp honey or syrup', 'Fresh mint or citrus slice']
+              : [ingredient, 'น้ำแข็ง 1 แก้ว', 'น้ำผึ้งหรือน้ำเชื่อม 1 ช้อนโต๊ะ', 'ใบสะระแหน่หรือเลมอนฝาน'],
+          steps: isEn
+              ? ['Pour $displayIngredient into a glass filled with fresh ice.', 'Stir in honey or syrup to taste.', 'Garnish with mint and enjoy ice cold.']
+              : ['เท$ingredientลงในแก้วที่ใส่น้ำแข็งเตรียมไว้', 'เติมน้ำผึ้งหรือน้ำเชื่อม คนให้เข้ากัน', 'ตกแต่งด้วยใบสะระแหน่ เสิร์ฟเย็นชื่นใจ'],
+        ),
+        RecipeModel(
+          id: 'recipe_quick_bev_2',
+          title: isEn ? 'Creamy $displayIngredient Smoothie' : 'สมูทตี้เนื้อนุ่มปั่นใส่$ingredient',
+          description: isEn ? 'Rich, velvety smoothie blended to perfection.' : 'เนื้อเนียนนุ่ม หอมมัน ได้คุณค่าสารอาหารเต็มๆ',
+          imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? [displayIngredient, '1/2 cup yogurt or frozen fruit', '1 tbsp honey', 'Crushed ice']
+              : [ingredient, 'โยเกิร์ตหรือผลไม้แช่แข็ง 1/2 ถ้วย', 'น้ำผึ้ง 1 ช้อนโต๊ะ', 'น้ำแข็งบด'],
+          steps: isEn
+              ? ['Combine $displayIngredient, yogurt, and ice in a blender.', 'Blend on high speed until completely smooth.', 'Pour into tall glass and enjoy fresh.']
+              : ['ใส่$ingredient โยเกิร์ต และน้ำแข็งลงในโถปั่น', 'ปั่นด้วยความเร็วสูงจนเนื้อเนียนละเอียด', 'เทใส่แก้วพร้อมดื่มทันที'],
+        ),
+        RecipeModel(
+          id: 'recipe_quick_bev_3',
+          title: isEn ? 'Golden Fluffy Pancakes with $displayIngredient' : 'แพนเค้กนุ่มฟูทำจาก$ingredient',
+          description: isEn ? 'Light, airy breakfast pancakes infused with rich flavor.' : 'แพนเค้กเนื้อนุ่มฟู หอมละมุน เหมาะกับมื้อเช้า',
+          imageUrl: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '15 min',
+          difficulty: 'Easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? ['1/2 cup $displayIngredient', '1 cup all-purpose flour', '1 egg', '1 tbsp melted butter', 'Maple syrup']
+              : ['$ingredient 1/2 ถ้วย', 'แป้งสาลีอเนกประสงค์ 1 ถ้วย', 'ไข่ไก่ 1 ฟอง', 'เนยละลาย 1 ช้อนโต๊ะ', 'น้ำเชื่อม'],
+          steps: isEn
+              ? ['Whisk egg, melted butter, and $displayIngredient together.', 'Gently fold in flour until combined.', 'Cook on griddle until golden on both sides.']
+              : ['ตีไข่ เนยละลาย และ$ingredientเข้าด้วยกัน', 'ใส่แป้งลงไป ตะล่อมเบาๆ พอเข้ากัน', 'หยอดลงกระทะทาเนย พลิกกลับด้านจนเหลืองทอง'],
+        ),
+        RecipeModel(
+          id: 'recipe_quick_bev_4',
+          title: isEn ? 'Silky Chia Seed Pudding with $displayIngredient' : 'พุดดิ้งเมล็ดเจียเนื้อละมุนผสม$ingredient',
+          description: isEn ? 'Healthy zero-waste breakfast or dessert bowl.' : 'อาหารเช้าหรือของหวานคลีนๆ อิ่มท้องนาน ดีต่อสุขภาพ',
+          imageUrl: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? ['1 cup $displayIngredient', '3 tbsp chia seeds', '1 tsp vanilla or honey', 'Fresh fruit for topping']
+              : ['$ingredient 1 ถ้วย', 'เมล็ดเจีย 3 ช้อนโต๊ะ', 'น้ำผึ้งหรือวานิลลา 1 ช้อนชา', 'ผลไม้สดสำหรับโรยหน้า'],
+          steps: isEn
+              ? ['Stir $displayIngredient, chia seeds, and honey in a glass jar.', 'Let rest or chill until thickened.', 'Top with fruit and spoon away.']
+              : ['คน$ingredient เมล็ดเจีย และน้ำผึ้งให้เข้ากันในขวดโหล', 'ทิ้งไว้หรือแช่ตู้เย็นจนเมล็ดเจียพองตัวเป็นเนื้อพุดดิ้ง', 'โรยผลไม้สด พร้อมตักทาน'],
+        ),
+        RecipeModel(
+          id: 'recipe_quick_bev_5',
+          title: isEn ? 'Golden French Toast Soaked in $displayIngredient' : 'เฟรนช์โทสต์หอมเนยชุบ$ingredient',
+          description: isEn ? 'Custardy inside, golden-crisp outside breakfast classic.' : 'นุ่มชุ่มฉ่ำด้านใน หอมกรอบด้านนอก ทำง่ายสุดๆ',
+          imageUrl: 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '10 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? ['1/3 cup $displayIngredient', '2 thick bread slices', '1 egg', '1 tbsp butter']
+              : ['$ingredient 1/3 ถ้วย', 'ขนมปังแผ่นหนา 2 แผ่น', 'ไข่ไก่ 1 ฟอง', 'เนยสดสำหรับทอด 1 ช้อนโต๊ะ'],
+          steps: isEn
+              ? ['Beat egg with $displayIngredient in a dish.', 'Dip bread to coat thoroughly.', 'Pan-fry in butter over medium heat until browned.']
+              : ['ตอกไข่ตีผสมกับ$ingredientในจาน', 'นำขนมปังลงชุบให้ชุ่มทั้งสองด้าน', 'ทอดในกระทะใส่เนยจนเหลืองทองสวยทั้งสองด้าน'],
+        ),
+        RecipeModel(
+          id: 'recipe_quick_bev_6',
+          title: isEn ? 'Warm Spiced $displayIngredient Latte' : 'เครื่องดื่มลาเต้อุ่นละมุนใส่$ingredient',
+          description: isEn ? 'Soothing, aromatic warm drink for any cozy moment.' : 'หอมกรุ่น อุ่นท้อง สบายใจ ดื่มก่อนนอนหรือช่วงพักผ่อน',
+          imageUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? [displayIngredient, 'Pinch of cinnamon or cocoa', '1 tsp honey or brown sugar']
+              : [ingredient, 'ผงอบเชยหรือผงโกโก้เล็กน้อย', 'น้ำตาลทรายแดงหรือน้ำผึ้ง 1 ช้อนชา'],
+          steps: isEn
+              ? ['Warm $displayIngredient gently in small pot.', 'Whisk into a frothy texture.', 'Pour into mug and dust with cinnamon.']
+              : ['นำ$ingredientตั้งไฟอ่อนในหม้อใบเล็กพออุ่น', 'ใช้ที่ตีฟองนมตีจนขึ้นฟองนุ่ม', 'เทใส่แก้ว โรยผงอบเชยพร้อมดื่ม'],
+        ),
+      ];
+      if (offset > 0 && bevPool.length > 3) {
+        final shift = (offset * 3) % bevPool.length;
+        return [...bevPool.sublist(shift), ...bevPool.sublist(0, shift)];
+      }
+      return bevPool;
+    }
+
+    if (detectedCat == 'sauces') {
+      final saucePool = [
+        RecipeModel(
+          id: 'recipe_quick_sauce_1',
+          title: isEn ? 'Golden Glazed Pan-Sear with $displayIngredient' : 'เมนูย่างเกลซเคลือบซอส$ingredient',
+          description: isEn ? 'Rich, caramelized glaze coated beautifully over protein or veggies.' : 'เคลือบซอสเข้มข้นจนขึ้นเงา หอมอร่อยกลมกล่อม',
+          imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '12 min',
+          difficulty: 'Easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? ['2 tbsp $displayIngredient', 'Tofu, eggs, or protein', '1 tbsp oil or butter', '1 clove garlic']
+              : ['$ingredient 2 ช้อนโต๊ะ', 'เต้าหู้ ไข่ไก่ หรือเนื้อสัตว์', 'น้ำมันหรือเนย 1 ช้อนโต๊ะ', 'กระเทียมสับ 1 กลีบ'],
+          steps: isEn
+              ? ['Pan-sear tofu or protein until golden.', 'Add $displayIngredient and garlic, tossing to coat evenly.', 'Simmer for 1-2 minutes until glossy.']
+              : ['นำเต้าหู้หรือเนื้อสัตว์ลงจี่จนเหลืองสวย', 'ใส่กระเทียมและตัก$ingredientลงไป คลุกเคล้าให้ทั่ว', 'เคี่ยวต่อ 1-2 นาทีจนซอสเคลือบเงาหอม'],
+        ),
+        RecipeModel(
+          id: 'recipe_quick_sauce_2',
+          title: isEn ? 'Quick Tossed Garlic Pasta with $displayIngredient' : 'พาสต้าคลุกซอส$ingredient',
+          description: isEn ? 'Al dente pasta tossed lightly with seasoned sauce.' : 'เส้นพาสต้าเหนียวนุ่มคลุกเคล้าซอสรสเด็ด ทำง่ายในพริบตา',
+          imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281699?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '15 min',
+          difficulty: 'Easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? ['3 tbsp $displayIngredient', '150g pasta', '1 tbsp olive oil', 'Parmesan or black pepper']
+              : ['$ingredient 3 ช้อนโต๊ะ', 'เส้นพาสต้า 150 กรัม', 'น้ำมันมะกอก 1 ช้อนโต๊ะ', 'พริกไทยดำหรือชีสโรยหน้า'],
+          steps: isEn
+              ? ['Boil pasta until al dente and drain.', 'Warm $displayIngredient in pan with olive oil.', 'Toss pasta into sauce until evenly coated.']
+              : ['ต้มเส้นพาสต้าในน้ำเดือดจนสุกพอดี', 'อุ่น$ingredientในกระทะกับน้ำมันมะกอกด้วยไฟอ่อน', 'นำเส้นลงคลุกเคล้าจนซอสเคลือบเส้นทั่ว'],
+        ),
+        RecipeModel(
+          id: 'recipe_quick_sauce_3',
+          title: isEn ? 'Crisp Garden Salad with $displayIngredient Dressing' : 'สลัดผักกรอบราดน้ำสลัด$ingredient',
+          description: isEn ? 'Vibrant fresh greens elevated with delicious sauce.' : 'ผักกรอบสดชื่น เข้ากันดีเยี่ยมกับซอสรสกลมกล่อม',
+          imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_spinach.png',
+          cookingTime: '8 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? ['2 tbsp $displayIngredient', 'Fresh salad greens, tomatoes', '1 tsp olive oil or lemon juice']
+              : ['$ingredient 2 ช้อนโต๊ะ', 'ผักสลัดรวม มะเขือเทศ', 'น้ำมันมะกอกหรือน้ำมะนาว 1 ช้อนชา'],
+          steps: isEn
+              ? ['Rinse and chop vegetables.', 'Whisk $displayIngredient with oil or lemon.', 'Drizzle over salad and toss lightly.']
+              : ['ล้างผักสด หั่นชิ้นพอดีคำ', 'ผสม$ingredientกับน้ำมันมะกอกหรือมะนาว', 'ราดลงบนผักสลัด คลุกเคล้าพร้อมเสิร์ฟ'],
+        ),
+        RecipeModel(
+          id: 'recipe_quick_sauce_4',
+          title: isEn ? 'Cheesy Melt Toast with $displayIngredient Spread' : 'โทสต์อบชีสทา$ingredient',
+          description: isEn ? 'Toasty bread with savory sauce and melted cheese.' : 'ขนมปังปิ้งกรอบนอกนุ่มใน ทาซอสเข้มข้นอบชีสเยิ้มๆ',
+          imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '8 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? ['1-2 tbsp $displayIngredient', '2 bread slices', '1 slice cheese', 'Butter']
+              : ['$ingredient 1-2 ช้อนโต๊ะ', 'ขนมปัง 2 แผ่น', 'ชีส 1 แผ่น', 'เนยสด'],
+          steps: isEn
+              ? ['Spread $displayIngredient onto bread.', 'Top with cheese and toast until bubbly and melted.', 'Serve hot.']
+              : ['ทา$ingredientให้ทั่วขนมปัง', 'วางชีสลงไป นำเข้าเตาอบจนชีสละลายเยิ้ม', 'เสิร์ฟร้อนๆ'],
+        ),
+        RecipeModel(
+          id: 'recipe_quick_sauce_5',
+          title: isEn ? 'Savory Rice Bowl with $displayIngredient Drizzle' : 'ข้าวหน้าไข่ราดซอส$ingredient',
+          description: isEn ? 'Comforting warm rice bowl topped with tasty sauce.' : 'ข้าวสวยร้อนๆ ท็อปไข่ดาวหรือไข่ข้น ราดซอสฉ่ำๆ',
+          imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '10 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? ['2 tbsp $displayIngredient', '1 bowl warm rice', '1 fried or poached egg', 'Spring onions']
+              : ['$ingredient 2 ช้อนโต๊ะ', 'ข้าวสวยร้อนๆ 1 ถ้วย', 'ไข่ดาวหรือไข่ต้มยางมะตูม 1 ฟอง', 'ต้นหอมซอย'],
+          steps: isEn
+              ? ['Scoop warm rice into bowl and place egg on top.', 'Drizzle $displayIngredient generously over egg and rice.', 'Garnish with spring onions.']
+              : ['ตักข้าวใส่ชาม วางไข่ดาวด้านบน', 'ราด$ingredientลงบนไข่และข้าวขณะร้อนๆ', 'โรยต้นหอมซอย พร้อมทาน'],
+        ),
+        RecipeModel(
+          id: 'recipe_quick_sauce_6',
+          title: isEn ? 'Crispy Finger Food with Zesty $displayIngredient Dip' : 'ชุดของว่างพร้อมดิปซอส$ingredient',
+          description: isEn ? 'Crisp bites paired with an irresistible dipping sauce.' : 'ของทานเล่นกรอบๆ จิ้มซอสรสกลมกล่อม เพลินสุดๆ',
+          imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_nuggets.png',
+          cookingTime: '10 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: isEn
+              ? ['3 tbsp $displayIngredient', 'Crackers, nuggets, or potato wedges', 'Fresh herbs or lime']
+              : ['$ingredient 3 ช้อนโต๊ะ', 'มันฝรั่งทอด นักเก็ต หรือของทานเล่น', 'มะนาวหรือผักชีซอย'],
+          steps: isEn
+              ? ['Transfer $displayIngredient into small dipping bowl.', 'Season lightly if desired.', 'Serve alongside warm crispy snacks.']
+              : ['ตัก$ingredientใส่ถ้วยน้ำจิ้ม', 'ปรุงแต่งด้วยพริกไทยหรือมะนาวตามชอบ', 'จัดเสิร์ฟคู่ของทานเล่นกรอบๆ'],
+        ),
+      ];
+      if (offset > 0 && saucePool.length > 3) {
+        final shift = (offset * 3) % saucePool.length;
+        return [...saucePool.sublist(shift), ...saucePool.sublist(0, shift)];
+      }
+      return saucePool;
+    }
 
     if (lower.contains('spinach')) {
       return [
@@ -695,9 +971,6 @@ class AiRepository {
     }
 
     // Default 12 zero-waste recipes specifically tailored to `ingredient` (e.g. Smoked Cocktail Sausage, chicken, egg, pork, etc.)
-    final isEn = language == 'en';
-    final displayIngredient = isEn ? translateThaiToEnglish(ingredient) : ingredient;
-
     final defaultPool = [
       RecipeModel(
         id: 'recipe_quick_1',

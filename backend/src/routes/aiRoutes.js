@@ -52,7 +52,7 @@ router.get('/recipes/quota', authenticateToken, (req, res) => {
 
 router.post('/recipes', authenticateToken, async (req, res, next) => {
   try {
-    const { mainIngredient, language, offset } = req.body;
+    const { mainIngredient, category, language, offset } = req.body;
     if (!mainIngredient || typeof mainIngredient !== 'string' || mainIngredient.trim().length === 0) {
       return res.status(400).json({ error: 'mainIngredient is required' });
     }
@@ -61,6 +61,7 @@ router.post('/recipes', authenticateToken, async (req, res, next) => {
     const result = await suggestRecipes({
       userId,
       mainIngredient: mainIngredient.trim(),
+      category: category || req.query.category,
       language: language || 'en',
       offset: typeof offset === 'number' ? offset : 0,
     });

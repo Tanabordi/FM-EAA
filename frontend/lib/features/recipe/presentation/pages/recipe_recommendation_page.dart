@@ -19,11 +19,13 @@ import 'recipe_detail_page.dart';
 class RecipeRecommendationPage extends ConsumerStatefulWidget {
   final String fridgeId;
   final String initialIngredient;
+  final String? category;
 
   const RecipeRecommendationPage({
     super.key,
     required this.fridgeId,
     this.initialIngredient = '',
+    this.category,
   });
 
   @override
@@ -32,6 +34,7 @@ class RecipeRecommendationPage extends ConsumerStatefulWidget {
 
 class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationPage> {
   late String _currentIngredient;
+  String? _category;
   List<RecipeModel> _recipes = [];
   bool _isLoading = true;
   bool _isRegenerating = false;
@@ -47,6 +50,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   @override
   void initState() {
     super.initState();
+    _category = widget.category;
     _currentIngredient = widget.initialIngredient.trim().isEmpty
         ? 'Strawberries'
         : widget.initialIngredient.trim();
@@ -92,6 +96,9 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   @override
   void didUpdateWidget(covariant RecipeRecommendationPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.category != widget.category) {
+      _category = widget.category;
+    }
     if (oldWidget.initialIngredient != widget.initialIngredient && widget.initialIngredient.isNotEmpty) {
       _currentIngredient = widget.initialIngredient.trim();
       _isLoading = true;
@@ -433,6 +440,162 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
     // Default 6 fallback recipes for custom ingredient
     final displayIngredient = AiRepository.translateThaiToEnglish(ingredient);
+    final detectedCat = AiRepository.detectCategory(ingredient, _category);
+
+    if (detectedCat == 'beverages') {
+      return [
+        RecipeModel(
+          id: 'recipe_local_bev_1',
+          title: 'Refreshing Iced $displayIngredient Splash',
+          description: 'Cool, vibrant, and incredibly refreshing beverage.',
+          imageUrl: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: [displayIngredient, '1 cup ice cubes', '1 tbsp honey or syrup', 'Fresh mint or citrus slice'],
+          steps: ['Pour $displayIngredient over ice cubes in a glass.', 'Stir in honey or syrup to taste.', 'Garnish with mint and enjoy chilled.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_bev_2',
+          title: 'Creamy $displayIngredient Smoothie',
+          description: 'Rich, velvety smoothie blended to perfection.',
+          imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: [displayIngredient, '1/2 cup yogurt', '1 banana or frozen berries', '1 tbsp honey'],
+          steps: ['Add $displayIngredient, yogurt, and fruit to blender.', 'Blend on high until silky smooth.', 'Serve immediately.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_bev_3',
+          title: 'Golden Fluffy Pancakes with $displayIngredient',
+          description: 'Light, airy breakfast pancakes infused with rich flavor.',
+          imageUrl: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '15 min',
+          difficulty: 'Easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['1/2 cup $displayIngredient', '1 cup flour', '1 egg', '1 tbsp melted butter', 'Syrup'],
+          steps: ['Whisk egg, butter, and $displayIngredient together.', 'Gently fold in flour.', 'Cook on hot buttered pan until golden on both sides.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_bev_4',
+          title: 'Silky Chia Seed Pudding with $displayIngredient',
+          description: 'Healthy zero-waste breakfast or dessert bowl.',
+          imageUrl: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['1 cup $displayIngredient', '3 tbsp chia seeds', '1 tsp honey', 'Fresh fruits'],
+          steps: ['Stir $displayIngredient and chia seeds together in a jar.', 'Let sit or chill until set into thick pudding.', 'Top with fruit.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_bev_5',
+          title: 'Golden French Toast with $displayIngredient',
+          description: 'Custardy inside, golden-crisp outside breakfast classic.',
+          imageUrl: 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '10 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['1/3 cup $displayIngredient', '2 thick bread slices', '1 egg', 'Butter for pan'],
+          steps: ['Beat egg with $displayIngredient in a shallow dish.', 'Coat bread slices evenly.', 'Pan-fry in butter until golden brown.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_bev_6',
+          title: 'Warm Spiced $displayIngredient Latte',
+          description: 'Soothing, aromatic warm drink for any cozy moment.',
+          imageUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: [displayIngredient, 'Pinch of cinnamon', '1 tsp honey or brown sugar'],
+          steps: ['Warm $displayIngredient gently in small pot.', 'Whisk into a frothy texture.', 'Pour into mug and dust with cinnamon.'],
+        ),
+      ];
+    }
+
+    if (detectedCat == 'sauces') {
+      return [
+        RecipeModel(
+          id: 'recipe_local_sauce_1',
+          title: 'Golden Glazed Pan-Sear with $displayIngredient',
+          description: 'Rich, caramelized glaze coated beautifully over protein or veggies.',
+          imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '12 min',
+          difficulty: 'Easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['2 tbsp $displayIngredient', 'Tofu or protein of choice', '1 tbsp oil or butter', '1 clove garlic'],
+          steps: ['Pan-sear protein or tofu until browned.', 'Add $displayIngredient and garlic, tossing to coat evenly.', 'Simmer for 1-2 minutes until glossy.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_sauce_2',
+          title: 'Quick Tossed Garlic Pasta with $displayIngredient',
+          description: 'Al dente pasta tossed lightly with seasoned sauce.',
+          imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281699?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '15 min',
+          difficulty: 'Easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['3 tbsp $displayIngredient', '150g pasta', '1 tbsp olive oil', 'Parmesan or black pepper'],
+          steps: ['Boil pasta until al dente, drain.', 'Warm $displayIngredient in pan with olive oil.', 'Toss pasta into sauce until evenly coated.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_sauce_3',
+          title: 'Crisp Garden Salad with $displayIngredient Dressing',
+          description: 'Vibrant fresh greens elevated with delicious sauce.',
+          imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_spinach.png',
+          cookingTime: '8 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['2 tbsp $displayIngredient', 'Fresh salad greens, tomatoes', '1 tsp olive oil or lemon juice'],
+          steps: ['Rinse and chop vegetables.', 'Whisk $displayIngredient with oil or lemon.', 'Drizzle over salad and toss lightly.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_sauce_4',
+          title: 'Cheesy Melt Toast with $displayIngredient Spread',
+          description: 'Toasty bread with savory sauce and melted cheese.',
+          imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '8 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['1-2 tbsp $displayIngredient', '2 bread slices', '1 slice cheese', 'Butter'],
+          steps: ['Spread $displayIngredient onto bread.', 'Top with cheese and toast until bubbly and melted.', 'Serve hot.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_sauce_5',
+          title: 'Savory Rice Bowl with $displayIngredient Drizzle',
+          description: 'Comforting warm rice bowl topped with tasty sauce.',
+          imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '10 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['2 tbsp $displayIngredient', '1 bowl warm rice', '1 fried or poached egg', 'Spring onions'],
+          steps: ['Scoop warm rice into bowl and place egg on top.', 'Drizzle $displayIngredient generously over egg and rice.', 'Garnish with spring onions.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_sauce_6',
+          title: 'Crispy Finger Food with Zesty $displayIngredient Dip',
+          description: 'Crisp bites paired with an irresistible dipping sauce.',
+          imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_nuggets.png',
+          cookingTime: '10 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['3 tbsp $displayIngredient', 'Crackers, nuggets, or potato wedges', 'Fresh herbs or lime'],
+          steps: ['Transfer $displayIngredient into small dipping bowl.', 'Season lightly if desired.', 'Serve alongside warm crispy snacks.'],
+        ),
+      ];
+    }
+
     return [
       RecipeModel(
         id: 'recipe_local_1',
@@ -519,6 +682,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       final lang = ref.read(localeProvider).languageCode;
       final result = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
+        category: _category,
         language: lang,
         offset: 0,
       );
@@ -620,6 +784,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       final nextCount = (_usedCount + 1).clamp(1, _maxDailyQuota);
       final result = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
+        category: _category,
         language: lang,
         offset: _usedCount,
       );
