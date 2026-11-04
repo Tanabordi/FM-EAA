@@ -485,6 +485,17 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
     );
   }
 
+  /// Upsert remote items (with isSynced = true)
+  Future<void> upsertItemsFromRemote(List<ItemEntry> items) async {
+    await batch((batch) {
+      batch.insertAll(
+        itemsTable,
+        items.map((i) => i.toCompanion(true)),
+        mode: InsertMode.insertOrReplace,
+      );
+    });
+  }
+
   /// Get items expiring soon (e.g. within threshold days)
   Future<List<ItemEntry>> getExpiringSoonItems(String fridgeId, {int daysThreshold = 2}) {
     final now = DateTime.now();
@@ -623,6 +634,7 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
 class AppDatabaseSkeleton {
   Future<List<Map<String, dynamic>>> getUnsyncedItems(String fridgeId) async => [];
   Future<void> markItemSynced(String itemId) async {}
+  Future<void> upsertRemoteItem(Map<String, dynamic> item) async {}
   Future<void> cleanOldConsumedHistory() async {}
 }
 
@@ -671,6 +683,28 @@ class AppDatabase extends _$AppDatabase implements AppDatabaseSkeleton {
   @override
   Future<void> markItemSynced(String itemId) async {
     await itemDao.markItemSynced(itemId);
+  }
+
+  @override
+  Future<void> upsertRemoteItem(Map<String, dynamic> item) async {
+    final expiry = DateTime.tryParse(item['expiry_date'] ?? item['expiryDate'] ?? '') ?? DateTime.now();
+    final updated = DateTime.tryParse(item['updated_at'] ?? item['updatedAt'] ?? '') ?? DateTime.now();
+    await into(itemsTable).insert(
+      ItemsTableCompanion.insert(
+        id: (item['id'] ?? '') as String,
+        fridgeId: (item['fridge_id'] ?? item['fridgeId'] ?? '') as String,
+        name: (item['name'] ?? 'Untitled') as String,
+        category: (item['category'] ?? 'meals') as String,
+        zone: (item['zone'] ?? 'fridge') as String,
+        quantity: Value((item['quantity'] as num?)?.toDouble() ?? 1.0),
+        unit: Value((item['unit'] ?? 'pieces') as String),
+        expiryDate: expiry,
+        imagePath: Value((item['image_path'] ?? item['imagePath']) as String?),
+        isSynced: const Value(true),
+        updatedAt: Value(updated),
+      ),
+      mode: InsertMode.insertOrReplace,
+    );
   }
 
   @override
