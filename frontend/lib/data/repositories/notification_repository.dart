@@ -17,7 +17,10 @@ class NotificationRepository {
   Stream<List<NotificationModel>> watchNotifications(String userId) {
     return database
         .watchNotifications(userId)
-        .map((entries) => entries.map(NotificationModel.fromEntry).toList());
+        .map((entries) => entries
+            .where((e) => !e.id.startsWith('notif_demo_'))
+            .map(NotificationModel.fromEntry)
+            .toList());
   }
 
   /// Watch unread notifications count for a user
@@ -28,24 +31,45 @@ class NotificationRepository {
   /// Get notifications for a user from Drift SQLite
   Future<List<NotificationModel>> getNotifications(String userId) async {
     final entries = await database.getNotifications(userId);
-    return entries.map(NotificationModel.fromEntry).toList();
+    return entries
+        .where((e) => !e.id.startsWith('notif_demo_'))
+        .map(NotificationModel.fromEntry)
+        .toList();
   }
 
   /// Fetch notifications from Backend API and sync into local Drift SQLite database
   Future<List<NotificationModel>> syncNotifications(String userId) async {
+    // Purge any legacy demo notifications
+    try {
+      await database.purgeDemoNotifications();
+    } catch (_) {}
+
     try {
       final response = await apiClient.dio.get('/notifications');
       if (response.statusCode == 200 && response.data != null) {
         final rawList = response.data['notifications'];
         if (rawList is List) {
           final models = <NotificationModel>[];
+          final remoteIds = <String>{};
           for (final raw in rawList) {
             if (raw is Map<String, dynamic>) {
               final model = NotificationModel.fromJson(raw);
               await insertNotification(model);
               models.add(model);
+              remoteIds.add(model.id);
             }
           }
+
+          // Reconcile: delete local notifications for this user that no longer exist on server
+          try {
+            final localEntries = await database.getNotifications(userId);
+            for (final entry in localEntries) {
+              if (!remoteIds.contains(entry.id) || entry.id.startsWith('notif_demo_')) {
+                await database.deleteNotification(entry.id);
+              }
+            }
+          } catch (_) {}
+
           return models;
         }
       }
@@ -138,44 +162,8 @@ class NotificationRepository {
     }
   }
 
-  /// Seed initial demo notifications matching Figma mockup if empty (offline / test fallback)
-  Future<void> seedInitialNotificationsIfEmpty(String userId) async {
-    final existing = await database.getNotifications(userId);
-    if (existing.isNotEmpty) return;
-
-    final now = DateTime.now();
-
-    // 1. Family Invitation Card: "John invited you to join 'Home Fridge'"
-    final invitePayload = jsonEncode({
-      'title': 'Fridge Invitation',
-      'message': "John invited you to join 'Home Fridge'",
-      'fridge_id': 'fridge_home',
-      'invite_id': 'invite_john_home',
-    });
-
-    await database.insertNotification(
-      id: 'notif_demo_invite',
-      userId: userId,
-      type: 'invite',
-      payloadJson: invitePayload,
-      isRead: false,
-      createdAt: now.subtract(const Duration(minutes: 45)),
-    );
-
-    // 2. Expiry Warning Card: "Milk expires tomorrow"
-    final expiryPayload = jsonEncode({
-      'title': 'Milk expires tomorrow',
-      'message': 'Remember to consume before expiry.',
-      'fridge_id': 'fridge_home',
-    });
-
-    await database.insertNotification(
-      id: 'notif_demo_expiry',
-      userId: userId,
-      type: 'expiry',
-      payloadJson: expiryPayload,
-      isRead: false,
-      createdAt: now.subtract(const Duration(hours: 2, minutes: 15)),
-    );
+  /// Purge all legacy mock demo notifications
+  Future<void> purgeDemoNotifications() async {
+    await database.purgeDemoNotifications();
   }
 }

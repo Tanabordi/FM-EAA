@@ -738,6 +738,11 @@ class AppDatabase extends _$AppDatabase implements AppDatabaseSkeleton {
   Future<int> clearNotifications(String userId) {
     return (delete(notifications)..where((t) => t.userId.equals(userId))).go();
   }
+
+  /// Purge all legacy mock demo notifications
+  Future<int> purgeDemoNotifications() {
+    return (delete(notifications)..where((t) => t.id.like('notif_demo_%'))).go();
+  }
 }
 
 QueryExecutor _openConnection() {

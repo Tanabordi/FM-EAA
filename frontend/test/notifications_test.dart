@@ -189,18 +189,33 @@ void main() {
       expect(list.isEmpty, true);
     });
 
-    test('seedInitialNotificationsIfEmpty seeds invite and expiry cards', () async {
-      await notificationRepo.seedInitialNotificationsIfEmpty('user_1');
+    test('purgeDemoNotifications removes all mockup demo notifications', () async {
+      await notificationRepo.insertNotification(
+        NotificationModel(
+          id: 'notif_demo_invite',
+          userId: 'user_1',
+          type: 'invite',
+          title: 'Demo',
+          message: 'Demo invite',
+          createdAt: DateTime.now(),
+        ),
+      );
+      await notificationRepo.insertNotification(
+        NotificationModel(
+          id: 'real_notif',
+          userId: 'user_1',
+          type: 'expiry',
+          title: 'Real',
+          message: 'Real alert',
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      await notificationRepo.purgeDemoNotifications();
 
       final list = await notificationRepo.getNotifications('user_1');
-      expect(list.length, 2);
-      expect(list.any((n) => n.isInvite), true);
-      expect(list.any((n) => n.isExpiry), true);
-
-      // Verify no duplicates on second call
-      await notificationRepo.seedInitialNotificationsIfEmpty('user_1');
-      final list2 = await notificationRepo.getNotifications('user_1');
-      expect(list2.length, 2);
+      expect(list.length, 1);
+      expect(list.first.id, 'real_notif');
     });
   });
 

@@ -32,10 +32,7 @@ final defaultNotificationsStreamProvider = StreamProvider<List<NotificationModel
   final repo = ref.watch(notificationRepositoryProvider);
 
   // Sync with remote backend API in the background
-  unawaited(repo.syncNotifications(userId).catchError((_) async {
-    await repo.seedInitialNotificationsIfEmpty(userId).catchError((_) {});
-    return <NotificationModel>[];
-  }));
+  unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
 
   return repo.watchNotifications(userId);
 });
