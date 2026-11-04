@@ -261,7 +261,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
                   int displayCount = fridge.itemCount;
                   if (liveItems.isNotEmpty || isMock) {
                     displayCount = liveItems
-                        .where((it) => it.status != FreshnessStatus.expired && it.quantity > 0)
+                        .where((it) => it.quantity > 0)
                         .length;
                   }
 

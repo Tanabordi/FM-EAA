@@ -367,15 +367,10 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
     return count > 0;
   }
 
-  /// Get count of active non-expired items with quantity > 0 in a fridge
+  /// Get count of items with quantity > 0 in a fridge
   Future<int> getActiveItemCount(String fridgeId) async {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
     final items = await (select(itemsTable)..where((t) => t.fridgeId.equals(fridgeId))).get();
-    return items.where((it) {
-      final itemDate = DateTime(it.expiryDate.year, it.expiryDate.month, it.expiryDate.day);
-      return !itemDate.isBefore(today) && it.quantity > 0;
-    }).length;
+    return items.where((it) => it.quantity > 0).length;
   }
 
   /// Delete item locally
@@ -528,6 +523,11 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
       (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
     ]);
     return query.get();
+  }
+
+  /// Get a single history record by id
+  Future<ItemHistoryData?> getHistoryItemById(String id) {
+    return (select(itemHistory)..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
   /// Delete a single history record

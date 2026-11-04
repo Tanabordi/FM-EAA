@@ -41,15 +41,15 @@ void main() {
       // Section header
       expect(find.text('Your food'), findsOneWidget);
 
-      // Items in Fridge zone (Default All - Baby spinach is expired so excluded)
-      expect(find.text('Baby spinach'), findsNothing);
+      // Items in Fridge zone (Default All - Baby spinach is expired and shown with Expired badge)
+      expect(find.text('Baby spinach'), findsOneWidget);
       expect(find.text('Strawberries'), findsOneWidget);
       expect(find.text('Avocados'), findsOneWidget);
       expect(find.text('Whole milk'), findsOneWidget);
 
-      // Status Badges & Days remaining text (Expired items hidden from active fridge)
-      expect(find.text('Expired'), findsNothing);
-      expect(find.text('Yesterday'), findsNothing);
+      // Status Badges & Days remaining text (Expired items shown in both fridge and history)
+      expect(find.text('Expired'), findsWidgets);
+      expect(find.text('Yesterday'), findsWidgets);
       expect(find.text('Use soon'), findsWidgets);
       expect(find.text('2 days left'), findsWidgets);
       expect(find.text('Fresh'), findsWidgets);
@@ -79,10 +79,10 @@ void main() {
       expect(find.text('Salmon Fillets'), findsOneWidget);
       expect(find.text('Firm Tofu'), findsOneWidget);
 
-      // 2. Click Veggies -> Strawberries, Avocados, Cherry Tomatoes (Baby spinach expired)
+      // 2. Click Veggies -> Strawberries, Avocados, Cherry Tomatoes, Baby spinach
       await tester.tap(find.text('Veggies'));
       await tester.pumpAndSettle();
-      expect(find.text('Baby spinach'), findsNothing);
+      expect(find.text('Baby spinach'), findsOneWidget);
       expect(find.text('Strawberries'), findsOneWidget);
       expect(find.text('Avocados'), findsOneWidget);
       expect(find.text('Cherry Tomatoes'), findsOneWidget);
@@ -111,10 +111,10 @@ void main() {
       expect(find.text('Sriracha Sauce'), findsOneWidget);
       expect(find.text('Olive Oil'), findsOneWidget);
 
-      // 6. Click All -> Returns to overview
+      // 6. Click All -> Returns to overview (Baby spinach shown with Expired badge)
       await tester.tap(find.text('All'));
       await tester.pumpAndSettle();
-      expect(find.text('Baby spinach'), findsNothing);
+      expect(find.text('Baby spinach'), findsOneWidget);
       expect(find.text('Strawberries'), findsOneWidget);
     });
 

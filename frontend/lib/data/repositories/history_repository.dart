@@ -79,16 +79,37 @@ class HistoryRepository {
 
   /// Optimistic Delete: Deletes a single history record immediately from SQLite and calls backend API
   Future<void> deleteHistoryItem(String historyId, {String? fridgeId}) async {
+    final hist = await database.itemDao.getHistoryItemById(historyId);
+    if (hist != null && hist.kind == 'expired' && hist.itemId != null) {
+      await database.itemDao.deleteItem(hist.itemId!);
+    } else if (historyId.startsWith('exp_')) {
+      final itemId = historyId.substring(4);
+      await database.itemDao.deleteItem(itemId);
+    }
+    await database.itemDao.deleteHistoryItem(historyId);
     if (fridgeId != null) {
       try {
         await apiClient.dio.delete('/fridges/$fridgeId/history/$historyId');
       } catch (_) {}
     }
-    await database.itemDao.deleteHistoryItem(historyId);
   }
 
   /// Clear history for a fridge (optionally filtered by kind: consumed or expired) and calls backend API
   Future<void> clearHistory(String fridgeId, [String? kind]) async {
+    if (kind == 'expired') {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final allItems = await (database.itemDao.select(database.itemDao.itemsTable)
+            ..where((t) => t.fridgeId.equals(fridgeId)))
+          .get();
+      for (final it in allItems) {
+        final expDay = DateTime(it.expiryDate.year, it.expiryDate.month, it.expiryDate.day);
+        if (expDay.isBefore(today) || it.expiryDate.isBefore(now)) {
+          await database.itemDao.deleteItem(it.id);
+        }
+      }
+    }
+    await database.itemDao.clearHistoryByFridge(fridgeId, kind: kind);
     try {
       final queryParams = kind != null ? {'kind': kind} : null;
       await apiClient.dio.delete(
@@ -96,7 +117,6 @@ class HistoryRepository {
         queryParameters: queryParams,
       );
     } catch (_) {}
-    await database.itemDao.clearHistoryByFridge(fridgeId, kind: kind);
   }
 
   /// Clean old consumed history (auto-deleted after 30 days)

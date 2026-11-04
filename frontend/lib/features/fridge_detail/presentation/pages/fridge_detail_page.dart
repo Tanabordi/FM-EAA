@@ -80,9 +80,6 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     final allItems = ref.watch(fridgeItemsProvider(widget.fridgeId));
 
     final items = allItems.where((item) {
-      // Expired items are moved to History/Expired and excluded from active fridge view
-      if (item.status == FreshnessStatus.expired) return false;
-
       final matchesZone = item.zone == filter.zone;
       final matchesCategory = filter.category == 'All' ||
           item.category.toLowerCase() == filter.category.toLowerCase();

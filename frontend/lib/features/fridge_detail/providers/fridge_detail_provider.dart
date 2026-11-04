@@ -62,11 +62,11 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
 
   void _syncFridgeItemCount() {
     if (_ref != null) {
-      final activeCount = state
-          .where((it) => it.status != FreshnessStatus.expired && it.quantity > 0)
+      final totalCount = state
+          .where((it) => it.quantity > 0)
           .length;
       try {
-        _ref!.read(fridgesProvider.notifier).updateItemCount(fridgeId, activeCount);
+        _ref!.read(fridgesProvider.notifier).updateItemCount(fridgeId, totalCount);
       } catch (_) {}
     }
   }
