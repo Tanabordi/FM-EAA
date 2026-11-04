@@ -8,6 +8,8 @@ import '../../domain/models/family_member.dart';
 
 import '../../providers/family_provider.dart';
 import '../widgets/remove_member_dialog.dart';
+import '../../../fridges/presentation/widgets/leave_fridge_dialog.dart';
+import '../../../fridges/providers/fridges_provider.dart';
 
 /// Screen #18: Family Share matching Figma node 11:49 exactly
 class FamilySharePage extends ConsumerStatefulWidget {
@@ -35,6 +37,46 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
         onConfirm: () => _handleRemoveMember(member),
       ),
     );
+  }
+
+  void _showLeaveDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => LeaveFridgeDialog(
+        fridgeId: widget.fridgeId,
+        fridgeName: widget.fridgeName,
+        onConfirm: () => _handleLeaveFridge(),
+      ),
+    );
+  }
+
+  Future<void> _handleLeaveFridge() async {
+    setState(() => _isRemoving = true);
+    final currentUserId = ref.read(authProvider).user?.id ?? '';
+    try {
+      if (currentUserId.isNotEmpty) {
+        await ref
+            .read(familyMembersProvider(widget.fridgeId).notifier)
+            .removeMember(currentUserId);
+      }
+      await ref.read(fridgesProvider.notifier).leaveFridge(widget.fridgeId, currentUserId);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You have left "${widget.fridgeName}"'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      context.go('/fridges');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to leave fridge: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isRemoving = false);
+    }
   }
 
   Future<void> _handleRemoveMember(FamilyMemberItem member) async {
@@ -199,9 +241,10 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                             ? '${member.name} (ME)'
                             : member.name;
 
-                        // Delete button is shown if current user is owner and target is not owner,
-                        // or if member is removing themselves (leaving)
+                        // Delete button is shown if current user is owner and target is not owner
                         final canDelete = isCurrentUserOwner && !member.isOwner;
+                        // Leave button is shown if member is viewing themselves and is not the owner
+                        final isMeAndCanLeave = isMe && !member.isOwner;
 
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -237,6 +280,16 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                                   tooltip: 'Remove ${member.name}',
                                   icon: const Icon(
                                     Icons.delete_outline,
+                                    color: Color(0xFFB91C1C),
+                                    size: 24,
+                                  ),
+                                )
+                              else if (isMeAndCanLeave)
+                                IconButton(
+                                  onPressed: _isRemoving ? null : _showLeaveDialog,
+                                  tooltip: 'Leave Fridge',
+                                  icon: const Icon(
+                                    Icons.exit_to_app_rounded,
                                     color: Color(0xFFB91C1C),
                                     size: 24,
                                   ),
@@ -300,6 +353,26 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                     },
                   ),
                 ),
+                if (!isCurrentUserOwner) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFBA1A1A),
+                        side: const BorderSide(color: Color(0xFFBA1A1A), width: 1.5),
+                        shape: const StadiumBorder(),
+                      ),
+                      icon: const Icon(Icons.exit_to_app_rounded, size: 20),
+                      label: const Text(
+                        'Leave Fridge',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: _isRemoving ? null : _showLeaveDialog,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

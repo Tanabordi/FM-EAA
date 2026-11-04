@@ -150,6 +150,17 @@ class FridgeRepository {
     } catch (_) {}
   }
 
+  /// Leave Fridge: removes current user from fridge and clears local SQLite cache
+  Future<void> leaveFridge(String id, String userId) async {
+    try {
+      await apiClient.dio.delete('/fridges/$id/members/$userId');
+    } catch (_) {}
+
+    try {
+      await database.fridgeDao.deleteFridge(id);
+    } catch (_) {}
+  }
+
   /// Query all unsynced fridges
   Future<List<FridgeModel>> getUnsyncedFridges() async {
     try {

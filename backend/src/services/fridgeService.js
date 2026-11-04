@@ -201,6 +201,12 @@ class FridgeService {
         throw err;
       }
 
+      if (access.role !== 'owner') {
+        const err = new Error('Only the fridge owner can update this fridge');
+        err.statusCode = 403;
+        throw err;
+      }
+
       const updates = [];
       const params = [];
 

@@ -5,7 +5,9 @@ import '../../../../shared/widgets/fridge_card.dart';
 import '../widgets/cute_fridge_illustration.dart';
 import '../widgets/edit_fridge_sheet.dart';
 import '../widgets/delete_fridge_dialog.dart';
+import '../widgets/leave_fridge_dialog.dart';
 import '../../providers/fridges_provider.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 
 /// Screen #5: My Fridges (Supports both Empty State [Image 1] and Populated State [Image 2 / 10])
@@ -267,6 +269,9 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
                       ? 'Empty'
                       : (displayCount == 1 ? '1 Item' : '$displayCount Items');
 
+                  final currentUserId = ref.watch(authProvider).user?.id;
+                  final isOwner = fridge.isUserOwner(currentUserId);
+
                   return FridgeCard(
                     name: fridge.name,
                     description: fridge.description,
@@ -280,26 +285,49 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
                       }
                     },
                     onLongPress: () {
-                      showDialog(
-                        context: context,
-                        useRootNavigator: true,
-                        builder: (_) => DeleteFridgeDialog(
-                          fridgeId: fridge.id,
-                          fridgeName: fridge.name,
-                        ),
-                      );
+                      if (isOwner) {
+                        showDialog(
+                          context: context,
+                          useRootNavigator: true,
+                          builder: (_) => DeleteFridgeDialog(
+                            fridgeId: fridge.id,
+                            fridgeName: fridge.name,
+                          ),
+                        );
+                      } else {
+                        showDialog(
+                          context: context,
+                          useRootNavigator: true,
+                          builder: (_) => LeaveFridgeDialog(
+                            fridgeId: fridge.id,
+                            fridgeName: fridge.name,
+                            onConfirm: () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              await ref.read(fridgesProvider.notifier).leaveFridge(fridge.id, currentUserId);
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text('Left "${fridge.name}" successfully'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      }
                     },
-                    onMoreOptions: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: const Color(0xFFF6FBF3),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                        ),
-                        builder: (_) => EditFridgeSheet(fridge: fridge),
-                      );
-                    },
+                    onMoreOptions: isOwner
+                        ? () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: const Color(0xFFF6FBF3),
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                              ),
+                              builder: (_) => EditFridgeSheet(fridge: fridge),
+                            );
+                          }
+                        : null,
                   );
                 },
               );
