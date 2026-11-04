@@ -9,6 +9,24 @@ class NotificationService {
     let conn;
     try {
       conn = await db.getDbConnection();
+
+      // Purge any stale invite notifications whose invite status in fridge_invites is no longer pending
+      try {
+        await conn.execute(`
+          DELETE FROM notifications n
+          WHERE n.user_id = :userId
+            AND n.type = 'invite'
+            AND EXISTS (
+              SELECT 1 FROM fridge_invites fi
+              WHERE n.payload_json LIKE '%' || fi.id || '%'
+                AND fi.status IN ('accepted', 'declined')
+            )
+        `, [userId]);
+        await conn.commit();
+      } catch (cleanErr) {
+        console.warn('[NotificationService] Clean stale invites warning:', cleanErr.message);
+      }
+
       const sql = `
         SELECT id, user_id, type, payload_json, is_read,
                TO_CHAR(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at

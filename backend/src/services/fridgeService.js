@@ -673,9 +673,19 @@ class FridgeService {
       }
 
       if (status !== 'pending') {
-        const err = new Error(`Invitation has already been ${status}`);
-        err.statusCode = 400;
-        throw err;
+        // If invitation was already resolved, ensure invite notifications are deleted
+        await conn.execute(
+          `DELETE FROM notifications 
+           WHERE user_id = :userId AND payload_json LIKE :pattern`,
+          [currentUserId, `%"invite_id":"${inviteId}"%`]
+        );
+        await conn.commit();
+        return {
+          success: true,
+          message: `Invitation has already been ${status}`,
+          status,
+          fridgeId,
+        };
       }
 
       const newStatus = accept ? 'accepted' : 'declined';
@@ -721,11 +731,11 @@ class FridgeService {
         }
       }
 
-      // 3. Mark notification as read
+      // 3. Delete invite notification from notifications table so it never reappears
       await conn.execute(
-        `UPDATE notifications SET is_read = 1 
+        `DELETE FROM notifications 
          WHERE user_id = :userId AND payload_json LIKE :pattern`,
-        [currentUserId, `%${inviteId}%`]
+        [currentUserId, `%"invite_id":"${inviteId}"%`]
       );
 
       await conn.commit();

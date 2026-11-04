@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../local/app_database.dart';
 import '../models/notification_model.dart';
 import '../remote/api_client.dart';
+import '../../shared/utils/environment.dart';
 
 class NotificationRepository {
   final ApiClient apiClient;
@@ -146,10 +147,20 @@ class NotificationRepository {
     required String? inviteId,
     required bool accept,
   }) async {
-    // Optimistically remove notification locally
+    // 1. Optimistically remove notification locally from SQLite immediately
     await database.deleteNotification(notificationId);
 
-    // Call remote API
+    // Skip remote network calls during widget/unit tests
+    if (isTestEnvironment()) return;
+
+    // 2. Delete notification remotely on backend so it never resurfaces in sync
+    try {
+      await apiClient.dio.delete('/notifications/$notificationId');
+    } catch (e) {
+      debugPrint('[NotificationRepository] delete notification remote error: $e');
+    }
+
+    // 3. Call remote invite response API
     try {
       if (inviteId != null) {
         await apiClient.dio.post(
