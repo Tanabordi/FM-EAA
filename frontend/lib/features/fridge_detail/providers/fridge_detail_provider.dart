@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/freshness_colors.dart';
 import '../../../data/models/item_model.dart';
 import '../../../data/repositories/item_repository.dart';
+import '../../fridges/providers/fridges_provider.dart';
 
 class FridgeFilterState {
   final String category; // 'All', 'Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'
@@ -50,11 +52,23 @@ final fridgeDetailFilterProvider =
 class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
   final String fridgeId;
   final ItemRepository? _repository;
+  final Ref? _ref;
   final Set<String> _consumedIds = {};
 
-  FridgeItemsNotifier(this.fridgeId, [this._repository])
+  FridgeItemsNotifier(this.fridgeId, [this._repository, this._ref])
       : super(getInitialFridgeItems(fridgeId)) {
     _init();
+  }
+
+  void _syncFridgeItemCount() {
+    if (_ref != null) {
+      final totalCount = state
+          .where((it) => it.quantity > 0)
+          .length;
+      try {
+        _ref.read(fridgesProvider.notifier).updateItemCount(fridgeId, totalCount);
+      } catch (_) {}
+    }
   }
 
   void _init() {
@@ -77,6 +91,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
             );
             state = remainingInitial.toList();
           }
+          _syncFridgeItemCount();
         }, onError: (_) {});
       } catch (_) {}
     }
@@ -87,6 +102,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
       final items = await _repository?.getItems(fridgeId);
       if (items != null) {
         state = items;
+        _syncFridgeItemCount();
       }
     } catch (_) {}
   }
@@ -110,6 +126,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
 
   Future<ItemModel> addItem(ItemModel item) async {
     state = [item, ...state];
+    _syncFridgeItemCount();
     if (_repository != null) {
       try {
         final serverItem = await _repository.addItem(item);
@@ -117,6 +134,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
           for (final it in state)
             if (it.id == item.id) serverItem else it,
         ];
+        _syncFridgeItemCount();
         return serverItem;
       } catch (_) {}
     }
@@ -128,6 +146,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
       for (final item in state)
         if (item.id == updated.id) updated else item,
     ];
+    _syncFridgeItemCount();
     if (_repository != null) {
       try {
         await _repository.updateItem(updated);
@@ -138,11 +157,22 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
   Future<void> deleteItem(String id) async {
     _consumedIds.add(id);
     state = state.where((item) => item.id != id).toList();
+    _syncFridgeItemCount();
     if (_repository != null) {
       try {
         await _repository.deleteItem(id);
       } catch (_) {}
     }
+  }
+
+  void removeExpiredItems() {
+    for (final item in state) {
+      if (item.status == FreshnessStatus.expired) {
+        _consumedIds.add(item.id);
+      }
+    }
+    state = state.where((item) => item.status != FreshnessStatus.expired).toList();
+    _syncFridgeItemCount();
   }
 
   Future<void> consumeItem(String id, double amount, bool finishedAll) async {
@@ -173,6 +203,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
             state[i],
       ];
     }
+    _syncFridgeItemCount();
 
     if (_repository != null) {
       try {
@@ -208,6 +239,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
           if (item.id == id) itemToRestore else item,
       ];
     }
+    _syncFridgeItemCount();
 
     _lastConsumedItem = null;
     _lastConsumedIndex = null;
@@ -237,7 +269,7 @@ final fridgeItemsProvider =
   try {
     repo = ref.watch(itemRepositoryProvider);
   } catch (_) {}
-  return FridgeItemsNotifier(fridgeId, repo);
+  return FridgeItemsNotifier(fridgeId, repo, ref);
 });
 
 /// Legacy provider alias watching all fridge items

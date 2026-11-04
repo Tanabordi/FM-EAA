@@ -191,6 +191,7 @@ class ItemRepository {
         imagePath: item.imagePath,
         isSynced: true,
       );
+      await database.itemDao.autoRecordExpiredItems(item.fridgeId);
     } catch (_) {}
   }
 

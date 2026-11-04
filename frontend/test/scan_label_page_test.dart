@@ -12,7 +12,7 @@ class FakeAiRepository extends AiRepository {
   FakeAiRepository() : super(apiClient: ApiClient());
 
   @override
-  Future<AiScanResult> scanLabelBytes(Uint8List bytes, {String? filename}) async {
+  Future<AiScanResult> scanLabelBytes(Uint8List bytes, {String? filename, String language = 'en'}) async {
     return AiScanResult(
       isDetected: true,
       foodName: 'Almond Milk',
@@ -24,7 +24,7 @@ class FakeAiRepository extends AiRepository {
   }
 
   @override
-  Future<AiScanResult> scanLabel(File imageFile) async {
+  Future<AiScanResult> scanLabel(File imageFile, {String language = 'en'}) async {
     return AiScanResult(
       isDetected: true,
       foodName: 'Almond Milk',

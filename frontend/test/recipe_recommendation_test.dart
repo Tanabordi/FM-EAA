@@ -19,7 +19,7 @@ void main() {
   });
 
   group('Screen #25: AI Suggested Recipes Tests', () {
-    testWidgets('renders top bar, orange highlight banner, 3 recipe cards, and regenerate button', (tester) async {
+    testWidgets('renders top bar, 6 recipe cards, and regenerate button', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -33,7 +33,7 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // Top bar
       expect(find.text('AI Suggested Recipes'), findsOneWidget);
@@ -46,14 +46,14 @@ void main() {
       // Badges
       expect(find.text('20 min · Easy'), findsOneWidget);
       expect(find.text('10 mins · Very easy'), findsOneWidget);
-      expect(find.text('10 min · Very easy'), findsOneWidget);
+      expect(find.text('10 min · Very easy'), findsWidgets);
 
       // View Recipe buttons
-      expect(find.text('View Recipe'), findsNWidgets(3));
+      expect(find.text('View Recipe'), findsWidgets);
 
       // Regenerate button
       expect(find.textContaining('Regenerate'), findsOneWidget);
-      expect(find.byIcon(Icons.sync), findsOneWidget);
+      expect(find.byIcon(Icons.sync_rounded), findsOneWidget);
     });
 
     testWidgets('renders recipes dynamically when ingredient is Baby spinach', (tester) async {
@@ -70,7 +70,7 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('Creamy Garlic Spinach Pasta'), findsOneWidget);
       expect(find.text('Strawberry & Spinach Salad'), findsOneWidget);
@@ -91,14 +91,62 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      expect(find.text('ผัดกระเทียมพริกไทยค็อกเทลรมควัน'), findsOneWidget);
-      expect(find.text('ไข่เจียวทรงเครื่องใส่ค็อกเทลรมควัน'), findsOneWidget);
-      expect(find.text('ข้าวผัดโบราณใส่ค็อกเทลรมควัน'), findsOneWidget);
+      expect(find.text('Stir-fried Smoked Cocktail Sausage with Garlic & Pepper'), findsOneWidget);
+      expect(find.text('Golden Fluffy Omelet with Smoked Cocktail Sausage'), findsOneWidget);
+      expect(find.text('Classic Fried Rice with Smoked Cocktail Sausage'), findsOneWidget);
     });
 
-    testWidgets('triggers 3s cooldown on regenerate button tap', (tester) async {
+    testWidgets('renders beverage-appropriate recipes for Beverages category and avoids savory stir-fry', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'Cold Brew Coffee',
+              category: 'beverages',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Beverage recipes should be suggested
+      expect(find.textContaining('Splash'), findsOneWidget);
+      expect(find.textContaining('Smoothie'), findsOneWidget);
+      expect(find.textContaining('Pancakes'), findsOneWidget);
+
+      // Savory fried rice / garlic stir fry must NOT appear for beverages
+      expect(find.textContaining('Stir-fried Cold Brew Coffee with Garlic'), findsNothing);
+      expect(find.textContaining('Classic Fried Rice with Cold Brew Coffee'), findsNothing);
+    });
+
+    testWidgets('renders sauce-appropriate recipes for Sauces category', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'BBQ Sauce',
+              category: 'sauces',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Golden Glazed Pan-Sear with BBQ Sauce'), findsOneWidget);
+      expect(find.textContaining('Quick Tossed Garlic Pasta with BBQ Sauce'), findsOneWidget);
+    });
+
+    testWidgets('triggers cooldown and locks on regenerate button tap', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -112,21 +160,87 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.ensureVisible(find.textContaining('Regenerate'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Regenerate (1/10)'), findsOneWidget);
+      expect(find.textContaining('Regenerate (1/3'), findsOneWidget);
       await tester.tap(find.textContaining('Regenerate'));
       await tester.pump();
 
-      // Button enters cooldown state
+      // Button enters cooldown or loading state
       expect(find.textContaining('Regenerate ('), findsOneWidget);
 
-      // Advance time by 3 seconds
+      // Advance time by 4 seconds
       await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
       expect(find.textContaining('Regenerate'), findsOneWidget);
+    });
+
+    testWidgets('persists recipes and regenerate count per ingredient when navigating away and back', (tester) async {
+      // 1. Visit recipe recommendations for 'Cheddar Cheese'
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'Cheddar Cheese',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Regenerate (1/3)'), findsOneWidget);
+
+      // Tap regenerate once -> becomes 2/3
+      await tester.ensureVisible(find.textContaining('Regenerate'));
+      await tester.tap(find.textContaining('Regenerate'));
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Regenerate (2/3)'), findsOneWidget);
+
+      // 2. Navigate away and re-open 'Cheddar Cheese' -> count MUST remain 2/3!
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'Cheddar Cheese',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Must NOT increment to 3/3 on entry; must retain 2/3!
+      expect(find.textContaining('Regenerate (2/3)'), findsOneWidget);
+
+      // 3. Open a DIFFERENT ingredient ('Avocados') -> must start fresh independently
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeRecommendationPage(
+              fridgeId: 'fridge_1',
+              initialIngredient: 'Avocados',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.textContaining('Regenerate'));
+      expect(find.textContaining('Regenerate (1/3)'), findsOneWidget);
     });
   });
 

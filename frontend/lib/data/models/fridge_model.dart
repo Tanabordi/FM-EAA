@@ -23,7 +23,7 @@ class FridgeModel {
 
   bool get isPersonal => memberCount <= 1;
 
-  String get itemsCountText => itemCount == 0 ? 'Empty' : '$itemCount Items';
+  String get itemsCountText => itemCount == 0 ? 'Empty' : (itemCount == 1 ? '1 Item' : '$itemCount Items');
 
   FridgeModel copyWith({
     String? id,

@@ -219,7 +219,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     ),
                     const SizedBox(height: 12),
                     // Badges Row
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         // Orange Badge: Uses expiring
                         Container(
@@ -235,9 +238,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8),
                         // Time Badge
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -265,7 +269,6 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
                         // Difficulty Badge
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/freshness_colors.dart';
 import '../../../data/models/item_model.dart';
 import '../../fridge_detail/providers/fridge_detail_provider.dart';
 
@@ -11,6 +12,9 @@ final searchResultsProvider = Provider.family<List<ItemModel>, String>((ref, fri
 
   final allItems = ref.watch(allFridgeItemsProvider(fridgeId));
   return allItems.where((item) {
+    // Exclude expired items from search results (moved to History > Expired)
+    if (item.status == FreshnessStatus.expired) return false;
+
     return item.name.toLowerCase().contains(query) ||
         item.category.toLowerCase().contains(query);
   }).toList();

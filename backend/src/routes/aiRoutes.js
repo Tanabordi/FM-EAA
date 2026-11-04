@@ -36,7 +36,8 @@ const handleUpload = (req, res, next) => {
 router.post('/scan-label', authenticateToken, handleUpload, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'image is required' });
-    const result = await scanLabel(req.file.buffer, req.file.mimetype);
+    const language = req.query.language || req.body?.language || 'en';
+    const result = await scanLabel(req.file.buffer, req.file.mimetype, language);
     res.json(result);
   } catch (err) {
     next(err);
@@ -45,13 +46,13 @@ router.post('/scan-label', authenticateToken, handleUpload, async (req, res, nex
 
 router.get('/recipes/quota', authenticateToken, (req, res) => {
   const userId = req.user?.userId || 'anonymous';
-  const quota = getRecipeQuota(userId);
+  const quota = getRecipeQuota(userId, req.query.mainIngredient || req.query.ingredient || '');
   res.json(quota);
 });
 
 router.post('/recipes', authenticateToken, async (req, res, next) => {
   try {
-    const { mainIngredient, language, offset } = req.body;
+    const { mainIngredient, category, language, offset } = req.body;
     if (!mainIngredient || typeof mainIngredient !== 'string' || mainIngredient.trim().length === 0) {
       return res.status(400).json({ error: 'mainIngredient is required' });
     }
@@ -60,7 +61,8 @@ router.post('/recipes', authenticateToken, async (req, res, next) => {
     const result = await suggestRecipes({
       userId,
       mainIngredient: mainIngredient.trim(),
-      language: language || 'th',
+      category: category || req.query.category,
+      language: language || 'en',
       offset: typeof offset === 'number' ? offset : 0,
     });
 
@@ -69,9 +71,9 @@ router.post('/recipes', authenticateToken, async (req, res, next) => {
     if (err.statusCode === 429) {
       return res.status(429).json({
         error: err.message,
-        usedDailyQuota: 10,
-        remainingDailyQuota: 0,
-        maxDailyQuota: 10,
+        usedDailyQuota: err.usedQuota || 3,
+        remainingDailyQuota: err.remainingQuota ?? 0,
+        maxDailyQuota: 3,
       });
     }
     next(err);

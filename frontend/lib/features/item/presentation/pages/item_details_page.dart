@@ -267,7 +267,7 @@ class ItemDetailsPage extends ConsumerWidget {
                 : (item.unit.contains('bottle') ? 'bottle' : 'pieces')),
         onRecommendRecipe: () {
           Navigator.pop(sheetContext);
-          context.push('/fridges/$fridgeId/recipes?ingredient=${Uri.encodeComponent(item.name)}');
+          context.push('/fridges/$fridgeId/recipes?ingredient=${Uri.encodeComponent(item.name)}&category=${Uri.encodeComponent(item.category)}');
         },
         onConsumed: (amount, finishedAll) {
           Navigator.pop(sheetContext); // Close sheet
