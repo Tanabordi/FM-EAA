@@ -47,7 +47,7 @@ class FamilyMembersNotifier extends StateNotifier<FamilyMembersState> {
   void _startPolling() {
     if (isTestEnvironment()) return;
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _silentReload();
     });
   }

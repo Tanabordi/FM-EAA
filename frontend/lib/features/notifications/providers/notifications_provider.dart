@@ -25,9 +25,9 @@ final notificationsStreamProvider = StreamProvider.family<List<NotificationModel
   final repo = ref.watch(notificationRepositoryProvider);
   unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
 
-  // Periodic polling every 10 seconds for real-time notification delivery (skipped during flutter test)
+  // Periodic polling every 2 seconds for real-time notification delivery (skipped during flutter test)
   if (!isTestEnvironment()) {
-    final timer = Timer.periodic(const Duration(seconds: 10), (_) {
+    final timer = Timer.periodic(const Duration(seconds: 2), (_) {
       unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
     });
     ref.onDispose(() => timer.cancel());
@@ -44,9 +44,9 @@ final defaultNotificationsStreamProvider = StreamProvider<List<NotificationModel
   // Sync with remote backend API in the background immediately
   unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
 
-  // Periodic polling every 8 seconds while on the notifications screen (skipped during flutter test)
+  // Periodic polling every 2 seconds while on the notifications screen (skipped during flutter test)
   if (!isTestEnvironment()) {
-    final timer = Timer.periodic(const Duration(seconds: 8), (_) {
+    final timer = Timer.periodic(const Duration(seconds: 2), (_) {
       unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
     });
     ref.onDispose(() => timer.cancel());
@@ -63,9 +63,9 @@ final unreadNotificationCountProvider = StreamProvider<int>((ref) {
   // Sync initially in the background
   unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
 
-  // Periodic polling every 10 seconds to update badge without page refresh (skipped during flutter test)
+  // Periodic polling every 2 seconds to update badge without page refresh (skipped during flutter test)
   if (!isTestEnvironment()) {
-    final timer = Timer.periodic(const Duration(seconds: 10), (_) {
+    final timer = Timer.periodic(const Duration(seconds: 2), (_) {
       unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
     });
     ref.onDispose(() => timer.cancel());

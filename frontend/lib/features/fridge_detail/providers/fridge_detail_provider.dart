@@ -83,10 +83,10 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
         }, onError: (_) {});
       } catch (_) {}
 
-      // Periodic auto-refresh every 8 seconds while viewing fridge (skipped in flutter test)
+      // Periodic auto-refresh every 2 seconds while viewing fridge (skipped in flutter test)
       if (!isTestEnvironment()) {
         _pollingTimer?.cancel();
-        _pollingTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+        _pollingTimer = Timer.periodic(const Duration(seconds: 2), (_) {
           _loadItemsFromApi();
         });
       }

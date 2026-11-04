@@ -40,7 +40,7 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
   void _startPolling() {
     if (isTestEnvironment()) return;
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 12), (_) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       loadFridges();
     });
   }
