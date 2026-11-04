@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/theme/freshness_colors.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/category_chips.dart';
@@ -83,6 +84,9 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     final allItems = ref.watch(fridgeItemsProvider(widget.fridgeId));
 
     final items = allItems.where((item) {
+      // Expired items are moved to History/Expired and excluded from active fridge view
+      if (item.status == FreshnessStatus.expired) return false;
+
       final matchesZone = item.zone == filter.zone;
       final matchesCategory = filter.category == 'All' ||
           item.category.toLowerCase() == filter.category.toLowerCase();

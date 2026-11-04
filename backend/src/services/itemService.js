@@ -354,6 +354,41 @@ class ItemService {
       await conn.execute(sql, params);
       await conn.commit();
 
+      // If item was updated to an expired date, record to item_history immediately
+      if (itemData.expiryDate !== undefined) {
+        try {
+          const expDate = new Date(itemData.expiryDate);
+          if (expDate < new Date()) {
+            const checkHist = await conn.execute(
+              `SELECT id FROM item_history WHERE fridge_id = :fridgeId AND item_id = :itemId AND kind = 'expired'`,
+              { fridgeId, itemId }
+            );
+            if (!checkHist.rows || checkHist.rows.length === 0) {
+              const currentItem = await this.getItemById(fridgeId, itemId, userId);
+              await conn.execute(
+                `INSERT INTO item_history (
+                  id, fridge_id, item_id, item_name, image_path, kind, quantity_changed, quantity_left, unit, by_user_id, created_at
+                ) VALUES (
+                  :id, :fridgeId, :itemId, :name, :imagePath, 'expired', :qty, 0, :unit, :userId, :createdAt
+                )`,
+                [
+                  crypto.randomUUID(),
+                  fridgeId,
+                  itemId,
+                  currentItem.name,
+                  currentItem.imagePath || null,
+                  Number(currentItem.quantity),
+                  currentItem.unit,
+                  userId,
+                  expDate,
+                ]
+              );
+              await conn.commit();
+            }
+          }
+        } catch (_) {}
+      }
+
       return await this.getItemById(fridgeId, itemId, userId);
     } catch (err) {
       if (conn) {
