@@ -374,7 +374,69 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     }
   }
 
-  Future<void> _pickAndScanExpiryOnly() async {
+  void _showExpirySourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDDE4DC),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Scan Expiration Date',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF181D17),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFF2E6A44)),
+                title: const Text('Take Photo with Camera'),
+                subtitle: const Text('Capture bottle cap, can bottom, or stamp'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndScanExpiryOnly(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: Color(0xFF2E6A44)),
+                title: const Text('Choose Photo from Gallery'),
+                subtitle: const Text('Select photo containing expiry stamp'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndScanExpiryOnly(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndScanExpiryOnly([ImageSource source = ImageSource.camera]) async {
     try {
       final isTest = Platform.environment.containsKey('FLUTTER_TEST');
       if (isTest) {
@@ -399,7 +461,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       }
 
       final picked = await _picker.pickImage(
-        source: ImageSource.camera,
+        source: source,
         maxWidth: 1600,
         maxHeight: 1600,
         imageQuality: 85,
@@ -411,7 +473,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         });
 
         final aiRepo = ref.read(aiRepositoryProvider);
-        final lang = ref.read(localeProvider).languageCode;
+        const lang = 'en';
         DateTime? expiry;
 
         try {
@@ -444,7 +506,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         if (expiry != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('✨ ตรวจพบวันหมดอายุแล้ว: ${expiry.day}/${expiry.month}/${expiry.year}'),
+              content: Text('✨ Expiry date detected: ${expiry.day}/${expiry.month}/${expiry.year}'),
               backgroundColor: const Color(0xFF2D6A4F),
               duration: const Duration(seconds: 2),
             ),
@@ -452,7 +514,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('ยังไม่พบตัวเลขวันหมดอายุในภาพนี้ สามารถไปเลือกวันที่เองในฟอร์มได้ครับ'),
+              content: Text('No expiry date detected in this photo. You can enter it manually in the form.'),
               backgroundColor: Colors.orange,
               duration: Duration(seconds: 3),
             ),
@@ -462,6 +524,13 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     } catch (e) {
       if (mounted) {
         setState(() => _isScanningExpiry = false);
+        final errStr = e.toString().toLowerCase();
+        final msg = (errStr.contains('permission') || errStr.contains('denied'))
+            ? 'Permission denied. Please allow access in Settings or choose from Gallery.'
+            : 'Unable to capture photo. Try choosing from Gallery.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg)),
+        );
       }
     }
   }
@@ -470,7 +539,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     if (_scanResult == null) return;
     if (!_scanResult!.isFood || _scanResult!.foodName == null || _scanResult!.foodName!.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ไม่พบข้อมูลอาหารในภาพ กรุณาถ่ายภาพอาหารใหม่')),
+        const SnackBar(content: Text('No food detected. Please capture a food photo.')),
       );
       return;
     }
@@ -781,7 +850,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'ไม่พบอาหารหรือฉลากในภาพ',
+                    'No food label or ingredients detected',
                     style: TextStyle(
                       color: Color(0xFFFFD8D8),
                       fontWeight: FontWeight.bold,
@@ -790,7 +859,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'กรุณาถ่ายภาพอาหารใหม่อีกครั้งให้ชัดเจน (หลีกเลี่ยงภาพบุคคล วัตถุสิ่งของ หรือภาพที่มืด/เบลอ)',
+                    'Please capture a clear photo of food, groceries, or packaging label (avoid people, general objects, or blurry photos).',
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ],
@@ -804,7 +873,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     final name = res.foodName!;
     final dateStr = res.expiryDate != null
         ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}'
-        : 'Not specified (ไม่พบวันหมดอายุบนภาพ)';
+        : 'Not specified (Not found on image)';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -832,7 +901,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                   SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'AI ไม่มั่นใจในผลลัพธ์ กรุณาตรวจสอบหรือแก้ไขชื่ออาหาร',
+                      'AI confidence is low. Please verify or edit the food name.',
                       style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -968,7 +1037,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                         },
                         icon: const Icon(Icons.camera_alt_outlined, size: 20),
                         label: const Text(
-                          'ถ่ายภาพอาหารใหม่',
+                          'Retake Food Photo',
                           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -987,7 +1056,15 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        onPressed: _isScanningExpiry ? null : _pickAndScanExpiryOnly,
+                        onPressed: _isScanningExpiry
+                            ? null
+                            : () {
+                                if (Platform.environment.containsKey('FLUTTER_TEST')) {
+                                  _pickAndScanExpiryOnly();
+                                } else {
+                                  _showExpirySourceSheet();
+                                }
+                              },
                         icon: _isScanningExpiry
                             ? const SizedBox(
                                 width: 18,
@@ -996,7 +1073,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                               )
                             : const Icon(Icons.qr_code_scanner_rounded, size: 20),
                         label: Text(
-                          _isScanningExpiry ? 'กำลังอ่านวันหมดอายุ...' : '📸 ถ่ายจุดวันหมดอายุเพิ่ม (ฝาขวด/ก้นกระป๋อง)',
+                          _isScanningExpiry ? 'Reading expiration date...' : '📸 Scan Expiry Date (Cap / Bottom)',
                           style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -1016,7 +1093,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                         ),
                         onPressed: _onApplyResult,
                         child: const Text(
-                          'ข้ามไปกรอกวันที่เองในฟอร์ม ➔',
+                          'Skip to Enter Date Manually ➔',
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                       ),

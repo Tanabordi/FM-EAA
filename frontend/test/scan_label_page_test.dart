@@ -239,14 +239,14 @@ void main() {
     await tester.tap(find.byKey(const Key('scan_label_analyze_btn')));
     await tester.pumpAndSettle();
 
-    // Must show warning: ไม่พบอาหารหรือฉลากในภาพ
-    expect(find.text('ไม่พบอาหารหรือฉลากในภาพ'), findsOneWidget);
+    // Must show warning: No food label or ingredients detected
+    expect(find.text('No food label or ingredients detected'), findsOneWidget);
 
     // Autofill button MUST NOT exist!
     expect(find.byKey(const Key('scan_label_autofill_btn')), findsNothing);
 
     // Retake button appears instead
-    expect(find.text('ถ่ายภาพอาหารใหม่'), findsOneWidget);
+    expect(find.text('Retake Food Photo'), findsOneWidget);
   });
 
   testWidgets('Two-Step scan appears when initial photo has no expiry date and supports step 2 expiry capture', (tester) async {
