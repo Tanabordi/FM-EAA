@@ -59,6 +59,7 @@ class AppTopBarAction extends StatelessWidget {
   final VoidCallback onTap;
   final double size;
   final double iconSize;
+  final int badgeCount;
 
   const AppTopBarAction({
     super.key,
@@ -66,27 +67,58 @@ class AppTopBarAction extends StatelessWidget {
     required this.onTap,
     this.size = 42,
     this.iconSize = 22,
+    this.badgeCount = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 6.0),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(size / 2),
-          child: Container(
-            width: size,
-            height: size,
-            decoration: const BoxDecoration(
-              color: Color(0xFFEAEFE8),
-              shape: BoxShape.circle,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(size / 2),
+              child: Container(
+                width: size,
+                height: size,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEAEFE8),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: iconSize, color: const Color(0xFF2C3A2F)),
+              ),
             ),
-            child: Icon(icon, size: iconSize, color: const Color(0xFF2C3A2F)),
           ),
-        ),
+          if (badgeCount > 0)
+            Positioned(
+              top: -2,
+              right: -2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFBA1A1A),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                child: Center(
+                  child: Text(
+                    badgeCount > 99 ? '99+' : badgeCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

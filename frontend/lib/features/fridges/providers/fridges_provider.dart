@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/fridge_model.dart';
 import '../../../data/repositories/fridge_repository.dart';
+import '../../../shared/utils/environment.dart';
 
 class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
   final FridgeRepository? _repository;
+  Timer? _pollingTimer;
 
   static final List<FridgeModel> defaultFridges = [
     FridgeModel(
@@ -30,7 +33,22 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
       : super((startEmpty ?? (_repository != null)) ? [] : defaultFridges) {
     if (_repository != null) {
       loadFridges();
+      _startPolling();
     }
+  }
+
+  void _startPolling() {
+    if (isTestEnvironment()) return;
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      loadFridges();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> loadFridges() async {
@@ -103,6 +121,21 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
     state = state.where((f) => f.id != id).toList();
     try {
       await _repository?.deleteFridge(id);
+    } catch (e) {
+      state = previousState;
+      rethrow;
+    }
+  }
+
+  Future<void> leaveFridge(String id, String? userId) async {
+    final previousState = state;
+    state = state.where((f) => f.id != id).toList();
+    try {
+      if (userId != null && userId.isNotEmpty) {
+        await _repository?.leaveFridge(id, userId);
+      } else {
+        await _repository?.deleteFridge(id);
+      }
     } catch (e) {
       state = previousState;
       rethrow;

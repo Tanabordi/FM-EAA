@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fm_eaa/data/models/user_model.dart';
 import 'package:fm_eaa/data/remote/api_client.dart';
+import 'package:fm_eaa/data/repositories/auth_repository.dart';
 import 'package:fm_eaa/data/repositories/family_repository.dart';
+import 'package:fm_eaa/features/auth/providers/auth_provider.dart';
 import 'package:fm_eaa/features/family/domain/models/family_member.dart';
-
 import 'package:fm_eaa/features/family/presentation/pages/family_share_page.dart';
 import 'package:fm_eaa/features/family/presentation/pages/invite_member_page.dart';
 import 'package:fm_eaa/features/family/presentation/widgets/remove_member_dialog.dart';
 import 'package:fm_eaa/features/family/providers/family_provider.dart';
+import 'package:fm_eaa/features/fridges/presentation/widgets/leave_fridge_dialog.dart';
+
+class FakeAuthNotifier extends AuthNotifier {
+  FakeAuthNotifier(AuthState initialState)
+      : super(AuthRepository(apiClient: ApiClient())) {
+    state = initialState;
+  }
+}
 
 class FakeFamilyRepository extends FamilyRepository {
   List<FamilyMemberItem> membersList;
@@ -183,6 +193,17 @@ void main() {
         ProviderScope(
           overrides: [
             familyRepositoryProvider.overrideWithValue(fakeRepo),
+            authProvider.overrideWith((ref) => FakeAuthNotifier(
+              AuthState(
+                isAuthenticated: true,
+                user: UserModel(
+                  id: 'm1',
+                  username: 'Mimi',
+                  email: 'mimi@example.com',
+                  updatedAt: DateTime.now(),
+                ),
+              ),
+            )),
           ],
           child: const MaterialApp(
             home: FamilySharePage(
@@ -203,8 +224,11 @@ void main() {
       expect(find.text('Owner'), findsOneWidget);
       expect(find.text('Member'), findsOneWidget);
       expect(find.text('Invite Member'), findsOneWidget);
-      // Delete icon is visible for non-owner member Mint
+      // Delete icon is visible only for non-owner member Mint (not for owner Mimi)
       expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+      // Owner cannot leave fridge
+      expect(find.byIcon(Icons.exit_to_app_rounded), findsNothing);
+      expect(find.text('Leave Fridge'), findsNothing);
     });
 
     testWidgets('tapping delete icon shows RemoveMemberDialog and confirms removal', (tester) async {
@@ -231,6 +255,17 @@ void main() {
         ProviderScope(
           overrides: [
             familyRepositoryProvider.overrideWithValue(fakeRepo),
+            authProvider.overrideWith((ref) => FakeAuthNotifier(
+              AuthState(
+                isAuthenticated: true,
+                user: UserModel(
+                  id: 'm1',
+                  username: 'Mimi',
+                  email: 'mimi@example.com',
+                  updatedAt: DateTime.now(),
+                ),
+              ),
+            )),
           ],
           child: const MaterialApp(
             home: FamilySharePage(
@@ -260,6 +295,78 @@ void main() {
       expect(fakeRepo.lastRemovedUserId, 'm2');
       expect(find.text('1 Member'), findsOneWidget);
       expect(find.text('Mint'), findsNothing);
+    });
+
+    testWidgets('non-owner member can see Leave Fridge button and open LeaveFridgeDialog', (tester) async {
+      final fakeRepo = FakeFamilyRepository(
+        members: [
+          const FamilyMemberItem(
+            id: 'owner_1',
+            name: 'Alice',
+            role: 'Owner',
+            isOwner: true,
+            avatarUrl: '',
+          ),
+          const FamilyMemberItem(
+            id: 'member_1',
+            name: 'Bob',
+            role: 'Member',
+            isOwner: false,
+            avatarUrl: '',
+          ),
+        ],
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          familyRepositoryProvider.overrideWithValue(fakeRepo),
+          authProvider.overrideWith((ref) => FakeAuthNotifier(
+            AuthState(
+              isAuthenticated: true,
+              user: UserModel(
+                id: 'member_1',
+                username: 'Bob',
+                email: 'bob@example.com',
+                updatedAt: DateTime.now(),
+              ),
+            ),
+          )),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: FamilySharePage(
+              fridgeId: 'fridge_123',
+              fridgeName: 'Kitchen Fridge',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Non-owner member cannot delete anyone (no delete icons at all)
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
+      // Non-owner cannot see "Invite Member" button
+      expect(find.text('Invite Member'), findsNothing);
+      // Non-owner sees leave icon button on their own row and in bottom button
+      expect(find.byIcon(Icons.exit_to_app_rounded), findsNWidgets(2));
+
+      // As non-owner, "Leave Fridge" button should be visible at bottom
+      expect(find.text('Leave Fridge'), findsOneWidget);
+
+      // Tap "Leave Fridge"
+      await tester.tap(find.text('Leave Fridge'));
+      await tester.pumpAndSettle();
+
+      // LeaveFridgeDialog should appear
+      expect(find.byType(LeaveFridgeDialog), findsOneWidget);
+      expect(find.text('Leave Fridge?'), findsOneWidget);
+      expect(find.textContaining('You will lose access to its items'), findsOneWidget);
+      expect(find.text('Leave'), findsOneWidget);
     });
   });
 

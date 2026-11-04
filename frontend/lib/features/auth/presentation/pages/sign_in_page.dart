@@ -24,6 +24,17 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   String? _passwordError;
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      final auth = ref.read(authProvider);
+      if (auth.isAuthenticated && auth.user != null) {
+        if (mounted) context.go('/fridges');
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _identifierController.dispose();
     _passwordController.dispose();
@@ -118,6 +129,12 @@ class _SignInPageState extends ConsumerState<SignInPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.isAuthenticated && next.user != null) {
+        context.go('/fridges');
+      }
+    });
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 

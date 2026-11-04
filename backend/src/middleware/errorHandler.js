@@ -7,6 +7,7 @@ function errorHandler(err, req, res, next) {
 
   res.status(statusCode).json({
     error: message,
+    message: message,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 }

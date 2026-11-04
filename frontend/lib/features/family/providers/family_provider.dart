@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/remote/api_client.dart';
 import '../../../data/repositories/family_repository.dart';
+import '../../../shared/utils/environment.dart';
 import '../domain/models/family_member.dart';
 
 final familyRepositoryProvider = Provider<FamilyRepository>((ref) {
@@ -34,10 +36,33 @@ class FamilyMembersState {
 class FamilyMembersNotifier extends StateNotifier<FamilyMembersState> {
   final FamilyRepository _repo;
   final String fridgeId;
+  Timer? _pollTimer;
 
   FamilyMembersNotifier(this._repo, this.fridgeId)
       : super(const FamilyMembersState(isLoading: true)) {
     loadMembers();
+    _startPolling();
+  }
+
+  void _startPolling() {
+    if (isTestEnvironment()) return;
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      _silentReload();
+    });
+  }
+
+  Future<void> _silentReload() async {
+    try {
+      final list = await _repo.getMembers(fridgeId);
+      state = state.copyWith(members: list);
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> loadMembers() async {

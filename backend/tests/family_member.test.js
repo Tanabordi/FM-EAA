@@ -278,22 +278,46 @@ describe('Family Member & Invite API Integration Tests', () => {
       expect(res.statusCode).toBe(403);
     });
 
-    it('owner can successfully remove member B', async () => {
-      const membersRes = await request(app)
-        .get(`/api/fridges/${fridgeId}/members`)
-        .set('Authorization', `Bearer ${tokenA}`);
-
-      const memberB = membersRes.body.members.find(m => m.username === userB.username);
-
+    it('non-owner member cannot update fridge details', async () => {
       const res = await request(app)
-        .delete(`/api/fridges/${fridgeId}/members/${memberB.id}`)
+        .patch(`/api/fridges/${fridgeId}`)
+        .set('Authorization', `Bearer ${tokenB}`)
+        .send({ name: 'Hacked Name' });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.message).toContain('Only the fridge owner can update this fridge');
+    });
+
+    it('owner can successfully update fridge details', async () => {
+      const res = await request(app)
+        .patch(`/api/fridges/${fridgeId}`)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ name: 'Updated Family Fridge' });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.fridge.name).toBe('Updated Family Fridge');
+    });
+
+    it('owner cannot leave the fridge', async () => {
+      const res = await request(app)
+        .post(`/api/fridges/${fridgeId}/leave`)
         .set('Authorization', `Bearer ${tokenA}`);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toContain('Fridge owner cannot leave the fridge');
+    });
+
+    it('member B can successfully leave the fridge', async () => {
+      const res = await request(app)
+        .post(`/api/fridges/${fridgeId}/leave`)
+        .set('Authorization', `Bearer ${tokenB}`);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.success).toBe(true);
     });
 
-    it('User B no longer has access to the fridge after removal', async () => {
+    it('User B no longer has access to the fridge after leaving', async () => {
       const res = await request(app)
         .get(`/api/fridges/${fridgeId}`)
         .set('Authorization', `Bearer ${tokenB}`);

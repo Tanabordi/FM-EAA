@@ -63,7 +63,11 @@ class NotificationService {
     const iosDetails = DarwinNotificationDetails();
     const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
 
-    await _plugin.show(id, title, body, details, payload: payload);
+    try {
+      await _plugin.show(id, title, body, details, payload: payload);
+    } catch (_) {
+      // Gracefully handle on emulators / test environments without platform channels
+    }
   }
 
   /// Schedule an alert notification for an item's expiration date
@@ -98,14 +102,55 @@ class NotificationService {
     }
   }
 
+  /// Convenient helper to schedule an expiry alert for a specific fridge item
+  Future<void> scheduleItemExpiryAlert({
+    required String itemId,
+    required String itemName,
+    required String fridgeName,
+    required DateTime expiryDate,
+  }) async {
+    if (kIsWeb) return;
+
+    final notifId = createNotificationId('expiry_$itemId');
+    final now = DateTime.now();
+
+    if (expiryDate.isBefore(now) || (expiryDate.year == now.year && expiryDate.month == now.month && expiryDate.day == now.day)) {
+      await showExpiryAlert(
+        id: notifId,
+        title: '$itemName expires today',
+        body: '$itemName in "$fridgeName" expires today. Consume soon!',
+        payload: itemId,
+      );
+    } else {
+      final alertTime = DateTime(expiryDate.year, expiryDate.month, expiryDate.day - 1, 9, 0);
+      await scheduleExpiryAlert(
+        id: notifId,
+        title: '$itemName expires tomorrow',
+        body: '$itemName in "$fridgeName" expires tomorrow. Don\'t forget to use it!',
+        scheduledDate: alertTime,
+        payload: itemId,
+      );
+    }
+  }
+
+  /// Cancel scheduled alert for an item
+  Future<void> cancelItemExpiryAlert(String itemId) async {
+    if (kIsWeb) return;
+    await cancelAlert(createNotificationId('expiry_$itemId'));
+  }
+
   Future<void> cancelAlert(int id) async {
     if (kIsWeb) return;
-    await _plugin.cancel(id);
+    try {
+      await _plugin.cancel(id);
+    } catch (_) {}
   }
 
   Future<void> cancelAll() async {
     if (kIsWeb) return;
-    await _plugin.cancelAll();
+    try {
+      await _plugin.cancelAll();
+    } catch (_) {}
   }
 
   /// Helper to convert a string ID into a positive 31-bit integer for notification ID

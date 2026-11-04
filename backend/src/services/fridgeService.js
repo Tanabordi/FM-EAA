@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const db = require('../config/db');
+const notificationService = require('./notificationService');
 
 class FridgeService {
   /**
@@ -198,6 +199,12 @@ class FridgeService {
       if (!access.isMember) {
         const err = new Error('Fridge not found or access denied');
         err.statusCode = 404;
+        throw err;
+      }
+
+      if (access.role !== 'owner') {
+        const err = new Error('Only the fridge owner can update this fridge');
+        err.statusCode = 403;
         throw err;
       }
 
@@ -654,7 +661,7 @@ class FridgeService {
     try {
       conn = await db.getDbConnection();
       const inviteRes = await conn.execute(
-        `SELECT id, fridge_id, to_user_id, status FROM fridge_invites WHERE id = :inviteId`,
+        `SELECT id, fridge_id, to_user_id, status, from_user_id FROM fridge_invites WHERE id = :inviteId`,
         [inviteId]
       );
 
@@ -664,7 +671,7 @@ class FridgeService {
         throw err;
       }
 
-      const [id, fridgeId, toUserId, status] = inviteRes.rows[0];
+      const [id, fridgeId, toUserId, status, fromUserId] = inviteRes.rows[0];
 
       if (toUserId !== currentUserId) {
         const err = new Error('Unauthorized to respond to this invitation');
@@ -673,9 +680,19 @@ class FridgeService {
       }
 
       if (status !== 'pending') {
-        const err = new Error(`Invitation has already been ${status}`);
-        err.statusCode = 400;
-        throw err;
+        // If invitation was already resolved, ensure invite notifications are deleted
+        await conn.execute(
+          `DELETE FROM notifications 
+           WHERE user_id = :userId AND payload_json LIKE :pattern`,
+          [currentUserId, `%"invite_id":"${inviteId}"%`]
+        );
+        await conn.commit();
+        return {
+          success: true,
+          message: `Invitation has already been ${status}`,
+          status,
+          fridgeId,
+        };
       }
 
       const newStatus = accept ? 'accepted' : 'declined';
@@ -693,13 +710,40 @@ class FridgeService {
            VALUES (:fridgeId, :userId, 'member', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
           [fridgeId, currentUserId]
         );
+
+        // Notify all other fridge members who joined and who invited them
+        try {
+          const userRes = await conn.execute(`SELECT username FROM users WHERE id = :userId`, [currentUserId]);
+          const joinedUsername = (userRes.rows && userRes.rows[0]) ? userRes.rows[0][0] : 'A user';
+          const inviterRes = await conn.execute(`SELECT username FROM users WHERE id = :fromUserId`, [fromUserId]);
+          const inviterUsername = (inviterRes.rows && inviterRes.rows[0]) ? inviterRes.rows[0][0] : 'Someone';
+          const fridgeRes = await conn.execute(`SELECT name FROM fridges WHERE id = :fridgeId`, [fridgeId]);
+          const fridgeName = (fridgeRes.rows && fridgeRes.rows[0]) ? fridgeRes.rows[0][0] : 'Fridge';
+
+          const notifTitle = 'New Member Joined';
+          const notifMessage = `${joinedUsername} joined "${fridgeName}" (invited by ${inviterUsername})`;
+
+          await notificationService.notifyFridgeMembers(conn, fridgeId, currentUserId, {
+            type: 'member_joined',
+            subType: 'member_joined',
+            title: notifTitle,
+            message: notifMessage,
+            fridge_name: fridgeName,
+            joined_user_id: currentUserId,
+            joined_username: joinedUsername,
+            invited_by_user_id: fromUserId,
+            invited_by_username: inviterUsername,
+          });
+        } catch (e) {
+          console.warn('[FridgeService] Error creating member joined notifications:', e.message);
+        }
       }
 
-      // 3. Mark notification as read
+      // 3. Delete invite notification from notifications table so it never reappears
       await conn.execute(
-        `UPDATE notifications SET is_read = 1 
+        `DELETE FROM notifications 
          WHERE user_id = :userId AND payload_json LIKE :pattern`,
-        [currentUserId, `%${inviteId}%`]
+        [currentUserId, `%"invite_id":"${inviteId}"%`]
       );
 
       await conn.commit();
