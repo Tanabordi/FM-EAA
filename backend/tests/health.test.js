@@ -18,9 +18,9 @@ describe('Backend Skeleton Tests', () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it('POST /api/sync returns 501 Not implemented', async () => {
+  it('POST /api/sync requires auth (401 without token)', async () => {
     const res = await request(app).post('/api/sync').send({});
-    expect(res.statusCode).toBe(501);
+    expect(res.statusCode).toBe(401);
   });
 
   it('POST /api/ai/scan-label requires auth (401 without token)', async () => {
