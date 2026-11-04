@@ -55,7 +55,8 @@ class ItemRepository {
             if (zone != null && zone.isNotEmpty) 'zone': zone,
           },
         );
-        final list = (res.data['items'] as List?)
+        final rawItems = res.data is Map ? (res.data['items'] as List?) : (res.data is List ? res.data as List : null);
+        final list = rawItems
             ?.map((e) => ItemModel.fromJson(e as Map<String, dynamic>))
             .toList();
         if (list != null) {
