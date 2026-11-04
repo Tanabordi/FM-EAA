@@ -654,7 +654,7 @@ class FridgeService {
     try {
       conn = await db.getDbConnection();
       const inviteRes = await conn.execute(
-        `SELECT id, fridge_id, to_user_id, status FROM fridge_invites WHERE id = :inviteId`,
+        `SELECT id, fridge_id, to_user_id, status, from_user_id FROM fridge_invites WHERE id = :inviteId`,
         [inviteId]
       );
 
@@ -664,7 +664,7 @@ class FridgeService {
         throw err;
       }
 
-      const [id, fridgeId, toUserId, status] = inviteRes.rows[0];
+      const [id, fridgeId, toUserId, status, fromUserId] = inviteRes.rows[0];
 
       if (toUserId !== currentUserId) {
         const err = new Error('Unauthorized to respond to this invitation');
@@ -693,6 +693,32 @@ class FridgeService {
            VALUES (:fridgeId, :userId, 'member', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
           [fridgeId, currentUserId]
         );
+
+        // Notify inviter that invite was accepted
+        try {
+          const userRes = await conn.execute(`SELECT username FROM users WHERE id = :userId`, [currentUserId]);
+          const joinedUsername = (userRes.rows && userRes.rows[0]) ? userRes.rows[0][0] : 'A user';
+          const fridgeRes = await conn.execute(`SELECT name FROM fridges WHERE id = :fridgeId`, [fridgeId]);
+          const fridgeName = (fridgeRes.rows && fridgeRes.rows[0]) ? fridgeRes.rows[0][0] : 'Fridge';
+
+          const notifId = crypto.randomUUID();
+          const notifPayload = JSON.stringify({
+            title: 'Invitation Accepted',
+            message: `${joinedUsername} joined '${fridgeName}'`,
+            fridge_id: fridgeId,
+            fridge_name: fridgeName,
+            member_user_id: currentUserId,
+            member_username: joinedUsername,
+          });
+
+          await conn.execute(
+            `INSERT INTO notifications (id, user_id, type, payload_json, is_read, created_at)
+             VALUES (:id, :userId, 'invite_accepted', :payload, 0, CURRENT_TIMESTAMP)`,
+            [notifId, fromUserId, notifPayload]
+          );
+        } catch (e) {
+          console.warn('[FridgeService] Error creating accepted notification:', e.message);
+        }
       }
 
       // 3. Mark notification as read

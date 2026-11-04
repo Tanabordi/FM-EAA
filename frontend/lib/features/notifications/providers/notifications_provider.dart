@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/models/notification_model.dart';
@@ -6,6 +8,15 @@ import '../../../data/remote/api_client.dart';
 import '../../../data/repositories/notification_repository.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../fridges/providers/fridges_provider.dart';
+
+bool _isTestEnvironment() {
+  if (kIsWeb) return false;
+  try {
+    return Platform.environment.containsKey('FLUTTER_TEST');
+  } catch (_) {
+    return false;
+  }
+}
 
 /// Provider for NotificationRepository bound with AppDatabase and ApiClient
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
@@ -19,28 +30,57 @@ final currentNotificationUserIdProvider = Provider<String>((ref) {
   return authState.user?.id ?? 'user_1';
 });
 
-/// Reactive stream of notifications for a user
+/// Reactive stream of notifications for a user with auto-sync polling
 final notificationsStreamProvider = StreamProvider.family<List<NotificationModel>, String>((ref, userId) {
   final repo = ref.watch(notificationRepositoryProvider);
   unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+
+  // Periodic polling every 10 seconds for real-time notification delivery (skipped during flutter test)
+  if (!_isTestEnvironment()) {
+    final timer = Timer.periodic(const Duration(seconds: 10), (_) {
+      unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+    });
+    ref.onDispose(() => timer.cancel());
+  }
+
   return repo.watchNotifications(userId);
 });
 
-/// Default notifications stream provider matching the active logged-in user
+/// Default notifications stream provider matching the active logged-in user with auto-sync polling
 final defaultNotificationsStreamProvider = StreamProvider<List<NotificationModel>>((ref) {
   final userId = ref.watch(currentNotificationUserIdProvider);
   final repo = ref.watch(notificationRepositoryProvider);
 
-  // Sync with remote backend API in the background
+  // Sync with remote backend API in the background immediately
   unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+
+  // Periodic polling every 8 seconds while on the notifications screen (skipped during flutter test)
+  if (!_isTestEnvironment()) {
+    final timer = Timer.periodic(const Duration(seconds: 8), (_) {
+      unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+    });
+    ref.onDispose(() => timer.cancel());
+  }
 
   return repo.watchNotifications(userId);
 });
 
-/// Stream of unread notification count for active user
+/// Stream of unread notification count for active user with auto-sync polling
 final unreadNotificationCountProvider = StreamProvider<int>((ref) {
   final userId = ref.watch(currentNotificationUserIdProvider);
   final repo = ref.watch(notificationRepositoryProvider);
+
+  // Sync initially in the background
+  unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+
+  // Periodic polling every 10 seconds to update badge without page refresh (skipped during flutter test)
+  if (!_isTestEnvironment()) {
+    final timer = Timer.periodic(const Duration(seconds: 10), (_) {
+      unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
+    });
+    ref.onDispose(() => timer.cancel());
+  }
+
   return repo.watchUnreadCount(userId);
 });
 

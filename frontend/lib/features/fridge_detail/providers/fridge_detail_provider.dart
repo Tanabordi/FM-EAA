@@ -1,6 +1,18 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/item_model.dart';
 import '../../../data/repositories/item_repository.dart';
+
+bool _isTestEnvironment() {
+  if (kIsWeb) return false;
+  try {
+    return Platform.environment.containsKey('FLUTTER_TEST');
+  } catch (_) {
+    return false;
+  }
+}
 
 class FridgeFilterState {
   final String category; // 'All', 'Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'
@@ -51,6 +63,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
   final String fridgeId;
   final ItemRepository? _repository;
   final Set<String> _consumedIds = {};
+  Timer? _pollingTimer;
 
   FridgeItemsNotifier(this.fridgeId, [this._repository])
       : super(getInitialFridgeItems(fridgeId)) {
@@ -79,7 +92,21 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
           }
         }, onError: (_) {});
       } catch (_) {}
+
+      // Periodic auto-refresh every 8 seconds while viewing fridge (skipped in flutter test)
+      if (!_isTestEnvironment()) {
+        _pollingTimer?.cancel();
+        _pollingTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+          _loadItemsFromApi();
+        });
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadItemsFromApi() async {

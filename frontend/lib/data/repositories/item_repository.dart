@@ -60,6 +60,17 @@ class ItemRepository {
             .toList();
         if (list != null) {
           try {
+            // Reconcile: If this is an unfiltered fetch of the fridge, remove items deleted on the remote server
+            if ((category == null || category.isEmpty || category.toLowerCase() == 'all') &&
+                (zone == null || zone.isEmpty)) {
+              final remoteIds = list.map((e) => e.id).toSet();
+              final localEntries = await database.itemDao.getItemsByFridge(fridgeId);
+              for (final entry in localEntries) {
+                if (entry.isSynced && !remoteIds.contains(entry.id)) {
+                  await database.itemDao.deleteItem(entry.id);
+                }
+              }
+            }
             for (final item in list) {
               await database.itemDao.insertItemOptimistic(
                 id: item.id,

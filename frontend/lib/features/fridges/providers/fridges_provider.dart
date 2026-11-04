@@ -1,9 +1,22 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/fridge_model.dart';
 import '../../../data/repositories/fridge_repository.dart';
 
+bool _isTestEnvironment() {
+  if (kIsWeb) return false;
+  try {
+    return Platform.environment.containsKey('FLUTTER_TEST');
+  } catch (_) {
+    return false;
+  }
+}
+
 class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
   final FridgeRepository? _repository;
+  Timer? _pollingTimer;
 
   static final List<FridgeModel> defaultFridges = [
     FridgeModel(
@@ -30,7 +43,22 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
       : super((startEmpty ?? (_repository != null)) ? [] : defaultFridges) {
     if (_repository != null) {
       loadFridges();
+      _startPolling();
     }
+  }
+
+  void _startPolling() {
+    if (_isTestEnvironment()) return;
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 12), (_) {
+      loadFridges();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> loadFridges() async {
