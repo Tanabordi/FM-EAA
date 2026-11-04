@@ -1,11 +1,55 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
+const multer = require('multer');
 const itemService = require('../services/itemService');
 const authenticateToken = require('../middleware/auth');
 const db = require('../config/db');
 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, WEBP, and HEIC are supported.'));
+    }
+  },
+});
+
+const handleItemImageUpload = (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'File size exceeded (Max: 10MB)' });
+      }
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+};
+
 // Apply auth middleware to all item routes
 router.use(authenticateToken);
+
+// POST /api/items/upload-image or POST /api/fridges/:id/items/upload-image - Upload food photo to OCI Object Storage
+router.post('/upload-image', handleItemImageUpload, async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Image file is required (field: image)' });
+    }
+    const storageService = require('../services/storageService');
+    const imageUrl = await storageService.uploadItemImage(
+      req.file.buffer,
+      req.file.mimetype,
+      req.file.originalname || 'item.jpg'
+    );
+    res.status(200).json({ imageUrl });
+  } catch (err) {
+    next(err);
+  }
+});
 
 /**
  * Helper to resolve fridgeId if route is mounted at /api/items/:itemId/...

@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -17,8 +19,8 @@ class ApiClient {
       : dio = customDio ??
             Dio(BaseOptions(
               baseUrl: baseUrl,
-              connectTimeout: const Duration(seconds: 35),
-              receiveTimeout: const Duration(seconds: 35),
+              connectTimeout: const Duration(seconds: 45),
+              receiveTimeout: const Duration(seconds: 45),
             )),
         storage = customStorage ?? const FlutterSecureStorage() {
     _setupInterceptors();
@@ -37,15 +39,20 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (DioException error, handler) async {
-          // If remote backend returned 404 or connection error, retry against local backend
+          // If remote backend returned 404, connection error, or timeout, retry against local backend
           final requestOptions = error.requestOptions;
           final currentBase = requestOptions.baseUrl;
-          if (!currentBase.contains('localhost:5001') &&
+          final isLocal = currentBase.contains('localhost:5001') || currentBase.contains('10.0.2.2:5001');
+          if (!isLocal &&
               (error.response?.statusCode == 404 ||
-                  error.type == DioExceptionType.connectionError)) {
+                  error.type == DioExceptionType.connectionError ||
+                  error.type == DioExceptionType.connectionTimeout)) {
             try {
+              final localBase = (!kIsWeb && Platform.isAndroid)
+                  ? 'http://10.0.2.2:5001/api'
+                  : 'http://localhost:5001/api';
               final localOptions = requestOptions.copyWith(
-                baseUrl: 'http://localhost:5001/api',
+                baseUrl: localBase,
               );
               final response = await dio.fetch(localOptions);
               return handler.resolve(response);

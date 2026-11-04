@@ -64,7 +64,7 @@ describe('AI Label Scanning Routes (/api/ai/scan-label)', () => {
       .attach('image', dummyImage, 'label.jpg');
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual(mockResult);
+    expect(res.body).toEqual(expect.objectContaining(mockResult));
     expect(aiService.scanLabel).toHaveBeenCalledTimes(1);
   });
 

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/freshness_colors.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/user_avatar.dart';
 import 'package:fm_eaa/features/settings/providers/settings_provider.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../widgets/logout_dialog.dart';
 
 /// Screen #22: Settings matching Figma Node 134:187
@@ -16,6 +18,18 @@ class SettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (!next.isAuthenticated) {
+        try {
+          ref.read(routerProvider).go('/sign-in');
+        } catch (_) {
+          try {
+            context.go('/sign-in');
+          } catch (_) {}
+        }
+      }
+    });
+
     final theme = Theme.of(context);
     final user = ref.watch(userProfileProvider);
     final currentLocale = ref.watch(localeProvider);

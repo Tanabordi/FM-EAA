@@ -65,8 +65,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await _repo.logout();
     state = const AuthState(isAuthenticated: false);
+    try {
+      await _repo.logout();
+    } catch (_) {}
   }
 
   Future<GoogleAuthResult> signInWithGoogle() async {

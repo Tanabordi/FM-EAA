@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../data/models/item_model.dart';
+import '../../../../shared/utils/food_asset_helper.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/category_chips.dart';
 import '../../../../shared/widgets/status_badge.dart';
@@ -280,6 +281,19 @@ class ItemDetailsPage extends ConsumerWidget {
     );
   }
 
+  Widget _buildDetailAssetFallback(ItemModel item) {
+    final assetPath = getFoodAssetFallback(item.name, category: item.category);
+    return Image.asset(
+      assetPath,
+      width: double.infinity,
+      height: 240,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const Center(
+        child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
+      ),
+    );
+  }
+
   Widget _buildDetailImage(ItemModel item) {
     final imagePath = item.imagePath;
     if (imagePath != null && imagePath.isNotEmpty) {
@@ -289,9 +303,7 @@ class ItemDetailsPage extends ConsumerWidget {
           width: double.infinity,
           height: 240,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Center(
-            child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
-          ),
+          errorBuilder: (_, __, ___) => _buildDetailAssetFallback(item),
         );
       } else if (imagePath.startsWith('assets/')) {
         return Image.asset(
@@ -299,9 +311,7 @@ class ItemDetailsPage extends ConsumerWidget {
           width: double.infinity,
           height: 240,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Center(
-            child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
-          ),
+          errorBuilder: (_, __, ___) => _buildDetailAssetFallback(item),
         );
       } else if (!kIsWeb) {
         try {
@@ -312,16 +322,12 @@ class ItemDetailsPage extends ConsumerWidget {
               width: double.infinity,
               height: 240,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Center(
-                child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
-              ),
+              errorBuilder: (_, __, ___) => _buildDetailAssetFallback(item),
             );
           }
         } catch (_) {}
       }
     }
-    return const Center(
-      child: Icon(Icons.fastfood, size: 72, color: Colors.grey),
-    );
+    return _buildDetailAssetFallback(item);
   }
 }

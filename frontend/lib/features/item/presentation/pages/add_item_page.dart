@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
+import '../../../../data/repositories/item_repository.dart';
 import '../../../../shared/utils/date_input_formatter.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
@@ -44,6 +45,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   bool _hasAnalyzed = false;
   bool _isScanning = false;
   bool _forceExit = false;
+  bool _isAiEstimatedExpiry = false;
 
   String? _foodNameError;
   String? _categoryError;
@@ -229,10 +231,13 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   }
 
   void _applyScanResult(AiScanResult result) {
-    if (result.foodName != null && result.foodName!.trim().isNotEmpty) {
-      _foodNameController.text = result.foodName!;
-      _foodNameError = null;
+    if (!result.isFood || result.foodName == null || result.foodName!.trim().isEmpty) {
+      _hasAnalyzed = false;
+      return;
     }
+
+    _foodNameController.text = result.foodName!;
+    _foodNameError = null;
     if (result.imagePath != null && result.imagePath!.isNotEmpty) {
       _imagePath = result.imagePath;
       try {
@@ -245,17 +250,21 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     _selectedCategory = _normalizeCategory(result.category);
     _categoryError = null;
     if (_quantityController.text.trim().isEmpty) {
-      _quantityController.text = '2';
+      _quantityController.text = '1';
       _quantityError = null;
     }
     _selectedUnit = _normalizeUnit(result.unit);
     _unitError = null;
     _selectedStorage = _normalizeStorage(result.storage);
     _storageError = null;
+    _isAiEstimatedExpiry = result.isAiEstimated;
     if (result.expiryDate != null) {
       _expirationDate = result.expiryDate;
       _expirationDateController.text = _formatDate(result.expiryDate!);
       _expirationDateError = null;
+    } else {
+      _expirationDate = null;
+      _expirationDateController.text = '';
     }
     _hasAnalyzed = true;
   }
@@ -330,6 +339,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       _selectedUnit = null;
       _selectedStorage = null;
       _expirationDate = null;
+      _isAiEstimatedExpiry = false;
       _foodNameError = null;
       _categoryError = null;
       _quantityError = null;
@@ -403,6 +413,30 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       return;
     }
 
+    // If the image is a local file, ensure it's uploaded to OCI Object Storage so all devices can display it
+    if (_imagePath != null &&
+        !_imagePath!.startsWith('http') &&
+        !_imagePath!.startsWith('assets/') &&
+        !Platform.environment.containsKey('FLUTTER_TEST')) {
+      try {
+        if (_imageBytes == null && !kIsWeb) {
+          final f = File(_imagePath!);
+          if (f.existsSync()) {
+            _imageBytes = await f.readAsBytes();
+          }
+        }
+        if (_imageBytes != null) {
+          final cloudUrl = await ref.read(itemRepositoryProvider).uploadItemImageBytes(
+            _imageBytes!,
+            filename: 'item.jpg',
+          );
+          if (cloudUrl != null) {
+            _imagePath = cloudUrl;
+          }
+        }
+      } catch (_) {}
+    }
+
     final newItem = ItemModel(
       id: 'item_${DateTime.now().millisecondsSinceEpoch}',
       fridgeId: widget.fridgeId,
@@ -457,6 +491,21 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
             _imagePath = picked.path;
             _hasAnalyzed = false;
           });
+        }
+
+        // Upload to OCI Object Storage in background
+        if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+          try {
+            final cloudUrl = await ref.read(itemRepositoryProvider).uploadItemImageBytes(
+              bytes,
+              filename: picked.name,
+            );
+            if (cloudUrl != null && mounted) {
+              setState(() {
+                _imagePath = cloudUrl;
+              });
+            }
+          } catch (_) {}
         }
       }
     } catch (e) {
@@ -1197,8 +1246,32 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           .toList(),
                       onChanged: (val) {
                         setState(() {
+                          final oldStorage = _selectedStorage;
                           _selectedStorage = val;
                           _storageError = null;
+
+                          // Auto-recalibrate expiry if it was estimated by AI and storage location changed
+                          if (_isAiEstimatedExpiry &&
+                              val != null &&
+                              val != oldStorage &&
+                              _foodNameController.text.trim().isNotEmpty) {
+                            final recalculated = AiRepository.estimateShelfLife(
+                              _foodNameController.text.trim(),
+                              category: _selectedCategory,
+                              storage: val,
+                            );
+                            _expirationDate = recalculated;
+                            _expirationDateController.text = _formatDate(recalculated);
+                            _expirationDateError = null;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('✨ Recalculated shelf life for $val (${_formatDate(recalculated)})'),
+                                backgroundColor: const Color(0xFF2D6A4F),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
                         });
                       },
                     ),
@@ -1251,6 +1324,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                             );
                             if (picked != null) {
                               setState(() {
+                                _isAiEstimatedExpiry = false;
                                 _expirationDate = picked;
                                 _expirationDateController.text = _formatDate(picked);
                                 _expirationDateError = null;
@@ -1260,6 +1334,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         ),
                       ),
                       onChanged: (val) {
+                        _isAiEstimatedExpiry = false;
                         final parsed = _tryParseDate(val);
                         if (parsed != null) {
                           setState(() {

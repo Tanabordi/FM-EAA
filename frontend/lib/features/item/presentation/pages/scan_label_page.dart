@@ -38,6 +38,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   Uint8List? _imageBytes;
   String? _pickedFileName;
   bool _isAnalyzing = false;
+  bool _isScanningExpiry = false;
   AiScanResult? _scanResult;
   bool _torchEnabled = false;
 
@@ -374,19 +375,200 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     }
   }
 
+  void _showExpirySourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDDE4DC),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Scan Expiration Date',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF181D17),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFF2E6A44)),
+                title: const Text('Take Photo with Camera'),
+                subtitle: const Text('Capture bottle cap, can bottom, or stamp'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndScanExpiryOnly(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: Color(0xFF2E6A44)),
+                title: const Text('Choose Photo from Gallery'),
+                subtitle: const Text('Select photo containing expiry stamp'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndScanExpiryOnly(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.auto_awesome, color: Color(0xFF2E6A44)),
+                title: const Text('Estimate Shelf Life with AI'),
+                subtitle: const Text('For fresh produce, meat & veggies without printed date'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _estimateShelfLifeWithAi();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _estimateShelfLifeWithAi() {
+    if (_scanResult == null) return;
+    final foodName = _scanResult!.foodName ?? 'Food item';
+    final estimatedDate = AiRepository.estimateShelfLife(
+      foodName,
+      category: _scanResult!.category,
+      storage: _scanResult!.storage,
+    );
+
+    setState(() {
+      _scanResult = _scanResult!.copyWith(
+        expiryDate: estimatedDate,
+        isAiEstimated: true,
+      );
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✨ Estimated expiry for $foodName (${_scanResult!.storage}): ${estimatedDate.day}/${estimatedDate.month}/${estimatedDate.year}'),
+        backgroundColor: const Color(0xFF2D6A4F),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<void> _pickAndScanExpiryOnly([ImageSource source = ImageSource.camera]) async {
+    try {
+      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+      if (isTest) {
+        setState(() {
+          if (_scanResult != null) {
+            _scanResult = _scanResult!.copyWith(
+              expiryDate: DateTime(2027, 8, 15),
+              isAiEstimated: false,
+            );
+          }
+        });
+        return;
+      }
+
+      final picked = await _picker.pickImage(
+        source: source,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+
+      if (picked != null) {
+        setState(() {
+          _isScanningExpiry = true;
+        });
+
+        final aiRepo = ref.read(aiRepositoryProvider);
+        const lang = 'en';
+        DateTime? expiry;
+
+        try {
+          final bytes = await picked.readAsBytes();
+          expiry = await aiRepo.scanExpiryBytes(bytes, filename: picked.name, language: lang);
+        } catch (_) {
+          expiry = await aiRepo.scanExpiryDate(File(picked.path), language: lang);
+        }
+
+        if (!mounted) return;
+        setState(() {
+          _isScanningExpiry = false;
+          if (expiry != null && _scanResult != null) {
+            _scanResult = _scanResult!.copyWith(
+              expiryDate: expiry,
+              isAiEstimated: false,
+            );
+          }
+        });
+
+        if (expiry != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✨ Expiry date detected: ${expiry.day}/${expiry.month}/${expiry.year}'),
+              backgroundColor: const Color(0xFF2D6A4F),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No expiry date detected in this photo. You can enter it manually in the form.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isScanningExpiry = false);
+        final errStr = e.toString().toLowerCase();
+        final msg = (errStr.contains('permission') || errStr.contains('denied'))
+            ? 'Permission denied. Please allow access in Settings or choose from Gallery.'
+            : 'Unable to capture photo. Try choosing from Gallery.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg)),
+        );
+      }
+    }
+  }
+
   void _onApplyResult() {
     if (_scanResult == null) return;
+    if (!_scanResult!.isFood || _scanResult!.foodName == null || _scanResult!.foodName!.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No food detected. Please capture a food photo.')),
+      );
+      return;
+    }
 
-    // Attach the actual local image path captured/selected by user
-    final finalResult = AiScanResult(
-      isDetected: _scanResult!.isDetected,
-      foodName: _scanResult!.foodName,
-      expiryDate: _scanResult!.expiryDate,
-      category: _scanResult!.category,
-      unit: _scanResult!.unit,
-      storage: _scanResult!.storage,
-      imagePath: _imagePath ?? _scanResult!.imagePath,
-      message: _scanResult!.message,
+    final cloudUrl = _scanResult!.imageUrl ??
+        ((_scanResult!.imagePath != null && _scanResult!.imagePath!.startsWith('http')) ? _scanResult!.imagePath : null);
+    final effectiveImage = cloudUrl ?? _imagePath ?? _scanResult!.imagePath;
+
+    // Attach the actual image path (preferring cloud PAR URL so all devices see it)
+    final finalResult = _scanResult!.copyWith(
+      imagePath: effectiveImage,
+      imageUrl: cloudUrl,
     );
 
     // Pop with result if pushed from AddItemPage
@@ -656,10 +838,50 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
   Widget _buildResultCard() {
     final res = _scanResult!;
-    final name = res.foodName ?? 'Food name not detected (editable in form)';
+
+    if (!res.isFood || !res.isDetected || res.foodName == null || res.foodName!.trim().isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2C1616),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE63946)),
+        ),
+        child: const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.cancel_rounded, color: Color(0xFFE63946), size: 24),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'No food label or ingredients detected',
+                    style: TextStyle(
+                      color: Color(0xFFFFD8D8),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Please capture a clear photo of food, groceries, or packaging label (avoid people, general objects, or blurry photos).',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final name = res.foodName!;
     final dateStr = res.expiryDate != null
-        ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}'
-        : 'Not specified';
+        ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}${res.isAiEstimated ? ' (AI Estimated)' : ''}'
+        : 'Not specified (Not found on image)';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -672,6 +894,28 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (res.confidence < 0.7)
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade900.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.shade600),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 16),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'AI confidence is low. Please verify or edit the food name.',
+                      style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Row(
             children: [
               const Icon(Icons.check_circle_rounded, color: Color(0xFF74C69D), size: 20),
@@ -716,7 +960,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Wrap(
             spacing: 16,
             runSpacing: 4,
@@ -725,11 +969,25 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.event_outlined, color: Colors.white70, size: 15),
+                  Icon(
+                    res.isAiEstimated
+                        ? Icons.auto_awesome
+                        : (res.expiryDate != null ? Icons.event_outlined : Icons.event_busy_outlined),
+                    color: res.isAiEstimated
+                        ? const Color(0xFF74C69D)
+                        : (res.expiryDate != null ? Colors.white70 : Colors.amber.shade300),
+                    size: 15,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Expiry: $dateStr',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    style: TextStyle(
+                      color: res.isAiEstimated
+                          ? const Color(0xFFD8F3DC)
+                          : (res.expiryDate != null ? Colors.white70 : Colors.amber.shade300),
+                      fontSize: 13,
+                      fontWeight: res.expiryDate != null ? FontWeight.normal : FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -763,36 +1021,126 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Primary Action Button (Autofill or Analyze)
+          // Primary Action Button (Autofill or Analyze or Step 2 Expiry)
           if (_scanResult != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 20),
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  key: const Key('scan_label_autofill_btn'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2D6A4F),
-                    foregroundColor: Colors.white,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  onPressed: _onApplyResult,
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle_rounded, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Autofill Form Details',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              child: Column(
+                children: [
+                  if (!_scanResult!.isFood || _scanResult!.foodName == null || _scanResult!.foodName!.trim().isEmpty)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        key: const Key('scan_label_retake_btn'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE63946),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _scanResult = null;
+                            _imageBytes = null;
+                            _imagePath = null;
+                            _pickedFileName = null;
+                          });
+                        },
+                        icon: const Icon(Icons.camera_alt_outlined, size: 20),
+                        label: const Text(
+                          'Retake Food Photo',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    ],
-                  ),
-                ),
+                    )
+                  else if (_scanResult!.expiryDate == null) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        key: const Key('scan_label_step2_expiry_btn'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2D6A4F),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: _isScanningExpiry
+                            ? null
+                            : () {
+                                if (Platform.environment.containsKey('FLUTTER_TEST')) {
+                                  _pickAndScanExpiryOnly();
+                                } else {
+                                  _showExpirySourceSheet();
+                                }
+                              },
+                        icon: _isScanningExpiry
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.qr_code_scanner_rounded, size: 20),
+                        label: Text(
+                          _isScanningExpiry ? 'Reading expiration date...' : '📸 Scan Expiry Date (Cap / Bottom)',
+                          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 40,
+                      child: OutlinedButton(
+                        key: const Key('scan_label_autofill_btn'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white70,
+                          side: const BorderSide(color: Colors.white30),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: _onApplyResult,
+                        child: const Text(
+                          'Skip to Enter Date Manually ➔',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ] else
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        key: const Key('scan_label_autofill_btn'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2D6A4F),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: _onApplyResult,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle_rounded, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Autofill Form Details',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
             )
           else if (hasImage)

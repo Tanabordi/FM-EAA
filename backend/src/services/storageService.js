@@ -40,6 +40,42 @@ class StorageService {
     // Return with cache-buster query param so browsers and Flutter immediately load the fresh image
     return `${uploadUrl}?v=${Date.now()}`;
   }
+
+  /**
+   * Upload a food item image buffer to Oracle Cloud Object Storage via Pre-Authenticated Request (PAR) URL
+   * @param {Buffer} fileBuffer
+   * @param {string} [mimeType='image/jpeg']
+   * @param {string} [originalName='item.jpg']
+   * @returns {Promise<string|null>} The uploaded public PAR URL or null if OCI is not configured
+   */
+  async uploadItemImage(fileBuffer, mimeType = 'image/jpeg', originalName = 'item.jpg') {
+    const parUrl = process.env.OCI_PAR_URL || (config.oci && config.oci.parUrl);
+    if (!parUrl || !parUrl.trim()) {
+      return null;
+    }
+
+    const extMatch = (originalName || '').match(/\.([a-zA-Z0-9]+)$/);
+    const ext = extMatch ? extMatch[1].toLowerCase() : (mimeType && mimeType.includes('png') ? 'png' : 'jpg');
+    const objectName = `items/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${ext}`;
+
+    const baseUrl = parUrl.trim().replace(/\/+$/, '');
+    const uploadUrl = `${baseUrl}/${objectName}`;
+
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': mimeType || 'image/jpeg',
+      },
+      body: fileBuffer,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Failed to upload item to Oracle Object Storage (${res.status}): ${errText || res.statusText}`);
+    }
+
+    return uploadUrl;
+  }
 }
 
 module.exports = new StorageService();

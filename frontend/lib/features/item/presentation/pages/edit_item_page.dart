@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/utils/environment.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../data/models/item_model.dart';
+import '../../../../data/repositories/item_repository.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/utils/date_input_formatter.dart';
 import '../../../../shared/widgets/app_back_button.dart';
@@ -389,6 +390,20 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
           _imageBytes = bytes;
         });
 
+        // Background upload to OCI Object Storage
+        try {
+          final cloudUrl = await ref.read(itemRepositoryProvider).uploadItemImageBytes(
+            bytes,
+            filename: nonNullPicked.name,
+          );
+          if (cloudUrl != null && mounted) {
+            setState(() {
+              _imagePath = cloudUrl;
+            });
+          }
+        } catch (_) {}
+
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Photo updated successfully'),
@@ -527,6 +542,31 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
     }
 
     final parsedQty = double.tryParse(_quantityController.text) ?? 1.0;
+
+    // If the image is a local file, ensure it's uploaded to OCI Object Storage so all devices can display it
+    if (_imagePath != null &&
+        !_imagePath!.startsWith('http') &&
+        !_imagePath!.startsWith('assets/') &&
+        !Platform.environment.containsKey('FLUTTER_TEST')) {
+      try {
+        if (_imageBytes == null && !kIsWeb) {
+          final f = File(_imagePath!);
+          if (f.existsSync()) {
+            _imageBytes = await f.readAsBytes();
+          }
+        }
+        if (_imageBytes != null) {
+          final cloudUrl = await ref.read(itemRepositoryProvider).uploadItemImageBytes(
+            _imageBytes!,
+            filename: 'item.jpg',
+          );
+          if (cloudUrl != null) {
+            _imagePath = cloudUrl;
+          }
+        }
+      } catch (_) {}
+    }
+
     final updated = ItemModel(
       id: widget.itemId,
       fridgeId: widget.fridgeId,

@@ -37,8 +37,27 @@ router.post('/scan-label', authenticateToken, handleUpload, async (req, res, nex
   try {
     if (!req.file) return res.status(400).json({ error: 'image is required' });
     const language = req.query.language || req.body?.language || 'en';
-    const result = await scanLabel(req.file.buffer, req.file.mimetype, language);
-    res.json(result);
+    const mode = req.query.mode || req.body?.mode || 'full';
+    const result = await scanLabel(req.file.buffer, req.file.mimetype, language, mode);
+
+    let imageUrl = null;
+    if (mode !== 'expiry_only') {
+      try {
+        const storageService = require('../services/storageService');
+        imageUrl = await storageService.uploadItemImage(
+          req.file.buffer,
+          req.file.mimetype,
+          req.file.originalname || 'scan.jpg'
+        );
+      } catch (uploadErr) {
+        console.warn('[AI Scan] OCI image upload skipped or failed:', uploadErr.message);
+      }
+    }
+
+    res.json({
+      ...result,
+      imageUrl: imageUrl || null,
+    });
   } catch (err) {
     next(err);
   }

@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/utils/environment.dart';
 import '../local/app_database.dart';
@@ -290,6 +292,35 @@ class ItemRepository {
   /// Mark item as synced
   Future<void> markItemSynced(String id) async {
     await database.itemDao.markItemSynced(id);
+  }
+
+  /// Upload food item image to Oracle Cloud Object Storage via backend PAR URL
+  Future<String?> uploadItemImageBytes(List<int> bytes, {String? filename}) async {
+    try {
+      final formData = FormData.fromMap({
+        'image': MultipartFile.fromBytes(bytes, filename: filename ?? 'item.jpg'),
+      });
+      final res = await apiClient.dio.post(
+        '/items/upload-image',
+        data: formData,
+      );
+      if (res.statusCode == 200 && res.data is Map && res.data['imageUrl'] != null) {
+        return res.data['imageUrl'] as String;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Upload food item image file to Oracle Cloud Object Storage
+  Future<String?> uploadItemImage(File file) async {
+    if (!file.existsSync()) return null;
+    try {
+      final bytes = await file.readAsBytes();
+      final filename = file.path.split(Platform.pathSeparator).last;
+      return await uploadItemImageBytes(bytes, filename: filename);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// AI Vision Scan Label (forwarded to API)

@@ -68,46 +68,69 @@ function translateThaiIngredientToEn(name) {
 
 function getScanLabelPrompt(language = 'en') {
   if (language === 'en') {
-    return `Analyze the food product label in this image and respond strictly in JSON matching this schema:
+    return `Analyze the image and respond strictly in JSON matching this schema:
 {
+  "is_food": boolean,
   "foodName": string|null,
   "expiryDate": "YYYY-MM-DD"|null,
   "category": "Proteins"|"Veggies"|"Beverages"|"Meals"|"Sauces",
   "storage": "Fridge"|"Freezer",
-  "unit": "pieces"|"bag"|"punnet"|"bottle"|"box"|"can"|"pack"|"g"|"kg"
+  "unit": "pieces"|"bag"|"punnet"|"bottle"|"box"|"can"|"pack"|"g"|"kg",
+  "confidence": number
 }
 Rules:
+- is_food: MUST be true ONLY if the image depicts food, groceries, edible ingredients, fresh produce, snacks, beverages, or a food product packaging label. MUST be false if the image is a person's face, selfie, human body, animal, general non-food object, furniture, electronics, or scenery.
+- confidence: Confidence score between 0.0 and 1.0. If the image is blurry, occluded by hand, far away, or not clear, set confidence lower than 0.6. If it is clearly not food, set 0.0.
 - foodName: The clear product name or ingredient in concise natural English (e.g. "Smoked Cocktail Sausage", "Minced Pork", "Fresh Milk", "Eggs").
-  CRITICAL: Even if the packaging, brand, or text on the label is in Thai or another non-English language (such as "ค็อกเทลรมควัน", "หมูบด", "นมสด", "ไข่ไก่"), you MUST translate it accurately and write foodName ONLY in English. Do NOT return Thai script in foodName.
-- expiryDate: Expiry date ONLY (EXP, BBD, Best Before, ควรบริโภคก่อน, หมดอายุ). NEVER use manufacturing date (MFD, MFG). Convert Buddhist Era (BE/พ.ศ.) to CE (AD/ค.ศ.) in YYYY-MM-DD format (subtract 543 if year is > 2400). If not found, return null. Do not guess.
+  CRITICAL: If is_food is false, foodName MUST be null.
+  Even if the packaging, brand, or text on the label is in Thai or another non-English language (such as "ค็อกเทลรมควัน", "หมูบด", "นมสด", "ไข่ไก่"), you MUST translate it accurately and write foodName ONLY in English. Do NOT return Thai script in foodName.
+- expiryDate: Expiry date ONLY (EXP, BBD, Best Before, ควรบริโภคก่อน, หมดอายุ). NEVER use manufacturing date (MFD, MFG). Convert Buddhist Era (BE/พ.ศ.) to CE (AD/ค.ศ.) in YYYY-MM-DD format (subtract 543 if year is > 2400). If not clearly found on this image (e.g. stamped on cap or bottom out of view), return null. Do NOT guess.
 - category: Analyze food category:
-  * "Proteins": Meat, pork, chicken, fish, shrimp, eggs, sausages, ham, bacon, tofu, meatballs
-  * "Veggies": Fresh vegetables, fruits, mushrooms
-  * "Beverages": Milk, water, juices, tea, coffee, soda, drinks
-  * "Meals": Ready-to-eat meals, bento, rice dishes, noodles, soups, curries, stir-fries, pasta, pizza, sandwiches, burgers
-  * "Sauces": Condiments, sauces, dips, soy sauce, fish sauce, cooking oils, mayonnaise, jams
-- storage: Mostly "Fridge" unless it is frozen food, ice cream, or specifies freezer, then "Freezer".
-- unit: Appropriate packaging unit: "pack" for sausages/meats, "bottle" for drinks, "box" for meal boxes, "bag" for veggies, or "pieces", "g", "kg", "can", "punnet".`;
+  * "Proteins": Meat, pork, chicken, beef, fish, seafood, eggs, sausages, ham, bacon, tofu, plant-based proteins, meatballs
+  * "Veggies": Fresh vegetables, leafy greens, mushrooms, fresh fruits, garlic, onions, chili, lime, fresh herbs
+  * "Beverages": Milk, soy milk, water, juices, tea, coffee, soda, drinks, yogurt drinks, energy drinks
+  * "Sauces": Condiments, sauces, dips, soy sauce, fish sauce, cooking oils, mayonnaise, butter, margarine, jams, honey, seasoning powders, sugar, salt
+  * "Meals": Ready-to-eat meals, bento, rice dishes, noodles, soups, curries, stir-fries, pasta, pizza, sandwiches, burgers, AND ALL dry goods / baking ingredients / pantry staples (such as flour, crispy batter, tempura flour, starch, baking powder, rice grains, noodles, instant noodles/ramen, vermicelli, bread, toast, bakery, cookies, chips, snacks, cereals, biscuits), and any other edible food or ingredient not falling into the other 4 categories.
+- storage: Mostly "Fridge" for all fresh items, dairy, vegetables, meat, and dry goods/groceries stored in the refrigerator, unless it is frozen food, ice cream, or specifies freezer, then "Freezer".
+- unit: Appropriate packaging unit: "pack" for sausages/meats, "bottle" for drinks, "box" for meal boxes, "bag" for veggies/flour, or "pieces", "g", "kg", "can", "punnet".`;
   }
 
-  return `อ่านฉลากอาหารในรูปนี้ แล้วตอบเป็น JSON เท่านั้นตามรูปแบบนี้:
+  return `อ่านฉลากหรือภาพอาหารในรูปนี้ แล้วตอบเป็น JSON เท่านั้นตามรูปแบบนี้:
 {
+  "is_food": boolean,
   "foodName": string|null,
   "expiryDate": "YYYY-MM-DD"|null,
   "category": "Proteins"|"Veggies"|"Beverages"|"Meals"|"Sauces",
   "storage": "Fridge"|"Freezer",
-  "unit": "pieces"|"bag"|"punnet"|"bottle"|"box"|"can"|"pack"|"g"|"kg"
+  "unit": "pieces"|"bag"|"punnet"|"bottle"|"box"|"can"|"pack"|"g"|"kg",
+  "confidence": number
 }
-- foodName: คือชื่อสินค้าหรือชนิดวัตถุดิบ (ภาษาไทยหรืออังกฤษตามฉลาก)
-- expiryDate: วันหมดอายุเท่านั้น (EXP, BBD, Best Before, ควรบริโภคก่อน, หมดอายุ) ห้ามใช้วันผลิต (MFD, MFG). แปลงเป็น ค.ศ. รูปแบบ YYYY-MM-DD ถ้าไม่พบให้ใส่ null อย่าเดา
-- category: วิเคราะห์จากประเภทอาหาร
-  * "Proteins": เนื้อสัตว์, หมู, ไก่, ปลา, กุ้ง, ไข่, ไส้กรอก, แฮม, เบคอน, เต้าหู้, ลูกชิ้น
-  * "Veggies": ผักสด, ผลไม้สด, เห็ด
+- is_food: ต้องเป็น true เฉพาะเมื่อในรูปเป็นอาหาร วัตถุดิบ ของกิน เครื่องดื่ม หรือฉลากบรรจุภัณฑ์อาหารเท่านั้น หากเป็นรูปใบหน้าคน เซลฟี่ สัตว์ สิ่งของที่ไม่ใช่อาหาร เครื่องใช้ หรือวิว ให้ตอบ false
+- confidence: ค่าความมั่นใจระหว่าง 0.0 ถึง 1.0 ถ้าภาพเบลอ มีมือบัง หรือไม่ชัด ให้ระบุต่ำกว่า 0.6 หากไม่ใช่อาหารให้เป็น 0.0
+- foodName: ชื่อสินค้าหรือชนิดวัตถุดิบ (ถ้า is_food เป็น false ให้ใส่ null) ห้ามเดาหากไม่ชัดเจน
+- expiryDate: วันหมดอายุเท่านั้น (EXP, BBD, Best Before, ควรบริโภคก่อน, หมดอายุ) ห้ามใช้วันผลิต (MFD, MFG). แปลงเป็น ค.ศ. รูปแบบ YYYY-MM-DD หากไม่พบตัวเลขวันหมดอายุในรูปให้ใส่ null ห้ามเดา
+- category: วิเคราะห์จากประเภทอาหาร (5 หมวด):
+  * "Proteins": เนื้อสัตว์, หมู, ไก่, วัว, ปลา, กุ้ง, ไข่, ไส้กรอก, แฮม, เบคอน, เต้าหู้, ลูกชิ้น
+  * "Veggies": ผักสด, ผลไม้สด, เห็ดทุกชนิด, พริก, กระเทียม, หอม, มะนาว
   * "Beverages": นม, น้ำดื่ม, น้ำผลไม้, ชา, กาแฟ, โซดา, เครื่องดื่ม
-  * "Meals": อาหารปรุงสำเร็จ, ข้าวกล่อง, ข้าว, ก๋วยเตี๋ยว, แกง, ต้ม, ผัด, พาสต้า, พิซซ่า, แซนด์วิช, เบอร์เกอร์
-  * "Sauces": ซอส, เครื่องปรุงรส, น้ำจิ้ม, ซีอิ๊ว, น้ำปลา, น้ำมัน, มายองเนส, แยม
-- storage: ส่วนใหญ่แช่ตู้เย็นปกติ "Fridge" ยกเว้นสินค้าแช่แข็งหรือไอศกรีมให้เป็น "Freezer"
-- unit: หน่วยที่เหมาะสมของบรรจุภัณฑ์ เช่น "pack" สำหรับไส้กรอก/เนื้อสัตว์, "bottle" สำหรับเครื่องดื่ม, "box" สำหรับอาหารกล่อง, "bag" สำหรับผักถุง, หรือ "pieces"`;
+  * "Sauces": ซอส, เครื่องปรุงรส, น้ำจิ้ม, ซีอิ๊ว, น้ำปลา, น้ำมันพืช, มายองเนส, เนย, แยม, ผงปรุงรส, น้ำตาล, เกลือ
+  * "Meals": อาหารปรุงสำเร็จ, กับข้าว, ข้าวกล่อง รวมถึงของแห้งและวัตถุดิบทั้งหมด เช่น แป้งทอดกรอบ, แป้งสาลี, ข้าวสาร, บะหมี่กึ่งสำเร็จรูป, พาสต้า, ขนมปัง, เบเกอรี่, ขนมขบเคี้ยว (Snacks) และอาหารใดๆ ที่ไม่เข้าข่าย 4 หมวดแรก
+- storage: "Fridge" สำหรับของสดและของกินทั่วไปที่แช่ในตู้เย็น ยกเว้นสินค้าแช่แข็งหรือไอศกรีมให้เป็น "Freezer"
+- unit: หน่วยที่เหมาะสมของบรรจุภัณฑ์ เช่น "pack", "bottle", "box", "bag", "can", "pieces"`;
+}
+
+function getExpiryOnlyPrompt(language = 'en') {
+  return `Analyze this close-up photo of a food packaging (such as a bottle cap, bottom of a can, stamp seal, or expiry label) and extract the expiration date.
+Respond strictly in JSON matching this schema:
+{
+  "expiryDate": "YYYY-MM-DD"|null,
+  "confidence": number
+}
+Rules:
+- expiryDate: Expiry date ONLY (EXP, BBD, Best Before, ควรบริโภคก่อน, หมดอายุ, EXP.DATE).
+  NEVER use manufacturing date (MFD, MFG). Convert Buddhist Era (BE/พ.ศ.) to CE (AD/ค.ศ.) in YYYY-MM-DD format (subtract 543 if year is > 2400).
+  If not found or unreadable, return null. Do not guess.
+- confidence: Score between 0.0 and 1.0 based on legibility.`;
 }
 
 const PROMPT = getScanLabelPrompt('en');
@@ -1218,13 +1241,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
   return pool.slice(0, 6);
 }
 
-async function scanLabel(buffer, mimeType, language = 'en') {
+async function scanLabel(buffer, mimeType, language = 'en', mode = 'full') {
   let model = (process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite').replace(/^["']|["']$/g, '');
   if (model.includes('2.5') || model.includes('1.5')) {
     model = 'gemini-3.5-flash-lite';
   }
 
-  const promptText = getScanLabelPrompt(language);
+  const promptText = mode === 'expiry_only' ? getExpiryOnlyPrompt(language) : getScanLabelPrompt(language);
   const res = await ai.models.generateContent({
     model,
     contents: [
@@ -1244,6 +1267,22 @@ async function scanLabel(buffer, mimeType, language = 'en') {
 
   try {
     const parsed = JSON.parse(res.text);
+    if (mode === 'expiry_only') {
+      return {
+        expiryDate: parsed.expiryDate || null,
+        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.8,
+      };
+    }
+
+    if (typeof parsed.is_food !== 'boolean') {
+      parsed.is_food = Boolean(parsed.foodName && parsed.foodName.toLowerCase() !== 'null');
+    }
+    if (parsed.is_food === false) {
+      parsed.foodName = null;
+    }
+    if (typeof parsed.confidence !== 'number') {
+      parsed.confidence = parsed.is_food ? 0.9 : 0.0;
+    }
     if (language === 'en' && parsed.foodName && /[\u0E00-\u0E7F]/.test(parsed.foodName)) {
       parsed.foodName = translateThaiIngredientToEn(parsed.foodName);
     }

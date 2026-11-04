@@ -262,17 +262,21 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
-      await apiClient.storage.delete(key: 'jwt_token');
-      await apiClient.storage.delete(key: 'user_id');
-      await apiClient.storage.delete(key: 'user_username');
-      await apiClient.storage.delete(key: 'user_email');
-      await apiClient.storage.delete(key: 'user_avatar_url');
-    } catch (_) {}
+      await apiClient.storage.deleteAll();
+    } catch (_) {
+      try {
+        await apiClient.storage.delete(key: 'jwt_token');
+        await apiClient.storage.delete(key: 'user_id');
+        await apiClient.storage.delete(key: 'user_username');
+        await apiClient.storage.delete(key: 'user_email');
+        await apiClient.storage.delete(key: 'user_avatar_url');
+      } catch (_) {}
+    }
 
     try {
       final googleSignIn = _buildGoogleSignIn();
-      await googleSignIn.signOut();
-      await googleSignIn.disconnect();
+      await googleSignIn.signOut().timeout(const Duration(seconds: 2));
+      await googleSignIn.disconnect().timeout(const Duration(seconds: 2));
     } catch (_) {}
   }
 
