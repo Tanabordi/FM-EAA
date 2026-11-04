@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const db = require('../config/db');
+const notificationService = require('./notificationService');
 
 const ALLOWED_CATEGORIES = ['proteins', 'veggies', 'beverages', 'meals', 'sauces'];
 const ALLOWED_ZONES = ['fridge', 'freezer'];
@@ -230,6 +231,31 @@ class ItemService {
         cleanExpiry,
         imagePath || null,
       ]);
+
+      // Notify other members of the fridge
+      try {
+        const actorRes = await conn.execute(`SELECT username FROM users WHERE id = :userId`, [userId]);
+        const actorUsername = (actorRes.rows && actorRes.rows[0]) ? actorRes.rows[0][0] : 'Someone';
+        const fridgeRes = await conn.execute(`SELECT name FROM fridges WHERE id = :fridgeId`, [fridgeId]);
+        const fridgeName = (fridgeRes.rows && fridgeRes.rows[0]) ? fridgeRes.rows[0][0] : 'Fridge';
+
+        await notificationService.notifyFridgeMembers(conn, fridgeId, userId, {
+          type: 'item_added',
+          subType: 'item_added',
+          title: 'New Item Added',
+          message: `${actorUsername} added "${cleanName}" (${numQuantity} ${cleanUnit}) to "${fridgeName}"`,
+          item_id: itemId,
+          item_name: cleanName,
+          quantity: numQuantity,
+          unit: cleanUnit,
+          fridge_name: fridgeName,
+          by_user_id: userId,
+          by_username: actorUsername,
+        });
+      } catch (notifErr) {
+        console.warn('[ItemService] Error creating item_added notification:', notifErr.message);
+      }
+
       await conn.commit();
 
       return {
@@ -454,6 +480,18 @@ class ItemService {
         // Continue with deletion
       }
 
+      // Fetch item name before deletion for notification
+      let deletedItemName = 'an item';
+      try {
+        const itemRes = await conn.execute(
+          `SELECT name FROM items WHERE id = :itemId AND fridge_id = :fridgeId`,
+          [itemId, fridgeId]
+        );
+        if (itemRes.rows && itemRes.rows.length > 0) {
+          deletedItemName = itemRes.rows[0][0];
+        }
+      } catch (_) {}
+
       const result = await conn.execute(
         `DELETE FROM items WHERE id = :itemId AND fridge_id = :fridgeId`,
         [itemId, fridgeId]
@@ -462,6 +500,28 @@ class ItemService {
         const err = new Error('Item not found');
         err.statusCode = 404;
         throw err;
+      }
+
+      // Notify other members of the fridge
+      try {
+        const actorRes = await conn.execute(`SELECT username FROM users WHERE id = :userId`, [userId]);
+        const actorUsername = (actorRes.rows && actorRes.rows[0]) ? actorRes.rows[0][0] : 'Someone';
+        const fridgeRes = await conn.execute(`SELECT name FROM fridges WHERE id = :fridgeId`, [fridgeId]);
+        const fridgeName = (fridgeRes.rows && fridgeRes.rows[0]) ? fridgeRes.rows[0][0] : 'Fridge';
+
+        await notificationService.notifyFridgeMembers(conn, fridgeId, userId, {
+          type: 'item_deleted',
+          subType: 'item_deleted',
+          title: 'Item Removed',
+          message: `${actorUsername} removed "${deletedItemName}" from "${fridgeName}"`,
+          item_id: itemId,
+          item_name: deletedItemName,
+          fridge_name: fridgeName,
+          by_user_id: userId,
+          by_username: actorUsername,
+        });
+      } catch (notifErr) {
+        console.warn('[ItemService] Error creating item_deleted notification:', notifErr.message);
       }
 
       await conn.commit();
@@ -536,6 +596,36 @@ class ItemService {
           `UPDATE items SET quantity = :qtyLeft, updated_at = CURRENT_TIMESTAMP WHERE id = :itemId AND fridge_id = :fridgeId`,
           [quantityLeft, itemId, fridgeId]
         );
+      }
+
+      // Notify other members of the fridge
+      try {
+        const actorRes = await conn.execute(`SELECT username FROM users WHERE id = :userId`, [userId]);
+        const actorUsername = (actorRes.rows && actorRes.rows[0]) ? actorRes.rows[0][0] : 'Someone';
+        const fridgeRes = await conn.execute(`SELECT name FROM fridges WHERE id = :fridgeId`, [fridgeId]);
+        const fridgeName = (fridgeRes.rows && fridgeRes.rows[0]) ? fridgeRes.rows[0][0] : 'Fridge';
+
+        const message = quantityLeft === 0
+          ? `${actorUsername} finished all "${item.name}" in "${fridgeName}"`
+          : `${actorUsername} ate ${amountToConsume} ${item.unit} of "${item.name}" in "${fridgeName}" (${quantityLeft} ${item.unit} left)`;
+
+        await notificationService.notifyFridgeMembers(conn, fridgeId, userId, {
+          type: 'item_consumed',
+          subType: 'item_consumed',
+          title: 'Item Consumed',
+          message,
+          item_id: itemId,
+          item_name: item.name,
+          amount_consumed: amountToConsume,
+          quantity_left: quantityLeft,
+          unit: item.unit,
+          finished_all: quantityLeft === 0,
+          fridge_name: fridgeName,
+          by_user_id: userId,
+          by_username: actorUsername,
+        });
+      } catch (notifErr) {
+        console.warn('[ItemService] Error creating item_consumed notification:', notifErr.message);
       }
 
       await conn.commit();

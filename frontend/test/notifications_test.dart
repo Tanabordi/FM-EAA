@@ -41,6 +41,18 @@ void main() {
       final instance2 = NotificationService();
       expect(identical(instance1, instance2), true);
     });
+
+    test('scheduleItemExpiryAlert and cancelItemExpiryAlert run without error', () async {
+      final service = NotificationService();
+      await service.scheduleItemExpiryAlert(
+        itemId: 'item_apple_1',
+        itemName: 'Apple',
+        fridgeName: 'Kitchen',
+        expiryDate: DateTime.now().add(const Duration(days: 2)),
+      );
+
+      await service.cancelItemExpiryAlert('item_apple_1');
+    });
   });
 
   group('NotificationRepository & SQLite Storage Tests', () {
@@ -81,6 +93,58 @@ void main() {
       await notificationRepo.markAsRead('n_read_test');
 
       expect((await notificationRepo.getNotifications('user_1')).first.isRead, true);
+    });
+
+    test('markAllAsRead marks all notifications for user as read', () async {
+      await notificationRepo.insertNotification(
+        NotificationModel(
+          id: 'n_all_1',
+          userId: 'user_1',
+          type: 'expiry',
+          title: 'Alert 1',
+          message: 'Item 1 expiring',
+          createdAt: DateTime.now(),
+        ),
+      );
+      await notificationRepo.insertNotification(
+        NotificationModel(
+          id: 'n_all_2',
+          userId: 'user_1',
+          type: 'invite',
+          title: 'Alert 2',
+          message: 'Invite 2',
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      final before = await notificationRepo.getNotifications('user_1');
+      expect(before.every((n) => !n.isRead), true);
+
+      await notificationRepo.markAllAsRead('user_1');
+
+      final after = await notificationRepo.getNotifications('user_1');
+      expect(after.every((n) => n.isRead), true);
+    });
+
+    test('watchUnreadCount accurately streams unread count', () async {
+      expect(await notificationRepo.watchUnreadCount('user_1').first, 0);
+
+      await notificationRepo.insertNotification(
+        NotificationModel(
+          id: 'n_unread_1',
+          userId: 'user_1',
+          type: 'expiry',
+          title: 'Item Expiry',
+          message: 'Milk expires soon',
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      expect(await notificationRepo.watchUnreadCount('user_1').first, 1);
+
+      await notificationRepo.markAsRead('n_unread_1');
+
+      expect(await notificationRepo.watchUnreadCount('user_1').first, 0);
     });
 
     test('deleteNotification removes single record', () async {
@@ -125,18 +189,33 @@ void main() {
       expect(list.isEmpty, true);
     });
 
-    test('seedInitialNotificationsIfEmpty seeds invite and expiry cards', () async {
-      await notificationRepo.seedInitialNotificationsIfEmpty('user_1');
+    test('purgeDemoNotifications removes all mockup demo notifications', () async {
+      await notificationRepo.insertNotification(
+        NotificationModel(
+          id: 'notif_demo_invite',
+          userId: 'user_1',
+          type: 'invite',
+          title: 'Demo',
+          message: 'Demo invite',
+          createdAt: DateTime.now(),
+        ),
+      );
+      await notificationRepo.insertNotification(
+        NotificationModel(
+          id: 'real_notif',
+          userId: 'user_1',
+          type: 'expiry',
+          title: 'Real',
+          message: 'Real alert',
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      await notificationRepo.purgeDemoNotifications();
 
       final list = await notificationRepo.getNotifications('user_1');
-      expect(list.length, 2);
-      expect(list.any((n) => n.isInvite), true);
-      expect(list.any((n) => n.isExpiry), true);
-
-      // Verify no duplicates on second call
-      await notificationRepo.seedInitialNotificationsIfEmpty('user_1');
-      final list2 = await notificationRepo.getNotifications('user_1');
-      expect(list2.length, 2);
+      expect(list.length, 1);
+      expect(list.first.id, 'real_notif');
     });
   });
 
@@ -181,6 +260,9 @@ void main() {
       // Verify AppBar
       expect(find.text('Notifications'), findsOneWidget);
 
+      // Verify Mark all as read button is shown since unread notifications exist
+      expect(find.byIcon(Icons.done_all_rounded), findsOneWidget);
+
       // Verify Family Invitation Card
       expect(find.text("John invited you to join 'Home Fridge'"), findsOneWidget);
       expect(find.text('Accept'), findsOneWidget);
@@ -222,9 +304,12 @@ void main() {
 
       // Tap Accept
       await tester.tap(find.text('Accept'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Accepted invitation.'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Empty State renders when no notifications exist', (tester) async {
@@ -247,6 +332,82 @@ void main() {
       expect(find.text('No Notifications'), findsOneWidget);
       expect(find.text("You're all caught up! Expiry alerts and family invites will appear here."), findsOneWidget);
     });
+
+    testWidgets('NotificationsPage renders Member Joined and Item Action cards correctly', (tester) async {
+      final sampleNotifs = [
+        NotificationModel(
+          id: 'notif_member_1',
+          userId: 'user_1',
+          type: 'member_joined',
+          title: 'New Member Joined',
+          message: "Bob joined 'Kitchen Fridge' (invited by Alice)",
+          fridgeId: 'fridge_1',
+          createdAt: DateTime.now(),
+        ),
+        NotificationModel(
+          id: 'notif_item_add',
+          userId: 'user_1',
+          type: 'item_added',
+          title: 'New Item Added',
+          message: 'Alice added "Greek Yogurt" to "Kitchen Fridge"',
+          fridgeId: 'fridge_1',
+          createdAt: DateTime.now(),
+        ),
+        NotificationModel(
+          id: 'notif_item_consume',
+          userId: 'user_1',
+          type: 'item_consumed',
+          title: 'Item Consumed',
+          message: 'Alice ate 1 cup of "Greek Yogurt" in "Kitchen Fridge"',
+          fridgeId: 'fridge_1',
+          createdAt: DateTime.now(),
+        ),
+        NotificationModel(
+          id: 'notif_item_del',
+          userId: 'user_1',
+          type: 'item_deleted',
+          title: 'Item Removed',
+          message: 'Bob removed "Old Spinach" from "Kitchen Fridge"',
+          fridgeId: 'fridge_1',
+          createdAt: DateTime.now(),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            notificationRepositoryProvider.overrideWithValue(notificationRepo),
+            defaultNotificationsStreamProvider.overrideWith((ref) => Stream.value(sampleNotifs)),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const NotificationsPage(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Verify Member Joined card
+      expect(find.text('New Member Joined'), findsOneWidget);
+      expect(find.text("Bob joined 'Kitchen Fridge' (invited by Alice)"), findsOneWidget);
+      expect(find.byIcon(Icons.group_add_rounded), findsOneWidget);
+
+      // Verify Item Added card
+      expect(find.text('New Item Added'), findsOneWidget);
+      expect(find.text('Alice added "Greek Yogurt" to "Kitchen Fridge"'), findsOneWidget);
+      expect(find.byIcon(Icons.add_circle_outline_rounded), findsOneWidget);
+
+      // Verify Item Consumed card
+      expect(find.text('Item Consumed'), findsOneWidget);
+      expect(find.text('Alice ate 1 cup of "Greek Yogurt" in "Kitchen Fridge"'), findsOneWidget);
+      expect(find.byIcon(Icons.restaurant_rounded), findsOneWidget);
+
+      // Verify Item Removed card
+      expect(find.text('Item Removed'), findsOneWidget);
+      expect(find.text('Bob removed "Old Spinach" from "Kitchen Fridge"'), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
+    });
   });
 }
-
