@@ -1,19 +1,9 @@
 import 'dart:async';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/remote/api_client.dart';
 import '../../../data/repositories/family_repository.dart';
+import '../../../shared/utils/environment.dart';
 import '../domain/models/family_member.dart';
-
-bool _isTestEnvironment() {
-  if (kIsWeb) return false;
-  try {
-    return Platform.environment.containsKey('FLUTTER_TEST');
-  } catch (_) {
-    return false;
-  }
-}
 
 final familyRepositoryProvider = Provider<FamilyRepository>((ref) {
   return FamilyRepository(apiClient: ApiClient());
@@ -55,7 +45,7 @@ class FamilyMembersNotifier extends StateNotifier<FamilyMembersState> {
   }
 
   void _startPolling() {
-    if (_isTestEnvironment()) return;
+    if (isTestEnvironment()) return;
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(seconds: 8), (_) {
       _silentReload();

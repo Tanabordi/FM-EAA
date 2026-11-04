@@ -1,22 +1,12 @@
 import 'dart:async';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/models/notification_model.dart';
 import '../../../data/remote/api_client.dart';
 import '../../../data/repositories/notification_repository.dart';
+import '../../../shared/utils/environment.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../fridges/providers/fridges_provider.dart';
-
-bool _isTestEnvironment() {
-  if (kIsWeb) return false;
-  try {
-    return Platform.environment.containsKey('FLUTTER_TEST');
-  } catch (_) {
-    return false;
-  }
-}
 
 /// Provider for NotificationRepository bound with AppDatabase and ApiClient
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
@@ -36,7 +26,7 @@ final notificationsStreamProvider = StreamProvider.family<List<NotificationModel
   unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
 
   // Periodic polling every 10 seconds for real-time notification delivery (skipped during flutter test)
-  if (!_isTestEnvironment()) {
+  if (!isTestEnvironment()) {
     final timer = Timer.periodic(const Duration(seconds: 10), (_) {
       unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
     });
@@ -55,7 +45,7 @@ final defaultNotificationsStreamProvider = StreamProvider<List<NotificationModel
   unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
 
   // Periodic polling every 8 seconds while on the notifications screen (skipped during flutter test)
-  if (!_isTestEnvironment()) {
+  if (!isTestEnvironment()) {
     final timer = Timer.periodic(const Duration(seconds: 8), (_) {
       unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
     });
@@ -74,7 +64,7 @@ final unreadNotificationCountProvider = StreamProvider<int>((ref) {
   unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
 
   // Periodic polling every 10 seconds to update badge without page refresh (skipped during flutter test)
-  if (!_isTestEnvironment()) {
+  if (!isTestEnvironment()) {
     final timer = Timer.periodic(const Duration(seconds: 10), (_) {
       unawaited(repo.syncNotifications(userId).catchError((_) => <NotificationModel>[]));
     });

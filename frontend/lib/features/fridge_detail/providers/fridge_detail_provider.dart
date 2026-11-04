@@ -1,18 +1,8 @@
 import 'dart:async';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/item_model.dart';
 import '../../../data/repositories/item_repository.dart';
-
-bool _isTestEnvironment() {
-  if (kIsWeb) return false;
-  try {
-    return Platform.environment.containsKey('FLUTTER_TEST');
-  } catch (_) {
-    return false;
-  }
-}
+import '../../../shared/utils/environment.dart';
 
 class FridgeFilterState {
   final String category; // 'All', 'Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'
@@ -94,7 +84,7 @@ class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
       } catch (_) {}
 
       // Periodic auto-refresh every 8 seconds while viewing fridge (skipped in flutter test)
-      if (!_isTestEnvironment()) {
+      if (!isTestEnvironment()) {
         _pollingTimer?.cancel();
         _pollingTimer = Timer.periodic(const Duration(seconds: 8), (_) {
           _loadItemsFromApi();

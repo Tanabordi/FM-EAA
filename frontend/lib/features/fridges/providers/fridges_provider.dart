@@ -1,18 +1,8 @@
 import 'dart:async';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/fridge_model.dart';
 import '../../../data/repositories/fridge_repository.dart';
-
-bool _isTestEnvironment() {
-  if (kIsWeb) return false;
-  try {
-    return Platform.environment.containsKey('FLUTTER_TEST');
-  } catch (_) {
-    return false;
-  }
-}
+import '../../../shared/utils/environment.dart';
 
 class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
   final FridgeRepository? _repository;
@@ -48,7 +38,7 @@ class FridgesNotifier extends StateNotifier<List<FridgeModel>> {
   }
 
   void _startPolling() {
-    if (_isTestEnvironment()) return;
+    if (isTestEnvironment()) return;
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 12), (_) {
       loadFridges();

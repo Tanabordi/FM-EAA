@@ -1,0 +1,1 @@
+bool checkIsTestEnvironment() => false;
