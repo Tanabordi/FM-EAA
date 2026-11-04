@@ -13,7 +13,7 @@ class FamilyRepository {
 
   /// Fetch fridge members from backend
   Future<List<FamilyMemberItem>> getMembers(String fridgeId) async {
-    final response = await apiClient.dio.get('/api/fridges/$fridgeId/members');
+    final response = await apiClient.dio.get('/fridges/$fridgeId/members');
     final data = response.data as Map<String, dynamic>;
     final rawList = data['members'] as List<dynamic>? ?? [];
     return rawList
@@ -25,7 +25,7 @@ class FamilyRepository {
   Future<List<UserSearchResult>> searchUsers(String fridgeId, String query) async {
     if (query.trim().isEmpty) return [];
     final response = await apiClient.dio.get(
-      '/api/fridges/$fridgeId/search-users',
+      '/fridges/$fridgeId/search-users',
       queryParameters: {'username': query.trim()},
     );
     final data = response.data as Map<String, dynamic>;
@@ -38,7 +38,7 @@ class FamilyRepository {
   /// Invite a user to a fridge by username
   Future<Map<String, dynamic>> inviteMember(String fridgeId, String username) async {
     final response = await apiClient.dio.post(
-      '/api/fridges/$fridgeId/invites',
+      '/fridges/$fridgeId/invites',
       data: {'username': username.trim()},
     );
     return response.data as Map<String, dynamic>? ?? {};
@@ -46,13 +46,13 @@ class FamilyRepository {
 
   /// Remove a member or leave fridge
   Future<void> removeMember(String fridgeId, String userId) async {
-    await apiClient.dio.delete('/api/fridges/$fridgeId/members/$userId');
+    await apiClient.dio.delete('/fridges/$fridgeId/members/$userId');
   }
 
   /// Respond to a fridge invitation (accept or decline)
   Future<void> respondInvite(String inviteId, bool accept) async {
     await apiClient.dio.post(
-      '/api/invites/$inviteId/${accept ? 'accept' : 'decline'}',
+      '/invites/$inviteId/${accept ? 'accept' : 'decline'}',
       data: {},
     );
   }

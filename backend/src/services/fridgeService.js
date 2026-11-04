@@ -405,11 +405,14 @@ class FridgeService {
       const searchSql = `
         SELECT id, username, email, avatar_url
         FROM users
-        WHERE LOWER(username) LIKE LOWER(:term)
+        WHERE (LOWER(username) LIKE LOWER(:term) OR LOWER(email) LIKE LOWER(:term))
           AND id != :currentUserId
         FETCH FIRST 20 ROWS ONLY
       `;
-      const searchResult = await conn.execute(searchSql, [`%${query.trim()}%`, currentUserId]);
+      const searchResult = await conn.execute(searchSql, {
+        term: `%${query.trim()}%`,
+        currentUserId,
+      });
       const foundUsers = (searchResult.rows || []).map(r => ({
         id: r[0],
         username: r[1],
@@ -485,8 +488,8 @@ class FridgeService {
 
       // 1. Find target user
       const userRes = await conn.execute(
-        `SELECT id, username, email, avatar_url FROM users WHERE LOWER(username) = LOWER(:username)`,
-        [cleanUsername]
+        `SELECT id, username, email, avatar_url FROM users WHERE (LOWER(username) = LOWER(:username) OR LOWER(email) = LOWER(:username))`,
+        { username: cleanUsername }
       );
       if (!userRes.rows || userRes.rows.length === 0) {
         const err = new Error(`User '${cleanUsername}' not found`);

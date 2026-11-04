@@ -51,6 +51,11 @@ app.use('/api/invites', inviteRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/ai', aiRoutes);
 
+// Compatibility fallback for clients with duplicate /api baseUrl
+app.use('/api/api/fridges', fridgeRoutes);
+app.use('/api/api/invites', inviteRoutes);
+app.use('/api/api/notifications', notificationRoutes);
+
 
 // Error Handling Middleware
 app.use(errorHandler);
