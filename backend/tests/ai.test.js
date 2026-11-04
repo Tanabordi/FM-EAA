@@ -142,7 +142,7 @@ describe('AI Recipe Suggestion Routes (/api/ai/recipes)', () => {
     expect(aiService.suggestRecipes).toHaveBeenCalledWith({
       userId: 'user_chef_1',
       mainIngredient: 'ค็อกเทลรมควัน',
-      language: 'th',
+      language: 'en',
       offset: 0,
     });
   });

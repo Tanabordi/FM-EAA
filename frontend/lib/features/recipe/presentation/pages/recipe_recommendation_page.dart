@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,20 +9,23 @@ import '../../../../shared/widgets/app_top_bar.dart';
 import '../../data/models/recipe_model.dart';
 import '../../../../data/repositories/item_repository.dart';
 import '../../../../data/repositories/ai_repository.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import 'recipe_detail_page.dart';
 
 /// Screen #25: AI Suggested Recipes Page
-/// Generates 3 recipes per request focused on selected ingredient,
-/// with 10 requests/day limit, usage counter in button (e.g. Regenerate (1/10)),
-/// and 3-second button cooldown.
+/// Generates recipes per request focused on selected ingredient,
+/// with 3 requests limit per ingredient, usage counter in button (e.g. Regenerate (1/3)),
+/// caching previous recommendations per item, and 3-second button cooldown.
 class RecipeRecommendationPage extends ConsumerStatefulWidget {
   final String fridgeId;
   final String initialIngredient;
+  final String? category;
 
   const RecipeRecommendationPage({
     super.key,
     required this.fridgeId,
-    this.initialIngredient = 'Strawberries',
+    this.initialIngredient = '',
+    this.category,
   });
 
   @override
@@ -29,12 +34,14 @@ class RecipeRecommendationPage extends ConsumerStatefulWidget {
 
 class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationPage> {
   late String _currentIngredient;
+  String? _category;
   List<RecipeModel> _recipes = [];
+  bool _isLoading = true;
   bool _isRegenerating = false;
 
-  // Daily Quota Tracking (Max: 10/day)
+  // Daily Quota Tracking (Max: 3/day per item)
   int _usedCount = 1;
-  static const int _maxDailyQuota = 10;
+  static const int _maxDailyQuota = 3;
 
   // Anti-Spam Cooldown (3 seconds)
   int _cooldownSeconds = 0;
@@ -43,31 +50,65 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   @override
   void initState() {
     super.initState();
+    _category = widget.category;
     _currentIngredient = widget.initialIngredient.trim().isEmpty
         ? 'Strawberries'
-        : widget.initialIngredient;
+        : widget.initialIngredient.trim();
 
-    // Load initial recipes immediately from fallback
-    _loadInitialFallback();
-
-    // Load persisted quota and query fresh AI recipes
-    _loadDailyQuota();
+    _isLoading = true;
 
     Future.microtask(() async {
       try {
-        final itemRepo = ref.read(itemRepositoryProvider);
-        final expiringItems = await itemRepo.getExpiringSoonItems(widget.fridgeId);
-        if (expiringItems.isNotEmpty && widget.initialIngredient == 'Strawberries') {
-          if (mounted) {
+        if (widget.initialIngredient.trim().isEmpty) {
+          final itemRepo = ref.read(itemRepositoryProvider);
+          final expiringItems = await itemRepo.getExpiringSoonItems(widget.fridgeId);
+          if (expiringItems.isNotEmpty && mounted) {
             setState(() {
               _currentIngredient = expiringItems.first.name;
             });
           }
         }
 
+        // 1. Check if we already have saved recipes for this specific ingredient
+        final hasCached = await _loadCachedRecipesForIngredient(_currentIngredient);
+        if (hasCached) {
+          // Found cached recommendations! Do NOT call AI, do not increment quota!
+          return;
+        }
+
+        // 2. No cached recipes yet -> fetch initial recommendations
         await _fetchRecipesFromAi();
-      } catch (_) {}
+      } catch (_) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            if (_recipes.isEmpty) {
+              _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
+              _usedCount = 1;
+            }
+          });
+          _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
+        }
+      }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant RecipeRecommendationPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.category != widget.category) {
+      _category = widget.category;
+    }
+    if (oldWidget.initialIngredient != widget.initialIngredient && widget.initialIngredient.isNotEmpty) {
+      _currentIngredient = widget.initialIngredient.trim();
+      _isLoading = true;
+      _recipes = [];
+      _loadCachedRecipesForIngredient(_currentIngredient).then((hasCached) {
+        if (!hasCached) {
+          _fetchRecipesFromAi();
+        }
+      });
+    }
   }
 
   @override
@@ -76,36 +117,96 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     super.dispose();
   }
 
-  Future<void> _loadDailyQuota() async {
+  static final Map<String, String> _inMemoryRecipeCache = {};
+  static final Map<String, int> _inMemoryQuotaCache = {};
+
+  String _getIngredientCacheKey(String ingredient) {
+    final clean = ingredient.trim().toLowerCase();
+    return 'gemini_recipes_${widget.fridgeId}_$clean';
+  }
+
+  String _getQuotaCacheKey(String ingredient) {
+    final clean = ingredient.trim().toLowerCase();
+    return 'gemini_quota_${widget.fridgeId}_$clean';
+  }
+
+  Future<bool> _loadCachedRecipesForIngredient(String ingredient) async {
+    final recipeKey = _getIngredientCacheKey(ingredient);
+    final quotaKey = _getQuotaCacheKey(ingredient);
+
+    // 1. Check in-memory cache first (instant!)
+    if (_inMemoryRecipeCache.containsKey(recipeKey)) {
+      final cachedJson = _inMemoryRecipeCache[recipeKey];
+      if (cachedJson != null && cachedJson.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(cachedJson) as List<dynamic>;
+          if (decoded.isNotEmpty) {
+            final loaded = decoded
+                .map((item) => RecipeModel.fromJson(item as Map<String, dynamic>, defaultExpiring: ingredient))
+                .toList();
+            final savedCount = _inMemoryQuotaCache[quotaKey] ?? 1;
+            if (mounted) {
+              setState(() {
+                _recipes = loaded;
+                _usedCount = savedCount;
+                _isLoading = false;
+              });
+            }
+            return true;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return false;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      final today = DateTime.now().toIso8601String().split('T')[0];
-      final savedDate = prefs.getString('gemini_recipe_date');
-      if (savedDate == today) {
-        final savedCount = prefs.getInt('gemini_recipe_count') ?? 1;
-        if (mounted) {
-          setState(() {
-            _usedCount = savedCount;
-          });
+      final cachedJson = prefs.getString(recipeKey);
+      if (cachedJson != null && cachedJson.isNotEmpty) {
+        final decoded = jsonDecode(cachedJson) as List<dynamic>;
+        if (decoded.isNotEmpty) {
+          final loadedRecipes = decoded
+              .map((item) => RecipeModel.fromJson(item as Map<String, dynamic>, defaultExpiring: ingredient))
+              .toList();
+          final savedCount = prefs.getInt(quotaKey) ?? 1;
+
+          _inMemoryRecipeCache[recipeKey] = cachedJson;
+          _inMemoryQuotaCache[quotaKey] = savedCount;
+
+          if (mounted) {
+            setState(() {
+              _recipes = loadedRecipes;
+              _usedCount = savedCount;
+              _isLoading = false;
+            });
+          }
+          return true;
         }
-      } else {
-        await prefs.setString('gemini_recipe_date', today);
-        await prefs.setInt('gemini_recipe_count', 1);
       }
     } catch (_) {}
+    return false;
   }
 
-  Future<void> _saveDailyQuota(int count) async {
+  Future<void> _persistRecipesForIngredient(String ingredient, List<RecipeModel> recipes, int count) async {
+    final recipeKey = _getIngredientCacheKey(ingredient);
+    final quotaKey = _getQuotaCacheKey(ingredient);
+
+    final encoded = jsonEncode(recipes.map((r) => r.toJson()).toList());
+    _inMemoryRecipeCache[recipeKey] = encoded;
+    _inMemoryQuotaCache[quotaKey] = count;
+
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      final today = DateTime.now().toIso8601String().split('T')[0];
-      await prefs.setString('gemini_recipe_date', today);
-      await prefs.setInt('gemini_recipe_count', count);
+      await prefs.setString(recipeKey, encoded);
+      await prefs.setInt(quotaKey, count);
     } catch (_) {}
-  }
-
-  void _loadInitialFallback() {
-    _recipes = _getQuickLocalRecipes(_currentIngredient).take(3).toList();
   }
 
   List<RecipeModel> _getQuickLocalRecipes(String ingredient) {
@@ -337,69 +438,292 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       ];
     }
 
-    // Default for any custom ingredient like "แครอท" or "ค็อกเทลรมควัน"
+    // Default 6 fallback recipes for custom ingredient
+    final displayIngredient = AiRepository.translateThaiToEnglish(ingredient);
+    final detectedCat = AiRepository.detectCategory(ingredient, _category);
+
+    if (detectedCat == 'beverages') {
+      return [
+        RecipeModel(
+          id: 'recipe_local_bev_1',
+          title: 'Refreshing Iced $displayIngredient Splash',
+          description: 'Cool, vibrant, and incredibly refreshing beverage.',
+          imageUrl: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: [displayIngredient, '1 cup ice cubes', '1 tbsp honey or syrup', 'Fresh mint or citrus slice'],
+          steps: ['Pour $displayIngredient over ice cubes in a glass.', 'Stir in honey or syrup to taste.', 'Garnish with mint and enjoy chilled.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_bev_2',
+          title: 'Creamy $displayIngredient Smoothie',
+          description: 'Rich, velvety smoothie blended to perfection.',
+          imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: [displayIngredient, '1/2 cup yogurt', '1 banana or frozen berries', '1 tbsp honey'],
+          steps: ['Add $displayIngredient, yogurt, and fruit to blender.', 'Blend on high until silky smooth.', 'Serve immediately.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_bev_3',
+          title: 'Golden Fluffy Pancakes with $displayIngredient',
+          description: 'Light, airy breakfast pancakes infused with rich flavor.',
+          imageUrl: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '15 min',
+          difficulty: 'Easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['1/2 cup $displayIngredient', '1 cup flour', '1 egg', '1 tbsp melted butter', 'Syrup'],
+          steps: ['Whisk egg, butter, and $displayIngredient together.', 'Gently fold in flour.', 'Cook on hot buttered pan until golden on both sides.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_bev_4',
+          title: 'Silky Chia Seed Pudding with $displayIngredient',
+          description: 'Healthy zero-waste breakfast or dessert bowl.',
+          imageUrl: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['1 cup $displayIngredient', '3 tbsp chia seeds', '1 tsp honey', 'Fresh fruits'],
+          steps: ['Stir $displayIngredient and chia seeds together in a jar.', 'Let sit or chill until set into thick pudding.', 'Top with fruit.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_bev_5',
+          title: 'Golden French Toast with $displayIngredient',
+          description: 'Custardy inside, golden-crisp outside breakfast classic.',
+          imageUrl: 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '10 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['1/3 cup $displayIngredient', '2 thick bread slices', '1 egg', 'Butter for pan'],
+          steps: ['Beat egg with $displayIngredient in a shallow dish.', 'Coat bread slices evenly.', 'Pan-fry in butter until golden brown.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_bev_6',
+          title: 'Warm Spiced $displayIngredient Latte',
+          description: 'Soothing, aromatic warm drink for any cozy moment.',
+          imageUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_strawberries.png',
+          cookingTime: '5 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: [displayIngredient, 'Pinch of cinnamon', '1 tsp honey or brown sugar'],
+          steps: ['Warm $displayIngredient gently in small pot.', 'Whisk into a frothy texture.', 'Pour into mug and dust with cinnamon.'],
+        ),
+      ];
+    }
+
+    if (detectedCat == 'sauces') {
+      return [
+        RecipeModel(
+          id: 'recipe_local_sauce_1',
+          title: 'Golden Glazed Pan-Sear with $displayIngredient',
+          description: 'Rich, caramelized glaze coated beautifully over protein or veggies.',
+          imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '12 min',
+          difficulty: 'Easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['2 tbsp $displayIngredient', 'Tofu or protein of choice', '1 tbsp oil or butter', '1 clove garlic'],
+          steps: ['Pan-sear protein or tofu until browned.', 'Add $displayIngredient and garlic, tossing to coat evenly.', 'Simmer for 1-2 minutes until glossy.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_sauce_2',
+          title: 'Quick Tossed Garlic Pasta with $displayIngredient',
+          description: 'Al dente pasta tossed lightly with seasoned sauce.',
+          imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281699?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '15 min',
+          difficulty: 'Easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['3 tbsp $displayIngredient', '150g pasta', '1 tbsp olive oil', 'Parmesan or black pepper'],
+          steps: ['Boil pasta until al dente, drain.', 'Warm $displayIngredient in pan with olive oil.', 'Toss pasta into sauce until evenly coated.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_sauce_3',
+          title: 'Crisp Garden Salad with $displayIngredient Dressing',
+          description: 'Vibrant fresh greens elevated with delicious sauce.',
+          imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_spinach.png',
+          cookingTime: '8 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['2 tbsp $displayIngredient', 'Fresh salad greens, tomatoes', '1 tsp olive oil or lemon juice'],
+          steps: ['Rinse and chop vegetables.', 'Whisk $displayIngredient with oil or lemon.', 'Drizzle over salad and toss lightly.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_sauce_4',
+          title: 'Cheesy Melt Toast with $displayIngredient Spread',
+          description: 'Toasty bread with savory sauce and melted cheese.',
+          imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '8 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['1-2 tbsp $displayIngredient', '2 bread slices', '1 slice cheese', 'Butter'],
+          steps: ['Spread $displayIngredient onto bread.', 'Top with cheese and toast until bubbly and melted.', 'Serve hot.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_sauce_5',
+          title: 'Savory Rice Bowl with $displayIngredient Drizzle',
+          description: 'Comforting warm rice bowl topped with tasty sauce.',
+          imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_lasagna.png',
+          cookingTime: '10 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['2 tbsp $displayIngredient', '1 bowl warm rice', '1 fried or poached egg', 'Spring onions'],
+          steps: ['Scoop warm rice into bowl and place egg on top.', 'Drizzle $displayIngredient generously over egg and rice.', 'Garnish with spring onions.'],
+        ),
+        RecipeModel(
+          id: 'recipe_local_sauce_6',
+          title: 'Crispy Finger Food with Zesty $displayIngredient Dip',
+          description: 'Crisp bites paired with an irresistible dipping sauce.',
+          imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+          assetFallback: 'assets/images/food_nuggets.png',
+          cookingTime: '10 min',
+          difficulty: 'Very easy',
+          expiringIngredient: displayIngredient,
+          ingredients: ['3 tbsp $displayIngredient', 'Crackers, nuggets, or potato wedges', 'Fresh herbs or lime'],
+          steps: ['Transfer $displayIngredient into small dipping bowl.', 'Season lightly if desired.', 'Serve alongside warm crispy snacks.'],
+        ),
+      ];
+    }
+
     return [
       RecipeModel(
         id: 'recipe_local_1',
-        title: 'ผัดกระเทียมพริกไทย$ingredient',
-        description: 'หอมกลิ่นกระเทียมพริกไทย ทำง่าย รสชาติกลมกล่อม',
+        title: 'Stir-fried $displayIngredient with Garlic & Pepper',
+        description: 'Aromatic garlic pepper stir-fry, quick and flavorful.',
         imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [ingredient, 'กระเทียมสับ', 'ซีอิ๊วขาว', 'น้ำมันพืช', 'พริกไทย'],
-        steps: ['ผัดกระเทียมจนหอม', 'ใส่$ingredientผัดให้สุก', 'ปรุงรสพร้อมเสิร์ฟ'],
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, '3 cloves minced garlic', '1 tbsp soy sauce', '1 tbsp cooking oil', 'Black pepper'],
+        steps: ['Heat oil in a pan, sauté garlic until fragrant.', 'Add $displayIngredient and stir-fry for 3-5 minutes.', 'Season with soy sauce and pepper, serve hot.'],
       ),
       RecipeModel(
         id: 'recipe_local_2',
-        title: 'ไข่เจียวทรงเครื่องใส่$ingredient',
-        description: 'ไข่เจียวฟูนุ่มกรอบนอกนุ่มใน เข้ากันได้อย่างลงตัว',
+        title: 'Golden Fluffy Omelet with $displayIngredient',
+        description: 'Fluffy eggs loaded with savory flavors and crispy edges.',
         imageUrl: 'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_eggs.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [ingredient, 'ไข่ไก่ 2 ฟอง', 'ซีอิ๊วขาว', 'น้ำมันพืช'],
-        steps: ['ตีไข่ผสมกับ$ingredient', 'ทอดในกระทะร้อนจนเหลืองฟู'],
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, '2 eggs', '1 tsp soy sauce', 'Cooking oil'],
+        steps: ['Beat eggs and fold in sliced $displayIngredient.', 'Fry in hot oil until golden brown and fluffy.'],
       ),
       RecipeModel(
         id: 'recipe_local_3',
-        title: 'ข้าวผัดโบราณใส่$ingredient',
-        description: 'เปลี่ยนข้าวสวยและวัตถุดิบเหลือให้เป็นมื้ออร่อยง่ายๆ',
+        title: 'Classic Fried Rice with $displayIngredient',
+        description: 'The ultimate zero-waste meal using leftover cooked rice.',
         imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '15 min',
         difficulty: 'Easy',
-        expiringIngredient: ingredient,
-        ingredients: [ingredient, 'ข้าวสวย 1 จาน', 'ไข่ไก่ 1 ฟอง', 'ซีอิ๊วขาว'],
-        steps: ['ผัดไข่พอสุก', 'ใส่ข้าวสวยและ$ingredient ผัดไฟแรงจนหอม'],
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, '1 bowl cooked rice', '1 egg', '1 tbsp soy sauce', '1/2 tsp sugar'],
+        steps: ['Scramble egg lightly in a hot pan.', 'Add $displayIngredient and cooked rice, stir-fry over high heat.'],
+      ),
+      RecipeModel(
+        id: 'recipe_local_4',
+        title: 'Comforting Clear Soup with $displayIngredient',
+        description: 'Soothing, clear, savory broth that warms you up.',
+        imageUrl: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_salmon.png',
+        cookingTime: '15 min',
+        difficulty: 'Easy',
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, '2 cups broth', '1 tbsp soy sauce', 'Chopped spring onions'],
+        steps: ['Bring broth to a gentle simmer.', 'Add $displayIngredient and simmer for 5-8 minutes.', 'Season and serve hot.'],
+      ),
+      RecipeModel(
+        id: 'recipe_local_5',
+        title: 'Fresh Crispy $displayIngredient Salad',
+        description: 'Crisp greens and zesty dressing for a refreshing bite.',
+        imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_spinach.png',
+        cookingTime: '8 min',
+        difficulty: 'Very easy',
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, 'Mixed greens or tomatoes', '1 tbsp lime juice', '1 tbsp olive oil'],
+        steps: ['Prepare $displayIngredient and toss lightly with salad greens and dressing.'],
+      ),
+      RecipeModel(
+        id: 'recipe_local_6',
+        title: 'Toasted Warm Sandwich with $displayIngredient',
+        description: 'Golden toasted bread with savory melted filling.',
+        imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80',
+        assetFallback: 'assets/images/food_lasagna.png',
+        cookingTime: '10 min',
+        difficulty: 'Very easy',
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, '2 slices bread', '1 tbsp mayo or butter', 'Cheese or salad greens'],
+        steps: ['Toast bread slices.', 'Spread mayo, layer with $displayIngredient, cut and serve warm.'],
       ),
     ];
   }
 
   Future<void> _fetchRecipesFromAi() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
+      final lang = ref.read(localeProvider).languageCode;
       final result = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
+        category: _category,
+        language: lang,
         offset: 0,
       );
 
       if (result.recipes.isNotEmpty && mounted) {
         setState(() {
           _recipes = result.recipes;
-          _usedCount = result.usedDailyQuota;
+          _usedCount = 1;
+          _isLoading = false;
         });
-        _saveDailyQuota(_usedCount);
+        await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+          if (_recipes.isEmpty) {
+            _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
+            _usedCount = 1;
+          }
+        });
+        await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
       }
     } catch (e) {
-      if (mounted && e.toString().contains('วันนี้คุณ')) {
+      if (mounted) {
         setState(() {
-          _usedCount = _maxDailyQuota;
+          _isLoading = false;
         });
-        _saveDailyQuota(_maxDailyQuota);
-        _showDailyLimitAlert();
+        if (e.toString().contains('วันนี้คุณ') || e.toString().contains('daily limit') || e.toString().contains('โควตาครบ')) {
+          setState(() {
+            _usedCount = _maxDailyQuota;
+          });
+          await _persistRecipesForIngredient(_currentIngredient, _recipes, _maxDailyQuota);
+          _showDailyLimitAlert();
+        } else {
+          if (_recipes.isEmpty) {
+            setState(() {
+              _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
+              _usedCount = 1;
+            });
+            await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
+          }
+        }
       }
     }
   }
@@ -430,7 +754,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   void _showDailyLimitAlert() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('วันนี้คุณใช้โควตาครบ 10 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨'),
+        content: Text('You have reached your daily limit of 3 recipe generations. Try making one of your suggested recipes! ✨'),
         backgroundColor: Color(0xFFFA8B28),
         duration: Duration(seconds: 4),
       ),
@@ -438,14 +762,14 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   }
 
   void _onRegenerate() async {
-    // Check if daily quota is reached (10/10)
+    // Check if daily quota is reached (3/3)
     if (_usedCount >= _maxDailyQuota) {
       _showDailyLimitAlert();
       return;
     }
 
-    // Prevent spam if cooling down or currently regenerating
-    if (_cooldownSeconds > 0 || _isRegenerating) return;
+    // Prevent spam if cooling down or currently regenerating or loading
+    if (_isLoading || _isRegenerating || _cooldownSeconds > 0) return;
 
     // Start 3-second button cooldown
     _startCooldown();
@@ -456,8 +780,12 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
+      final lang = ref.read(localeProvider).languageCode;
+      final nextCount = (_usedCount + 1).clamp(1, _maxDailyQuota);
       final result = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
+        category: _category,
+        language: lang,
         offset: _usedCount,
       );
 
@@ -465,37 +793,43 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
       setState(() {
         _recipes = result.recipes;
-        _usedCount = result.usedDailyQuota;
+        _usedCount = nextCount;
         _isRegenerating = false;
       });
 
-      _saveDailyQuota(_usedCount);
+      await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✨ Gemini AI สุ่ม 3 เมนูใหม่เรียบร้อย! (ใช้ไปแล้ว $_usedCount/$_maxDailyQuota ครั้ง)'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✨ Gemini AI generated 6 fresh recipes! (Used $_usedCount/$_maxDailyQuota times)'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isRegenerating = false;
       });
 
-      if (e.toString().contains('วันนี้คุณ')) {
+      if (e.toString().contains('วันนี้คุณ') || e.toString().contains('daily limit') || e.toString().contains('โควตาครบ')) {
         setState(() {
           _usedCount = _maxDailyQuota;
         });
-        _saveDailyQuota(_maxDailyQuota);
+        await _persistRecipesForIngredient(_currentIngredient, _recipes, _maxDailyQuota);
         _showDailyLimitAlert();
       } else {
         // Local fallback rotation
         setState(() {
           _usedCount = (_usedCount + 1).clamp(1, _maxDailyQuota);
-          _recipes = List.from(_recipes.reversed);
+          if (_recipes.isEmpty) {
+            _recipes = _getQuickLocalRecipes(_currentIngredient).take(6).toList();
+          } else {
+            _recipes = List.from(_recipes.reversed);
+          }
         });
-        _saveDailyQuota(_usedCount);
+        await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
       }
     }
   }
@@ -544,21 +878,64 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                   children: [
                     const SizedBox(height: 8),
                     // Recipe Cards or Loading Shimmer
-                    if (_isRegenerating)
+                    if (_isLoading && _recipes.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2E6A44).withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: Color(0xFF2E6A44),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              const Text(
+                                '✨ Gemini AI is crafting 6 fresh recipes...',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E281E),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Creating delicious meal ideas from "$_currentIngredient" for you',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF555F55),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (_isRegenerating)
                       const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 40),
+                        padding: EdgeInsets.symmetric(vertical: 60, horizontal: 24),
                         child: Center(
                           child: Column(
                             children: [
                               CircularProgressIndicator(
+                                strokeWidth: 3,
                                 color: Color(0xFF2E6A44),
                               ),
-                              SizedBox(height: 12),
+                              SizedBox(height: 16),
                               Text(
-                                'Gemini AI is crafting 3 fresh recipes...',
+                                '✨ Gemini AI is generating 6 fresh recipes...',
                                 style: TextStyle(
-                                  color: Color(0xFF414942),
-                                  fontSize: 13,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E281E),
                                 ),
                               ),
                             ],
@@ -568,26 +945,26 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                     else
                       ..._recipes.map((recipe) => _buildRecipeCard(recipe)),
                     const SizedBox(height: 16),
-                    // Regenerate Button with Usage Counter and Cooldown
+                    // Regenerate Button with Usage Counter, Lock state and Loading lock
                     Center(
                       child: isQuotaFull
                           ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE4E9E2),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(24),
                               ),
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.block,
+                                    Icons.lock_rounded,
                                     color: Color(0xFF8A938A),
-                                    size: 16,
+                                    size: 18,
                                   ),
-                                  SizedBox(width: 6),
+                                  SizedBox(width: 8),
                                   Text(
-                                    'Regenerate (10/10 - ครบโควตาวันนี้แล้ว)',
+                                    'Regenerate (3/3 - Daily limit reached 🔒)',
                                     style: TextStyle(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w600,
@@ -597,52 +974,89 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                 ],
                               ),
                             )
-                          : InkWell(
-                              borderRadius: BorderRadius.circular(20),
-                              onTap: (_cooldownSeconds > 0 || _isRegenerating) ? null : _onRegenerate,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (_cooldownSeconds > 0) ...[
-                                      const SizedBox(
+                          : (_isLoading || _isRegenerating)
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE4E9E2),
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
                                         width: 14,
                                         height: 14,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          color: Color(0xFF717971),
+                                          color: Color(0xFF8A938A),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
+                                      SizedBox(width: 8),
                                       Text(
-                                        'Regenerate (${_cooldownSeconds}s) · ($_usedCount/$_maxDailyQuota)',
-                                        style: const TextStyle(
-                                          fontSize: 14,
+                                        'Loading fresh recipes...',
+                                        style: TextStyle(
+                                          fontSize: 13.5,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFF717971),
-                                        ),
-                                      ),
-                                    ] else ...[
-                                      const Icon(
-                                        Icons.sync,
-                                        color: Color(0xFF2E6A44),
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'Regenerate ($_usedCount/$_maxDailyQuota)',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF2E6A44),
+                                          color: Color(0xFF8A938A),
                                         ),
                                       ),
                                     ],
-                                  ],
+                                  ),
+                                )
+                              : InkWell(
+                                  borderRadius: BorderRadius.circular(24),
+                                  onTap: (_cooldownSeconds > 0) ? null : _onRegenerate,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE8F2EA),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                        color: const Color(0xFF2E6A44).withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (_cooldownSeconds > 0) ...[
+                                          const SizedBox(
+                                            width: 14,
+                                            height: 14,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Color(0xFF717971),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Regenerate (${_cooldownSeconds}s) · ($_usedCount/$_maxDailyQuota)',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF717971),
+                                            ),
+                                          ),
+                                        ] else ...[
+                                          const Icon(
+                                            Icons.sync_rounded,
+                                            color: Color(0xFF2E6A44),
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Regenerate ($_usedCount/$_maxDailyQuota)',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF2E6A44),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
                     ),
                     const SizedBox(height: 24),
                   ],
@@ -736,33 +1150,39 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                   Row(
                     children: [
                       // Badge: Time & Difficulty
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0F4ED),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.access_time,
-                              size: 14,
-                              color: Color(0xFF414942),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${recipe.cookingTime} · ${recipe.difficulty}',
-                              style: const TextStyle(
-                                fontSize: 12,
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F4ED),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.access_time,
+                                size: 14,
                                 color: Color(0xFF414942),
-                                fontWeight: FontWeight.w500,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  '${recipe.cookingTime} · ${recipe.difficulty}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF414942),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       // View Recipe Button
                       SizedBox(
                         height: 36,

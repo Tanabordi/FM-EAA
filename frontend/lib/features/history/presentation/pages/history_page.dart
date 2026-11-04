@@ -366,22 +366,42 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 3),
-                Text(
-                  '-$qtyChanged ${item.unit} ($qtyLeft left) • by @${item.byUsername}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF555F55),
+                if (item.isConsumed) ...[
+                  Text(
+                    '-$qtyChanged ${item.unit} ($qtyLeft left) • by @${item.byUsername}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF555F55),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '• $dateStr • $timeStr',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF555F55),
+                  Text(
+                    '• $dateStr • $timeStr',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF555F55),
+                    ),
                   ),
-                ),
+                ] else ...[
+                  Text(
+                    '$qtyChanged ${item.unit} expired',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF555F55),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '• Expired on $dateStr • $timeStr',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF555F55),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 _buildStatusBadge(item.isConsumed),
               ],

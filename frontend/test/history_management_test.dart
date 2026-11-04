@@ -254,7 +254,7 @@ void main() {
 
       // Check Expired Tab Item
       expect(find.text('Spinach Leaves'), findsOneWidget);
-      expect(find.textContaining('by @system'), findsOneWidget);
+      expect(find.textContaining('1 pack expired'), findsOneWidget);
     });
 
     testWidgets('Tapping Clear All opens confirmation dialog', (tester) async {

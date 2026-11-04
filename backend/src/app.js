@@ -29,6 +29,8 @@ app.get('/', (req, res) => {
   res.status(200).json({
     name: 'FM-EAA Backend API',
     status: 'running',
+    version: '1.0.1',
+    deployCheck: 'auto-deploy-active',
     message: 'Backend API is running. Access the Flutter frontend at http://localhost:8080',
     health: '/health',
   });
@@ -36,7 +38,12 @@ app.get('/', (req, res) => {
 
 // Health Check Endpoint (Required 200 OK)
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.status(200).json({
+    status: 'ok',
+    version: '1.0.1',
+    deployCheck: 'auto-deploy-active',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Mount API Routes

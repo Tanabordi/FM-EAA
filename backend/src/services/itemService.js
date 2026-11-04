@@ -380,6 +380,41 @@ class ItemService {
       await conn.execute(sql, params);
       await conn.commit();
 
+      // If item was updated to an expired date, record to item_history immediately
+      if (itemData.expiryDate !== undefined) {
+        try {
+          const expDate = new Date(itemData.expiryDate);
+          if (expDate < new Date()) {
+            const checkHist = await conn.execute(
+              `SELECT id FROM item_history WHERE fridge_id = :fridgeId AND item_id = :itemId AND kind = 'expired'`,
+              { fridgeId, itemId }
+            );
+            if (!checkHist.rows || checkHist.rows.length === 0) {
+              const currentItem = await this.getItemById(fridgeId, itemId, userId);
+              await conn.execute(
+                `INSERT INTO item_history (
+                  id, fridge_id, item_id, item_name, image_path, kind, quantity_changed, quantity_left, unit, by_user_id, created_at
+                ) VALUES (
+                  :id, :fridgeId, :itemId, :name, :imagePath, 'expired', :qty, 0, :unit, :userId, :createdAt
+                )`,
+                [
+                  crypto.randomUUID(),
+                  fridgeId,
+                  itemId,
+                  currentItem.name,
+                  currentItem.imagePath || null,
+                  Number(currentItem.quantity),
+                  currentItem.unit,
+                  userId,
+                  expDate,
+                ]
+              );
+              await conn.commit();
+            }
+          }
+        } catch (_) {}
+      }
+
       return await this.getItemById(fridgeId, itemId, userId);
     } catch (err) {
       if (conn) {
@@ -720,12 +755,12 @@ class ItemService {
           SELECT id, name, image_path, quantity, unit, expiry_date
           FROM items
           WHERE fridge_id = :fridgeId
-            AND expiry_date < TRUNC(CURRENT_TIMESTAMP)
+            AND expiry_date < CURRENT_TIMESTAMP
             AND id NOT IN (
               SELECT item_id FROM item_history WHERE fridge_id = :fridgeId AND kind = 'expired' AND item_id IS NOT NULL
             )
         `;
-        const expiredRes = await conn.execute(expiredSql, [fridgeId, fridgeId]);
+        const expiredRes = await conn.execute(expiredSql, { fridgeId });
         if (expiredRes.rows && expiredRes.rows.length > 0) {
           for (const row of expiredRes.rows) {
             const expItemId = row[0];
@@ -758,7 +793,7 @@ class ItemService {
           await conn.commit();
         }
       } catch (e) {
-        // Auto-record expired items shouldn't block history read
+        console.error('[getHistory auto-record error]', e.message);
       }
 
       const conditions = ['h.fridge_id = :fridgeId'];
@@ -821,6 +856,30 @@ class ItemService {
       conn = await db.getDbConnection();
       await this.checkFridgeAccess(conn, fridgeId, userId);
 
+      // Find item_id and kind from history before deleting
+      let itemId = null;
+      let kind = null;
+
+      const checkRes = await conn.execute(
+        `SELECT item_id, kind FROM item_history WHERE id = :historyId AND fridge_id = :fridgeId`,
+        [historyId, fridgeId]
+      );
+      if (checkRes.rows && checkRes.rows.length > 0) {
+        itemId = checkRes.rows[0][0];
+        kind = checkRes.rows[0][1];
+      } else if (historyId.startsWith('exp_')) {
+        itemId = historyId.substring(4);
+        kind = 'expired';
+      }
+
+      // If it is an expired item, also delete it from items table so it never resurrects on refresh
+      if (kind === 'expired' && itemId) {
+        await conn.execute(
+          `DELETE FROM items WHERE id = :itemId AND fridge_id = :fridgeId`,
+          [itemId, fridgeId]
+        );
+      }
+
       const res = await conn.execute(
         `DELETE FROM item_history WHERE id = :historyId AND fridge_id = :fridgeId`,
         [historyId, fridgeId]
@@ -862,6 +921,14 @@ class ItemService {
       if (kind && ['consumed', 'expired'].includes(kind.toLowerCase())) {
         conditions.push('kind = :kind');
         params.push(kind.toLowerCase());
+      }
+
+      // If clearing expired history, also delete expired items from items table so they don't auto-record again
+      if (kind && kind.toLowerCase() === 'expired') {
+        await conn.execute(
+          `DELETE FROM items WHERE fridge_id = :fridgeId AND TRUNC(expiry_date) < TRUNC(CURRENT_DATE)`,
+          [fridgeId]
+        );
       }
 
       await conn.execute(`DELETE FROM item_history WHERE ${conditions.join(' AND ')}`, params);

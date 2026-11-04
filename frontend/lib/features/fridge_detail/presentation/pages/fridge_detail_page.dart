@@ -60,7 +60,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                 : (item.unit.contains('bottle') ? 'bottle' : 'pieces')),
         onRecommendRecipe: () {
           Navigator.pop(sheetContext);
-          context.push('/fridges/${widget.fridgeId}/recipes?ingredient=${Uri.encodeComponent(item.name)}');
+          context.push('/fridges/${widget.fridgeId}/recipes?ingredient=${Uri.encodeComponent(item.name)}&category=${Uri.encodeComponent(item.category)}');
         },
         onConsumed: (amount, finishedAll) {
           Navigator.pop(sheetContext);
