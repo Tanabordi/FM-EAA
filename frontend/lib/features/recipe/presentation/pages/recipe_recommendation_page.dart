@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_top_bar.dart';
 import '../../data/models/recipe_model.dart';
 import '../../../../data/repositories/item_repository.dart';
 import '../../../../data/repositories/ai_repository.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import 'recipe_detail_page.dart';
 
 /// Screen #25: AI Suggested Recipes Page
@@ -45,7 +46,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   void initState() {
     super.initState();
     _currentIngredient = widget.initialIngredient.trim().isEmpty
-        ? 'ค็อกเทลรมควัน'
+        ? 'Strawberries'
         : widget.initialIngredient;
 
     _isLoading = true;
@@ -343,79 +344,80 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       ];
     }
 
-    // Default 6 fallback recipes for custom ingredient like "ค็อกเทลรมควัน"
+    // Default 6 fallback recipes for custom ingredient
+    final displayIngredient = AiRepository.translateThaiToEnglish(ingredient);
     return [
       RecipeModel(
         id: 'recipe_local_1',
-        title: 'ผัดกระเทียมพริกไทย$ingredient',
-        description: 'หอมกลิ่นกระเทียมพริกไทย ทำง่าย รสชาติกลมกล่อม',
+        title: 'Stir-fried $displayIngredient with Garlic & Pepper',
+        description: 'Aromatic garlic pepper stir-fry, quick and flavorful.',
         imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [ingredient, 'กระเทียมสับ', 'ซีอิ๊วขาว', 'น้ำมันพืช', 'พริกไทย'],
-        steps: ['ผัดกระเทียมจนหอม', 'ใส่$ingredientผัดให้สุก', 'ปรุงรสพร้อมเสิร์ฟ'],
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, '3 cloves minced garlic', '1 tbsp soy sauce', '1 tbsp cooking oil', 'Black pepper'],
+        steps: ['Heat oil in a pan, sauté garlic until fragrant.', 'Add $displayIngredient and stir-fry for 3-5 minutes.', 'Season with soy sauce and pepper, serve hot.'],
       ),
       RecipeModel(
         id: 'recipe_local_2',
-        title: 'ไข่เจียวทรงเครื่องใส่$ingredient',
-        description: 'ไข่เจียวฟูนุ่มกรอบนอกนุ่มใน เข้ากันได้อย่างลงตัว',
+        title: 'Golden Fluffy Omelet with $displayIngredient',
+        description: 'Fluffy eggs loaded with savory flavors and crispy edges.',
         imageUrl: 'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_eggs.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [ingredient, 'ไข่ไก่ 2 ฟอง', 'ซีอิ๊วขาว', 'น้ำมันพืช'],
-        steps: ['ตีไข่ผสมกับ$ingredient', 'ทอดในกระทะร้อนจนเหลืองฟู'],
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, '2 eggs', '1 tsp soy sauce', 'Cooking oil'],
+        steps: ['Beat eggs and fold in sliced $displayIngredient.', 'Fry in hot oil until golden brown and fluffy.'],
       ),
       RecipeModel(
         id: 'recipe_local_3',
-        title: 'ข้าวผัดโบราณใส่$ingredient',
-        description: 'เปลี่ยนข้าวสวยและวัตถุดิบเหลือให้เป็นมื้ออร่อยง่ายๆ',
+        title: 'Classic Fried Rice with $displayIngredient',
+        description: 'The ultimate zero-waste meal using leftover cooked rice.',
         imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '15 min',
         difficulty: 'Easy',
-        expiringIngredient: ingredient,
-        ingredients: [ingredient, 'ข้าวสวย 1 จาน', 'ไข่ไก่ 1 ฟอง', 'ซีอิ๊วขาว'],
-        steps: ['ผัดไข่พอสุก', 'ใส่ข้าวสวยและ$ingredient ผัดไฟแรงจนหอม'],
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, '1 bowl cooked rice', '1 egg', '1 tbsp soy sauce', '1/2 tsp sugar'],
+        steps: ['Scramble egg lightly in a hot pan.', 'Add $displayIngredient and cooked rice, stir-fry over high heat.'],
       ),
       RecipeModel(
         id: 'recipe_local_4',
-        title: 'ต้มจืดซุปร้อนๆ ใส่$ingredient',
-        description: 'น้ำซุปใสกลมกล่อม ซดคล่องคอ สบายท้อง',
+        title: 'Comforting Clear Soup with $displayIngredient',
+        description: 'Soothing, clear, savory broth that warms you up.',
         imageUrl: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_salmon.png',
         cookingTime: '15 min',
         difficulty: 'Easy',
-        expiringIngredient: ingredient,
-        ingredients: [ingredient, 'น้ำซุป 2 ถ้วย', 'ซีอิ๊วขาว', 'ต้นหอมผักชี'],
-        steps: ['ต้มน้ำซุปให้เดือด', 'ใส่$ingredient ต้มจนสุกหอม', 'ปรุงรสและโรยต้นหอมผักชี'],
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, '2 cups broth', '1 tbsp soy sauce', 'Chopped spring onions'],
+        steps: ['Bring broth to a gentle simmer.', 'Add $displayIngredient and simmer for 5-8 minutes.', 'Season and serve hot.'],
       ),
       RecipeModel(
         id: 'recipe_local_5',
-        title: 'ยำหรือสลัดคลีนๆ ใส่$ingredient',
-        description: 'รสชาติสดชื่น อิ่มเบาสบายท้อง ไม่เลี่ยน',
+        title: 'Fresh Crispy $displayIngredient Salad',
+        description: 'Crisp greens and zesty dressing for a refreshing bite.',
         imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_spinach.png',
         cookingTime: '8 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [ingredient, 'ผักสลัดหรือมะเขือเทศ', 'น้ำมะนาว', 'น้ำปลาหรือน้ำสลัด'],
-        steps: ['เตรียม$ingredient ให้พร้อม', 'คลุกเคล้ากับผักและน้ำยำเบาๆ พร้อมเสิร์ฟ'],
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, 'Mixed greens or tomatoes', '1 tbsp lime juice', '1 tbsp olive oil'],
+        steps: ['Prepare $displayIngredient and toss lightly with salad greens and dressing.'],
       ),
       RecipeModel(
         id: 'recipe_local_6',
-        title: 'แซนด์วิชขนมปังปิ้งไส้$ingredient',
-        description: 'กรอบนอกนุ่มใน อร่อยอยู่ท้อง ทำเสร็จไวสุดๆ',
+        title: 'Toasted Warm Sandwich with $displayIngredient',
+        description: 'Golden toasted bread with savory melted filling.',
         imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [ingredient, 'ขนมปัง 2 แผ่น', 'มายองเนสหรือเนย', 'ผักสลัด'],
-        steps: ['ปิ้งขนมปังให้กรอบ', 'ทามายองเนส วาง$ingredient ประกบแล้วหั่นครึ่ง'],
+        expiringIngredient: displayIngredient,
+        ingredients: [displayIngredient, '2 slices bread', '1 tbsp mayo or butter', 'Cheese or salad greens'],
+        steps: ['Toast bread slices.', 'Spread mayo, layer with $displayIngredient, cut and serve warm.'],
       ),
     ];
   }
@@ -427,8 +429,10 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
+      final lang = ref.read(localeProvider).languageCode;
       final result = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
+        language: lang,
         offset: 0,
       );
 
@@ -452,7 +456,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         setState(() {
           _isLoading = false;
         });
-        if (e.toString().contains('วันนี้คุณ')) {
+        if (e.toString().contains('วันนี้คุณ') || e.toString().contains('daily limit') || e.toString().contains('โควตาครบ')) {
           setState(() {
             _usedCount = _maxDailyQuota;
           });
@@ -495,7 +499,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   void _showDailyLimitAlert() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('วันนี้คุณใช้โควตาครบ 3 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨'),
+        content: Text('You have reached your daily limit of 3 recipe generations. Try making one of your suggested recipes! ✨'),
         backgroundColor: Color(0xFFFA8B28),
         duration: Duration(seconds: 4),
       ),
@@ -521,8 +525,10 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
+      final lang = ref.read(localeProvider).languageCode;
       final result = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
+        language: lang,
         offset: _usedCount,
       );
 
@@ -538,7 +544,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✨ Gemini AI สุ่ม 6 เมนูใหม่เรียบร้อย! (ใช้ไปแล้ว $_usedCount/$_maxDailyQuota ครั้ง)'),
+          content: Text('✨ Gemini AI generated 6 fresh recipes! (Used $_usedCount/$_maxDailyQuota times)'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -548,7 +554,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
         _isRegenerating = false;
       });
 
-      if (e.toString().contains('วันนี้คุณ')) {
+      if (e.toString().contains('วันนี้คุณ') || e.toString().contains('daily limit') || e.toString().contains('โควตาครบ')) {
         setState(() {
           _usedCount = _maxDailyQuota;
         });
@@ -633,7 +639,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                               ),
                               const SizedBox(height: 20),
                               const Text(
-                                '✨ Gemini AI กำลังคิด 6 เมนูสุดพิเศษ...',
+                                '✨ Gemini AI is crafting 6 fresh recipes...',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -643,7 +649,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'กำลังสร้างสรรค์ไอเดียเมนูจาก "$_currentIngredient" ให้คุณ',
+                                'Creating delicious meal ideas from "$_currentIngredient" for you',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF555F55),
@@ -666,7 +672,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                               ),
                               SizedBox(height: 16),
                               Text(
-                                '✨ Gemini AI กำลังสุ่ม 6 เมนูใหม่...',
+                                '✨ Gemini AI is generating 6 fresh recipes...',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -699,7 +705,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    'Regenerate (3/3 - ครบโควตาวันนี้แล้ว 🔒)',
+                                    'Regenerate (3/3 - Daily limit reached 🔒)',
                                     style: TextStyle(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w600,
@@ -729,7 +735,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                       ),
                                       SizedBox(width: 8),
                                       Text(
-                                        'กำลังโหลดเมนูใหม่...',
+                                        'Loading fresh recipes...',
                                         style: TextStyle(
                                           fontSize: 13.5,
                                           fontWeight: FontWeight.w600,
@@ -780,7 +786,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                           ),
                                           const SizedBox(width: 8),
                                           Text(
-                                            'Regenerate ($_usedCount/$_maxDailyQuota ครั้ง)',
+                                            'Regenerate ($_usedCount/$_maxDailyQuota)',
                                             style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,

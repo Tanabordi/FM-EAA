@@ -93,9 +93,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('ผัดกระเทียมพริกไทยค็อกเทลรมควัน'), findsOneWidget);
-      expect(find.text('ไข่เจียวทรงเครื่องใส่ค็อกเทลรมควัน'), findsOneWidget);
-      expect(find.text('ข้าวผัดโบราณใส่ค็อกเทลรมควัน'), findsOneWidget);
+      expect(find.text('Stir-fried Smoked Cocktail Sausage with Garlic & Pepper'), findsOneWidget);
+      expect(find.text('Golden Fluffy Omelet with Smoked Cocktail Sausage'), findsOneWidget);
+      expect(find.text('Classic Fried Rice with Smoked Cocktail Sausage'), findsOneWidget);
     });
 
     testWidgets('triggers cooldown and locks on regenerate button tap', (tester) async {

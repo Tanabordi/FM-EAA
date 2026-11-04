@@ -36,7 +36,8 @@ const handleUpload = (req, res, next) => {
 router.post('/scan-label', authenticateToken, handleUpload, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'image is required' });
-    const result = await scanLabel(req.file.buffer, req.file.mimetype);
+    const language = req.query.language || req.body?.language || 'en';
+    const result = await scanLabel(req.file.buffer, req.file.mimetype, language);
     res.json(result);
   } catch (err) {
     next(err);
@@ -60,7 +61,7 @@ router.post('/recipes', authenticateToken, async (req, res, next) => {
     const result = await suggestRecipes({
       userId,
       mainIngredient: mainIngredient.trim(),
-      language: language || 'th',
+      language: language || 'en',
       offset: typeof offset === 'number' ? offset : 0,
     });
 
@@ -69,9 +70,9 @@ router.post('/recipes', authenticateToken, async (req, res, next) => {
     if (err.statusCode === 429) {
       return res.status(429).json({
         error: err.message,
-        usedDailyQuota: 10,
-        remainingDailyQuota: 0,
-        maxDailyQuota: 10,
+        usedDailyQuota: err.usedQuota || 3,
+        remainingDailyQuota: err.remainingQuota ?? 0,
+        maxDailyQuota: 3,
       });
     }
     next(err);

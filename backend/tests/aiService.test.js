@@ -30,4 +30,12 @@ describe('AI Service Quota & Recipe Logic', () => {
     expect(recipes[0].title).toContain('ค็อกเทลรมควัน');
     expect(recipes[1].title).toContain('ค็อกเทลรมควัน');
   });
+
+  it('should generate 6 fallback recipes in English when language is en even for Thai ingredient', () => {
+    const recipes = generateFallbackRecipes('ค็อกเทลรมควัน', 'en');
+    expect(recipes).toHaveLength(6);
+    expect(recipes[0].expiringIngredient).toBe('Smoked Cocktail Sausage');
+    expect(recipes[0].title).toBe('Stir-fried Smoked Cocktail Sausage with Garlic & Pepper');
+    expect(recipes[1].title).toBe('Golden Fluffy Omelet with Smoked Cocktail Sausage');
+  });
 });

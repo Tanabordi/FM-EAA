@@ -58,10 +58,71 @@ class AiScanResult {
 class AiRepository {
   final ApiClient apiClient;
 
+  static const Map<String, String> thaiToEnDictionary = {
+    'ค็อกเทลรมควัน': 'Smoked Cocktail Sausage',
+    'ไส้กรอกรมควัน': 'Smoked Sausage',
+    'ไส้กรอกค็อกเทล': 'Cocktail Sausage',
+    'ไส้กรอก': 'Sausage',
+    'หมูสับ': 'Minced Pork',
+    'หมูบด': 'Minced Pork',
+    'หมูชิ้น': 'Pork Slices',
+    'เนื้อหมู': 'Pork',
+    'หมู': 'Pork',
+    'อกไก่': 'Chicken Breast',
+    'สันในไก่': 'Chicken Tenderloin',
+    'เนื้อไก่': 'Chicken',
+    'ไก่': 'Chicken',
+    'ไข่ไก่': 'Eggs',
+    'ไข่': 'Egg',
+    'นมสด': 'Fresh Milk',
+    'นม': 'Milk',
+    'แครอท': 'Carrots',
+    'มะเขือเทศ': 'Tomatoes',
+    'ผักกาด': 'Cabbage',
+    'กะหล่ำปลี': 'Cabbage',
+    'ผักชี': 'Coriander',
+    'ต้นหอม': 'Spring Onions',
+    'กระเทียม': 'Garlic',
+    'หัวหอม': 'Onion',
+    'กุ้ง': 'Shrimp',
+    'ปลา': 'Fish',
+    'แซลมอน': 'Salmon',
+    'เต้าหู้': 'Tofu',
+    'เบคอน': 'Bacon',
+    'แฮม': 'Ham',
+    'ข้าวสวย': 'Cooked Rice',
+    'ข้าว': 'Rice',
+    'ขนมปัง': 'Bread',
+    'เนย': 'Butter',
+    'ชีส': 'Cheese',
+    'สตรอว์เบอร์รี': 'Strawberries',
+    'สตรอเบอรี่': 'Strawberries',
+    'แอปเปิ้ล': 'Apples',
+    'กล้วย': 'Bananas',
+    'ส้ม': 'Oranges',
+    'โยเกิร์ต': 'Yogurt',
+    'น้ำส้ม': 'Orange Juice',
+    'น้ำดื่ม': 'Drinking Water',
+  };
+
+  static String translateThaiToEnglish(String text) {
+    if (text.trim().isEmpty) return text;
+    final trimmed = text.trim();
+    if (thaiToEnDictionary.containsKey(trimmed)) {
+      return thaiToEnDictionary[trimmed]!;
+    }
+    for (final entry in thaiToEnDictionary.entries) {
+      if (trimmed.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+    return text;
+  }
+
   AiRepository({required this.apiClient});
 
   /// Scans food label from in-memory image bytes
-  Future<AiScanResult> scanLabelBytes(Uint8List bytes, {String? filename}) async {
+  Future<AiScanResult> scanLabelBytes(Uint8List bytes, {String? filename, String language = 'en'}) async {
     final name = filename ?? 'photo.jpg';
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
       return _smartFallbackBytes(bytes, name);
@@ -69,6 +130,7 @@ class AiRepository {
     try {
       final formData = FormData.fromMap({
         'image': MultipartFile.fromBytes(bytes, filename: name),
+        'language': language,
       });
 
       final response = await apiClient.dio.post(
@@ -89,7 +151,7 @@ class AiRepository {
           );
         }
 
-        return _buildResultFromApi(data, name, name);
+        return _buildResultFromApi(data, name, name, language: language);
       }
       return _smartFallbackBytes(bytes, name);
     } catch (_) {
@@ -98,7 +160,7 @@ class AiRepository {
   }
 
   /// Scans food label from image file and extracts food name, expiration date, and category
-  Future<AiScanResult> scanLabel(File imageFile) async {
+  Future<AiScanResult> scanLabel(File imageFile, {String language = 'en'}) async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
       return _smartFallback(imageFile.path);
     }
@@ -113,6 +175,7 @@ class AiRepository {
           imageFile.path,
           filename: fileName,
         ),
+        'language': language,
       });
 
       final response = await apiClient.dio.post(
@@ -133,7 +196,7 @@ class AiRepository {
           );
         }
 
-        return _buildResultFromApi(data, fileName, imageFile.path);
+        return _buildResultFromApi(data, fileName, imageFile.path, language: language);
       }
     } catch (_) {
       // Graceful fallback for offline, emulator, or local testing
@@ -145,7 +208,7 @@ class AiRepository {
   /// Fetches 6 AI suggested recipes for mainIngredient with daily quota tracking (max 3/day)
   Future<RecipeSuggestionResult> getSuggestedRecipes(
     String mainIngredient, {
-    String language = 'th',
+    String language = 'en',
     int offset = 0,
   }) async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
@@ -191,11 +254,15 @@ class AiRepository {
     } on DioException catch (e) {
       if (e.response?.statusCode == 429) {
         final msg = e.response?.data?['error']?.toString() ??
-            'วันนี้คุณใช้โควตาครบ 3 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨';
+            (language == 'en'
+                ? 'You have reached your daily limit of 3 recipe generations. Try making one of your suggested recipes! ✨'
+                : 'วันนี้คุณใช้โควตาครบ 3 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨');
         throw Exception(msg);
       }
     } catch (e) {
-      if (e.toString().contains('วันนี้คุณ')) rethrow;
+      if (e.toString().contains('วันนี้คุณ') || e.toString().contains('daily limit') || e.toString().contains('โควตาครบ')) {
+        rethrow;
+      }
     }
 
     final fallback = _generateSmartFallbackRecipes(mainIngredient, language: language, offset: offset);
@@ -207,7 +274,7 @@ class AiRepository {
     );
   }
 
-  List<RecipeModel> _generateSmartFallbackRecipes(String ingredient, {String language = 'th', int offset = 0}) {
+  List<RecipeModel> _generateSmartFallbackRecipes(String ingredient, {String language = 'en', int offset = 0}) {
     final lower = ingredient.toLowerCase();
 
     if (lower.contains('spinach')) {
@@ -627,264 +694,202 @@ class AiRepository {
       ];
     }
 
-    // Default 12 zero-waste recipes specifically tailored to `ingredient` (e.g. ค็อกเทลรมควัน, chicken, egg, pork, etc.)
+    // Default 12 zero-waste recipes specifically tailored to `ingredient` (e.g. Smoked Cocktail Sausage, chicken, egg, pork, etc.)
+    final isEn = language == 'en';
+    final displayIngredient = isEn ? translateThaiToEnglish(ingredient) : ingredient;
+
     final defaultPool = [
       RecipeModel(
         id: 'recipe_quick_1',
-        title: 'ผัดกระเทียมพริกไทย$ingredient',
-        description: 'หอมกลิ่นกระเทียมพริกไทย ทำง่าย รสชาติกลมกล่อม',
+        title: isEn ? 'Stir-fried $displayIngredient with Garlic & Pepper' : 'ผัดกระเทียมพริกไทย$ingredient',
+        description: isEn ? 'Aromatic garlic pepper stir-fry, quick and flavorful.' : 'หอมกลิ่นกระเทียมพริกไทย ทำง่าย รสชาติกลมกล่อม',
         imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'กระเทียมสับ 3 กลีบ',
-          'ซีอิ๊วขาว 1 ช้อนโต๊ะ',
-          'น้ำมันพืช 1 ช้อนโต๊ะ',
-          'พริกไทยป่นเล็กน้อย',
-        ],
-        steps: [
-          'ตั้งกระทะใส่น้ำมัน นำกระเทียมลงผัดจนหอมกรุ่น',
-          'ใส่$ingredientลงไปผัดให้สุกและเข้ากัน 3-5 นาที',
-          'ปรุงรสด้วยซีอิ๊วขาวและพริกไทย ตักเสิร์ฟพร้อมข้าวสวยร้อนๆ',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, '3 cloves garlic, minced', '1 tbsp soy sauce', '1 tbsp cooking oil', 'Ground black pepper']
+            : [ingredient, 'กระเทียมสับ 3 กลีบ', 'ซีอิ๊วขาว 1 ช้อนโต๊ะ', 'น้ำมันพืช 1 ช้อนโต๊ะ', 'พริกไทยป่นเล็กน้อย'],
+        steps: isEn
+            ? ['Heat oil in a pan, sauté minced garlic until fragrant.', 'Add $displayIngredient and stir-fry for 3-5 minutes.', 'Season with soy sauce and pepper, serve warm with rice.']
+            : ['ตั้งกระทะใส่น้ำมัน นำกระเทียมลงผัดจนหอมกรุ่น', 'ใส่$ingredientลงไปผัดให้สุกและเข้ากัน 3-5 นาที', 'ปรุงรสด้วยซีอิ๊วขาวและพริกไทย ตักเสิร์ฟพร้อมข้าวสวยร้อนๆ'],
       ),
       RecipeModel(
         id: 'recipe_quick_2',
-        title: 'ไข่เจียวทรงเครื่องใส่$ingredient',
-        description: 'ไข่เจียวฟูนุ่มกรอบนอกนุ่มใน เข้ากันได้อย่างลงตัว',
+        title: isEn ? 'Golden Fluffy Omelet with $displayIngredient' : 'ไข่เจียวทรงเครื่องใส่$ingredient',
+        description: isEn ? 'Fluffy eggs loaded with savory flavors and crispy edges.' : 'ไข่เจียวฟูนุ่มกรอบนอกนุ่มใน เข้ากันได้อย่างลงตัว',
         imageUrl: 'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_eggs.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'ไข่ไก่ 2 ฟอง',
-          'น้ำปลาหรือซีอิ๊วขาว 1 ช้อนชา',
-          'น้ำมันสำหรับทอด',
-        ],
-        steps: [
-          'ตอกไข่ใส่ชาม ตีให้เข้ากันแล้วใส่$ingredientที่หั่นพอดีคำลงไป',
-          'ตั้งน้ำมันให้ร้อน เทไข่ลงทอดจนเหลืองฟูกรอบทั้งสองด้าน',
-          'ตักขึ้นสะเด็ดน้ำมัน พร้อมรับประทาน',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, '2 large eggs', '1 tsp light soy sauce or fish sauce', 'Cooking oil for frying']
+            : [ingredient, 'ไข่ไก่ 2 ฟอง', 'น้ำปลาหรือซีอิ๊วขาว 1 ช้อนชา', 'น้ำมันสำหรับทอด'],
+        steps: isEn
+            ? ['Beat eggs in a bowl and mix in sliced $displayIngredient.', 'Heat oil in a pan until hot, pour egg mixture and fry until golden.', 'Drain excess oil and serve hot.']
+            : ['ตอกไข่ใส่ชาม ตีให้เข้ากันแล้วใส่$ingredientที่หั่นพอดีคำลงไป', 'ตั้งน้ำมันให้ร้อน เทไข่ลงทอดจนเหลืองฟูกรอบทั้งสองด้าน', 'ตักขึ้นสะเด็ดน้ำมัน พร้อมรับประทาน'],
       ),
       RecipeModel(
         id: 'recipe_quick_3',
-        title: 'ข้าวผัดโบราณใส่$ingredient',
-        description: 'เปลี่ยนข้าวสวยและวัตถุดิบเหลือให้เป็นมื้ออร่อยง่ายๆ',
+        title: isEn ? 'Classic Fried Rice with $displayIngredient' : 'ข้าวผัดโบราณใส่$ingredient',
+        description: isEn ? 'The ultimate quick meal using leftover cooked rice.' : 'เปลี่ยนข้าวสวยและวัตถุดิบเหลือให้เป็นมื้ออร่อยง่ายๆ',
         imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '15 min',
         difficulty: 'Easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'ข้าวสวย 1 จาน',
-          'ไข่ไก่ 1 ฟอง',
-          'ซีอิ๊วขาว 1 ช้อนโต๊ะ',
-          'น้ำตาลทราย 1/2 ช้อนชา',
-        ],
-        steps: [
-          'ผัดกระเทียมในกระทะ ตอกไข่ใส่แล้วยีพอสุก',
-          'ใส่$ingredientและข้าวสวยลงไป ผัดให้เข้ากัน',
-          'ปรุงรสด้วยซีอิ๊วขาวและน้ำตาล ผัดไฟแรง 2 นาทีจนหอมกระทะ',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, '1 plate cooked jasmine rice', '1 egg', '1 tbsp soy sauce', '1/2 tsp sugar']
+            : [ingredient, 'ข้าวสวย 1 จาน', 'ไข่ไก่ 1 ฟอง', 'ซีอิ๊วขาว 1 ช้อนโต๊ะ', 'น้ำตาลทราย 1/2 ช้อนชา'],
+        steps: isEn
+            ? ['Sauté garlic and egg lightly in a hot pan.', 'Add $displayIngredient and cooked rice, stir-fry over high heat.', 'Season with soy sauce and sugar, toss for 2 minutes.']
+            : ['ผัดกระเทียมในกระทะ ตอกไข่ใส่แล้วยีพอสุก', 'ใส่$ingredientและข้าวสวยลงไป ผัดให้เข้ากัน', 'ปรุงรสด้วยซีอิ๊วขาวและน้ำตาล ผัดไฟแรง 2 นาทีจนหอมกระทะ'],
       ),
       RecipeModel(
         id: 'recipe_quick_4',
-        title: 'ต้มจืดซุปร้อนๆ ใส่$ingredient',
-        description: 'น้ำซุปใสกลมกล่อม ซดคล่องคอ สบายท้อง',
+        title: isEn ? 'Comforting Clear Soup with $displayIngredient' : 'ต้มจืดซุปร้อนๆ ใส่$ingredient',
+        description: isEn ? 'Soothing, clear, savory broth that warms you up.' : 'น้ำซุปใสกลมกล่อม ซดคล่องคอ สบายท้อง',
         imageUrl: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '15 min',
         difficulty: 'Easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'น้ำเปล่าหรือน้ำซุป 2 ถ้วย',
-          'ซีอิ๊วขาว 1 ช้อนโต๊ะ',
-          'ต้นหอมหรือผักชีโรยหน้า',
-        ],
-        steps: [
-          'ตั้งน้ำให้เดือดในหม้อ',
-          'ใส่$ingredientลงไปต้มประมาณ 5-8 นาที',
-          'ปรุงรสด้วยซีอิ๊วขาว โรยผักชีหรือต้นหอมก่อนเสิร์ฟ',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, '2 cups vegetable or chicken stock', '1 tbsp light soy sauce', 'Spring onions for garnish']
+            : [ingredient, 'น้ำเปล่าหรือน้ำซุป 2 ถ้วย', 'ซีอิ๊วขาว 1 ช้อนโต๊ะ', 'ต้นหอมหรือผักชีโรยหน้า'],
+        steps: isEn
+            ? ['Bring broth to a gentle simmer in a pot.', 'Add $displayIngredient and cook for 5-8 minutes.', 'Season with light soy sauce and garnish with fresh herbs.']
+            : ['ตั้งน้ำให้เดือดในหม้อ', 'ใส่$ingredientลงไปต้มประมาณ 5-8 นาที', 'ปรุงรสด้วยซีอิ๊วขาว โรยผักชีหรือต้นหอมก่อนเสิร์ฟ'],
       ),
       RecipeModel(
         id: 'recipe_quick_5',
-        title: 'ยำหรือสลัดคลีนๆ ใส่$ingredient',
-        description: 'รสชาติสดชื่น อิ่มเบาสบายท้อง ไม่เลี่ยน',
+        title: isEn ? 'Fresh Crispy $displayIngredient Salad' : 'ยำหรือสลัดคลีนๆ ใส่$ingredient',
+        description: isEn ? 'Crisp greens and zesty dressing for a refreshing bite.' : 'รสชาติสดชื่น อิ่มเบาสบายท้อง ไม่เลี่ยน',
         imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_spinach.png',
         cookingTime: '8 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'ผักสลัดหรือมะเขือเทศตามชอบ',
-          'น้ำมะนาว 1 ช้อนโต๊ะ',
-          'น้ำมันมะกอกหรือน้ำสลัด 1 ช้อนโต๊ะ',
-        ],
-        steps: [
-          'เตรียม$ingredientให้พร้อมรับประทาน',
-          'จัดผักสดใส่จาน วางวัตถุดิบลงไปให้สวยงาม',
-          'ราดน้ำสลัดหรือน้ำยำ คลุกเคล้าเบาๆ พร้อมเสิร์ฟ',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, 'Assorted fresh salad greens', '1 tbsp lime juice', '1 tbsp olive oil or salad dressing']
+            : [ingredient, 'ผักสลัดหรือมะเขือเทศตามชอบ', 'น้ำมะนาว 1 ช้อนโต๊ะ', 'น้ำมันมะกอกหรือน้ำสลัด 1 ช้อนโต๊ะ'],
+        steps: isEn
+            ? ['Prepare $displayIngredient and warm lightly if desired.', 'Arrange crisp greens on a serving plate.', 'Toss lightly with olive oil and lime juice dressing.']
+            : ['เตรียม$ingredientให้พร้อมรับประทาน', 'จัดผักสดใส่จาน วางวัตถุดิบลงไปให้สวยงาม', 'ราดน้ำสลัดหรือน้ำยำ คลุกเคล้าเบาๆ พร้อมเสิร์ฟ'],
       ),
       RecipeModel(
         id: 'recipe_quick_6',
-        title: 'แซนด์วิชขนมปังปิ้งไส้$ingredient',
-        description: 'กรอบนอกนุ่มใน อร่อยอยู่ท้อง ทำเสร็จไวสุดๆ',
+        title: isEn ? 'Toasted Warm Sandwich with $displayIngredient' : 'แซนด์วิชขนมปังปิ้งไส้$ingredient',
+        description: isEn ? 'Golden toasted bread with savory melted filling.' : 'กรอบนอกนุ่มใน อร่อยอยู่ท้อง ทำเสร็จไวสุดๆ',
         imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'ขนมปัง 2 แผ่น',
-          'มายองเนสหรือเนย 1 ช้อนโต๊ะ',
-          'ชีสหรือผักสลัด (ถ้ามี)',
-        ],
-        steps: [
-          'ปิ้งขนมปังให้เหลืองกรอบ',
-          'ทามายองเนสหรือเนย วางไส้$ingredientลงไป',
-          'ประกบขนมปัง หั่นครึ่ง พร้อมรับประทาน',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, '2 slices bread', '1 tbsp mayonnaise or butter', 'Cheese slice (optional)']
+            : [ingredient, 'ขนมปัง 2 แผ่น', 'มายองเนสหรือเนย 1 ช้อนโต๊ะ', 'ชีสหรือผักสลัด (ถ้ามี)'],
+        steps: isEn
+            ? ['Toast bread slices until golden brown.', 'Spread mayo or butter, layer with $displayIngredient.', 'Cut diagonally and serve warm.']
+            : ['ปิ้งขนมปังให้เหลืองกรอบ', 'ทามายองเนสหรือเนย วางไส้$ingredientลงไป', 'ประกบขนมปัง หั่นครึ่ง พร้อมรับประทาน'],
       ),
       RecipeModel(
         id: 'recipe_quick_7',
-        title: 'ผัดกะเพรารสเด็ดใส่$ingredient',
-        description: 'เผ็ดร้อนหอมกลิ่นใบกะเพรา เมนูยอดฮิตทำง่ายสุดๆ',
+        title: isEn ? 'Spicy Basil Stir-fry with $displayIngredient' : 'ผัดกะเพรารสเด็ดใส่$ingredient',
+        description: isEn ? 'Fragrant Thai holy basil stir-fry with a spicy kick.' : 'เผ็ดร้อนหอมกลิ่นใบกะเพรา เมนูยอดฮิตทำง่ายสุดๆ',
         imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '10 min',
         difficulty: 'Easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'ใบกะเพรา 1 กำมือ',
-          'พริกขี้หนูและกระเทียมสับ',
-          'น้ำมันหอยและซีอิ๊วขาว',
-        ],
-        steps: [
-          'โขลกพริกกระเทียมลงผัดในน้ำมันจนหอมฉุน',
-          'ใส่$ingredientลงไปผัด ปรุงรสด้วยน้ำมันหอยและซีอิ๊ว',
-          'ใส่ใบกะเพรา ปิดไฟ ผัดเคล้าให้เข้ากัน เสิร์ฟพร้อมข้าวสวย',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, 'Fresh basil leaves', 'Garlic and chili, crushed', 'Oyster sauce and soy sauce']
+            : [ingredient, 'ใบกะเพรา 1 กำมือ', 'พริกขี้หนูและกระเทียมสับ', 'น้ำมันหอยและซีอิ๊วขาว'],
+        steps: isEn
+            ? ['Sauté crushed garlic and chilies until fragrant.', 'Add $displayIngredient and season with sauces.', 'Toss in fresh basil, turn off heat, and serve over rice.']
+            : ['โขลกพริกกระเทียมลงผัดในน้ำมันจนหอมฉุน', 'ใส่$ingredientลงไปผัด ปรุงรสด้วยน้ำมันหอยและซีอิ๊ว', 'ใส่ใบกะเพรา ปิดไฟ ผัดเคล้าให้เข้ากัน เสิร์ฟพร้อมข้าวสวย'],
       ),
       RecipeModel(
         id: 'recipe_quick_8',
-        title: 'ข้าวไข่ข้นลาวาหน้า$ingredient',
-        description: 'ไข่ข้นเยิ้มๆ นุ่มละมุนลิ้น เข้ากันกับ$ingredient',
+        title: isEn ? 'Creamy Scrambled Egg Bowl with $displayIngredient' : 'ข้าวไข่ข้นลาวาหน้า$ingredient',
+        description: isEn ? 'Silky runny eggs served over a steaming bowl of rice.' : 'ไข่ข้นเยิ้มๆ นุ่มละมุนลิ้น เข้ากันกับ$ingredient',
         imageUrl: 'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_eggs.png',
         cookingTime: '8 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'ไข่ไก่ 2 ฟอง',
-          'นมสด 2 ช้อนโต๊ะ',
-          'เนยสดหรือน้ำมันพืช',
-        ],
-        steps: [
-          'ตีไข่กับนมสดและซีอิ๊วขาวเบาๆ',
-          'ตั้งกระทะใส่เนย ใช้ไฟอ่อน เทไข่ลงไปใช้ตะหลิวดันเข้าตรงกลาง',
-          'วาง$ingredientลงไปด้านบน พอไข่ด้านล่างเซ็ตตัวแต่ด้านบนเยิ้มๆ ตักราดข้าวทันที',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, '2 eggs', '2 tbsp milk', 'Butter or oil']
+            : [ingredient, 'ไข่ไก่ 2 ฟอง', 'นมสด 2 ช้อนโต๊ะ', 'เนยสดหรือน้ำมันพืช'],
+        steps: isEn
+            ? ['Whisk eggs gently with milk and a pinch of salt.', 'Cook in melted butter on low heat until half set.', 'Top with $displayIngredient and slide over warm rice.']
+            : ['ตีไข่กับนมสดและซีอิ๊วขาวเบาๆ', 'ตั้งกระทะใส่เนย ใช้ไฟอ่อน เทไข่ลงไปใช้ตะหลิวดันเข้าตรงกลาง', 'วาง$ingredientลงไปด้านบน พอไข่ด้านล่างเซ็ตตัวแต่ด้านบนเยิ้มๆ ตักราดข้าวทันที'],
       ),
       RecipeModel(
         id: 'recipe_quick_9',
-        title: '$ingredientคั่วพริกเกลือกรอบ',
-        description: 'คั่วแห้งๆ หอมกระเทียมพริกสด รสเค็มเผ็ดกลมกล่อม',
+        title: isEn ? 'Crispy Chili & Garlic $displayIngredient' : '$ingredientคั่วพริกเกลือกรอบ',
+        description: isEn ? 'Pan-crisped bites tossed with aromatic garlic and chili.' : 'คั่วแห้งๆ หอมกระเทียมพริกสด รสเค็มเผ็ดกลมกล่อม',
         imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_nuggets.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'กระเทียมสับ 4 กลีบ',
-          'พริกแดงจินดาซอย',
-          'เกลือและพริกไทยป่น',
-        ],
-        steps: [
-          'ทอดหรือจี่$ingredientในกระทะจนผิวกรอบสวย พักไว้',
-          'เจียวกระเทียมและพริกซอยให้เหลืองหอม',
-          'ใส่$ingredientกลับลงไป โรยเกลือพริกไทย คั่วแห้งไฟแรง 1 นาที',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, '4 cloves garlic, minced', 'Chilies, sliced', 'Sea salt and black pepper']
+            : [ingredient, 'กระเทียมสับ 4 กลีบ', 'พริกแดงจินดาซอย', 'เกลือและพริกไทยป่น'],
+        steps: isEn
+            ? ['Pan-sear $displayIngredient until edges are golden crisp.', 'Sauté garlic and chilies in pan until golden.', 'Toss $displayIngredient with garlic, pepper, and salt for 1 minute.']
+            : ['ทอดหรือจี่$ingredientในกระทะจนผิวกรอบสวย พักไว้', 'เจียวกระเทียมและพริกซอยให้เหลืองหอม', 'ใส่$ingredientกลับลงไป โรยเกลือพริกไทย คั่วแห้งไฟแรง 1 นาที'],
       ),
       RecipeModel(
         id: 'recipe_quick_10',
-        title: 'มะกะโรนีผัดซอสใส่$ingredient',
-        description: 'เมนูเด็กหอทำง่าย ซอสมะเขือเทศฉ่ำๆ หวานอมเปรี้ยว',
+        title: isEn ? 'Tomato Pasta with $displayIngredient' : 'มะกะโรนีผัดซอสใส่$ingredient',
+        description: isEn ? 'Comforting quick pasta tossed in savory tomato sauce.' : 'เมนูเด็กหอทำง่าย ซอสมะเขือเทศฉ่ำๆ หวานอมเปรี้ยว',
         imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281699?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '15 min',
         difficulty: 'Easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'มะกะโรนีหรือเส้นพาสต้าต้มสุก 1 ถ้วย',
-          'ไข่ไก่ 1 ฟอง',
-          'ซอสมะเขือเทศ 2 ช้อนโต๊ะ',
-          'หอมใหญ่สับ',
-        ],
-        steps: [
-          'ผัดหอมใหญ่กับน้ำมัน ตอกไข่ใส่ยีพอสุก',
-          'ใส่$ingredientและมะกะโรนีลงไปผัด',
-          'ปรุงรสด้วยซอสมะเขือเทศ ผัดคลุกเคล้าให้เข้ากัน',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, '1 cup cooked pasta', '1 egg', '2 tbsp tomato sauce', 'Chopped onion']
+            : [ingredient, 'มะกะโรนีหรือเส้นพาสต้าต้มสุก 1 ถ้วย', 'ไข่ไก่ 1 ฟอง', 'ซอสมะเขือเทศ 2 ช้อนโต๊ะ', 'หอมใหญ่สับ'],
+        steps: isEn
+            ? ['Sauté chopped onions and scramble egg lightly.', 'Add $displayIngredient and cooked pasta.', 'Stir in tomato sauce and cook for 2 minutes until evenly coated.']
+            : ['ผัดหอมใหญ่กับน้ำมัน ตอกไข่ใส่ยีพอสุก', 'ใส่$ingredientและมะกะโรนีลงไปผัด', 'ปรุงรสด้วยซอสมะเขือเทศ ผัดคลุกเคล้าให้เข้ากัน'],
       ),
       RecipeModel(
         id: 'recipe_quick_11',
-        title: 'ยำวุ้นเส้นทรงเครื่องใส่$ingredient',
-        description: 'ยำรสแซ่บ เปรี้ยว เผ็ด เค็ม ครบรส ปลุกความสดชื่น',
+        title: isEn ? 'Zesty Glass Noodle Salad with $displayIngredient' : 'ยำวุ้นเส้นทรงเครื่องใส่$ingredient',
+        description: isEn ? 'Bright, tangy, and refreshing spicy glass noodle salad.' : 'ยำรสแซ่บ เปรี้ยว เผ็ด เค็ม ครบรส ปลุกความสดชื่น',
         imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_spinach.png',
         cookingTime: '12 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'วุ้นเส้นลวก 1 ถ้วย',
-          'น้ำมะนาว 2 ช้อนโต๊ะ',
-          'น้ำปลา 1.5 ช้อนโต๊ะ',
-          'พริกขี้หนูซอยและขึ้นฉ่าย',
-        ],
-        steps: [
-          'ผสมน้ำยำ: น้ำมะนาว น้ำปลา น้ำตาล และพริกซอยในชามผสม',
-          'ใส่วุ้นเส้นและ$ingredientลงไป',
-          'โรยขึ้นฉ่าย คลุกเคล้าเบาๆ ให้เข้าเนื้อ พร้อมรับประทาน',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, '1 cup cooked glass noodles', '2 tbsp lime juice', '1.5 tbsp fish sauce', 'Celery and chili']
+            : [ingredient, 'วุ้นเส้นลวก 1 ถ้วย', 'น้ำมะนาว 2 ช้อนโต๊ะ', 'น้ำปลา 1.5 ช้อนโต๊ะ', 'พริกขี้หนูซอยและขึ้นฉ่าย'],
+        steps: isEn
+            ? ['Whisk lime juice, fish sauce, and chili in a mixing bowl.', 'Add cooked noodles and $displayIngredient.', 'Toss with celery and herbs, serve fresh.']
+            : ['ผสมน้ำยำ: น้ำมะนาว น้ำปลา น้ำตาล และพริกซอยในชามผสม', 'ใส่วุ้นเส้นและ$ingredientลงไป', 'โรยขึ้นฉ่าย คลุกเคล้าเบาๆ ให้เข้าเนื้อ พร้อมรับประทาน'],
       ),
       RecipeModel(
         id: 'recipe_quick_12',
-        title: 'บะหมี่ต้มยำทรงเครื่องใส่$ingredient',
-        description: 'เส้นเหนียวนุ่ม ซุปต้มยำแซ่บจี๊ดถึงใจ ทานร้อนๆ ฟินสุดๆ',
+        title: isEn ? 'Tom Yum Noodle Soup with $displayIngredient' : 'บะหมี่ต้มยำทรงเครื่องใส่$ingredient',
+        description: isEn ? 'Spicy and sour Thai tom yum broth with chewy noodles.' : 'เส้นเหนียวนุ่ม ซุปต้มยำแซ่บจี๊ดถึงใจ ทานร้อนๆ ฟินสุดๆ',
         imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80',
         assetFallback: 'assets/images/food_lasagna.png',
         cookingTime: '10 min',
         difficulty: 'Very easy',
-        expiringIngredient: ingredient,
-        ingredients: [
-          ingredient,
-          'บะหมี่หรือเส้นก๋วยเตี๋ยว 1 ก้อน',
-          'น้ำพริกเผา 1 ช้อนโต๊ะ',
-          'น้ำมะนาว 1 ช้อนโต๊ะ',
-          'น้ำซุป 1.5 ถ้วย',
-        ],
-        steps: [
-          'ต้มน้ำซุปให้เดือด ใส่น้ำพริกเผาและ$ingredientลงไป',
-          'ลวกเส้นบะหมี่ใส่ชาม',
-          'บีบน้ำมะนาว เทน้ำซุปร้อนๆ ราดบนเส้น พร้อมเสิร์ฟ',
-        ],
+        expiringIngredient: displayIngredient,
+        ingredients: isEn
+            ? [displayIngredient, '1 pack noodles', '1 tbsp chili paste (nam prik pao)', '1 tbsp lime juice', '1.5 cups broth']
+            : [ingredient, 'บะหมี่หรือเส้นก๋วยเตี๋ยว 1 ก้อน', 'น้ำพริกเผา 1 ช้อนโต๊ะ', 'น้ำมะนาว 1 ช้อนโต๊ะ', 'น้ำซุป 1.5 ถ้วย'],
+        steps: isEn
+            ? ['Bring broth to boil, stir in chili paste and $displayIngredient.', 'Blanch noodles in a bowl.', 'Squeeze lime juice and ladle hot soup over noodles.']
+            : ['ต้มน้ำซุปให้เดือด ใส่น้ำพริกเผาและ$ingredientลงไป', 'ลวกเส้นบะหมี่ใส่ชาม', 'บีบน้ำมะนาว เทน้ำซุปร้อนๆ ราดบนเส้น พร้อมเสิร์ฟ'],
       ),
     ];
 
@@ -899,8 +904,16 @@ class AiRepository {
   static const _validUnits = {'pieces', 'bag', 'punnet', 'bottle', 'box', 'can', 'pack', 'g', 'kg'};
   static const _validStorages = {'Fridge', 'Freezer'};
 
-  AiScanResult _buildResultFromApi(Map<String, dynamic> data, String filename, String imagePath) {
-    final foodName = (data['foodName'] as String).trim();
+  AiScanResult _buildResultFromApi(
+    Map<String, dynamic> data,
+    String filename,
+    String imagePath, {
+    String language = 'en',
+  }) {
+    var foodName = (data['foodName'] as String).trim();
+    if (language == 'en') {
+      foodName = translateThaiToEnglish(foodName);
+    }
     DateTime? expiryDate;
     if (data['expiryDate'] != null) {
       expiryDate = DateTime.tryParse(data['expiryDate'].toString());

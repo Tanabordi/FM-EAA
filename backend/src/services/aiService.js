@@ -2,7 +2,95 @@ const { GoogleGenAI } = require('@google/genai');
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const PROMPT = `อ่านฉลากอาหารในรูปนี้ แล้วตอบเป็น JSON เท่านั้นตามรูปแบบนี้:
+const THAI_TO_EN_MAP = {
+  'ค็อกเทลรมควัน': 'Smoked Cocktail Sausage',
+  'ไส้กรอกรมควัน': 'Smoked Sausage',
+  'ไส้กรอกค็อกเทล': 'Cocktail Sausage',
+  'ไส้กรอก': 'Sausage',
+  'หมูสับ': 'Minced Pork',
+  'หมูบด': 'Minced Pork',
+  'หมูชิ้น': 'Pork Slices',
+  'เนื้อหมู': 'Pork',
+  'หมู': 'Pork',
+  'อกไก่': 'Chicken Breast',
+  'สันในไก่': 'Chicken Tenderloin',
+  'เนื้อไก่': 'Chicken',
+  'ไก่': 'Chicken',
+  'ไข่ไก่': 'Eggs',
+  'ไข่': 'Egg',
+  'นมสด': 'Fresh Milk',
+  'นม': 'Milk',
+  'แครอท': 'Carrots',
+  'มะเขือเทศ': 'Tomatoes',
+  'ผักกาด': 'Cabbage',
+  'กะหล่ำปลี': 'Cabbage',
+  'ผักชี': 'Coriander',
+  'ต้นหอม': 'Spring Onions',
+  'กระเทียม': 'Garlic',
+  'หัวหอม': 'Onion',
+  'กุ้ง': 'Shrimp',
+  'ปลา': 'Fish',
+  'แซลมอน': 'Salmon',
+  'เต้าหู้': 'Tofu',
+  'เบคอน': 'Bacon',
+  'แฮม': 'Ham',
+  'ข้าวสวย': 'Cooked Rice',
+  'ข้าว': 'Rice',
+  'ขนมปัง': 'Bread',
+  'เนย': 'Butter',
+  'ชีส': 'Cheese',
+  'สตรอว์เบอร์รี': 'Strawberries',
+  'สตรอเบอรี่': 'Strawberries',
+  'แอปเปิ้ล': 'Apples',
+  'กล้วย': 'Bananas',
+  'ส้ม': 'Oranges',
+  'โยเกิร์ต': 'Yogurt',
+  'น้ำส้ม': 'Orange Juice',
+  'น้ำดื่ม': 'Drinking Water',
+};
+
+function translateThaiIngredientToEn(name) {
+  if (!name || typeof name !== 'string') return name;
+  const trimmed = name.trim();
+  if (THAI_TO_EN_MAP[trimmed]) return THAI_TO_EN_MAP[trimmed];
+
+  for (const [thai, en] of Object.entries(THAI_TO_EN_MAP)) {
+    if (trimmed.includes(thai)) {
+      return en;
+    }
+  }
+
+  if (/[\u0E00-\u0E7F]/.test(trimmed)) {
+    return 'Ingredient';
+  }
+  return trimmed;
+}
+
+function getScanLabelPrompt(language = 'en') {
+  if (language === 'en') {
+    return `Analyze the food product label in this image and respond strictly in JSON matching this schema:
+{
+  "foodName": string|null,
+  "expiryDate": "YYYY-MM-DD"|null,
+  "category": "Proteins"|"Veggies"|"Beverages"|"Meals"|"Sauces",
+  "storage": "Fridge"|"Freezer",
+  "unit": "pieces"|"bag"|"punnet"|"bottle"|"box"|"can"|"pack"|"g"|"kg"
+}
+Rules:
+- foodName: The clear product name or ingredient in concise natural English (e.g. "Smoked Cocktail Sausage", "Minced Pork", "Fresh Milk", "Eggs").
+  CRITICAL: Even if the packaging, brand, or text on the label is in Thai or another non-English language (such as "ค็อกเทลรมควัน", "หมูบด", "นมสด", "ไข่ไก่"), you MUST translate it accurately and write foodName ONLY in English. Do NOT return Thai script in foodName.
+- expiryDate: Expiry date ONLY (EXP, BBD, Best Before, ควรบริโภคก่อน, หมดอายุ). NEVER use manufacturing date (MFD, MFG). Convert Buddhist Era (BE/พ.ศ.) to CE (AD/ค.ศ.) in YYYY-MM-DD format (subtract 543 if year is > 2400). If not found, return null. Do not guess.
+- category: Analyze food category:
+  * "Proteins": Meat, pork, chicken, fish, shrimp, eggs, sausages, ham, bacon, tofu, meatballs
+  * "Veggies": Fresh vegetables, fruits, mushrooms
+  * "Beverages": Milk, water, juices, tea, coffee, soda, drinks
+  * "Meals": Ready-to-eat meals, bento, rice dishes, noodles, soups, curries, stir-fries, pasta, pizza, sandwiches, burgers
+  * "Sauces": Condiments, sauces, dips, soy sauce, fish sauce, cooking oils, mayonnaise, jams
+- storage: Mostly "Fridge" unless it is frozen food, ice cream, or specifies freezer, then "Freezer".
+- unit: Appropriate packaging unit: "pack" for sausages/meats, "bottle" for drinks, "box" for meal boxes, "bag" for veggies, or "pieces", "g", "kg", "can", "punnet".`;
+  }
+
+  return `อ่านฉลากอาหารในรูปนี้ แล้วตอบเป็น JSON เท่านั้นตามรูปแบบนี้:
 {
   "foodName": string|null,
   "expiryDate": "YYYY-MM-DD"|null,
@@ -20,6 +108,9 @@ const PROMPT = `อ่านฉลากอาหารในรูปนี้ 
   * "Sauces": ซอส, เครื่องปรุงรส, น้ำจิ้ม, ซีอิ๊ว, น้ำปลา, น้ำมัน, มายองเนส, แยม
 - storage: ส่วนใหญ่แช่ตู้เย็นปกติ "Fridge" ยกเว้นสินค้าแช่แข็งหรือไอศกรีมให้เป็น "Freezer"
 - unit: หน่วยที่เหมาะสมของบรรจุภัณฑ์ เช่น "pack" สำหรับไส้กรอก/เนื้อสัตว์, "bottle" สำหรับเครื่องดื่ม, "box" สำหรับอาหารกล่อง, "bag" สำหรับผักถุง, หรือ "pieces"`;
+}
+
+const PROMPT = getScanLabelPrompt('en');
 
 // Daily in-memory quota tracking per user: 3 generations per day
 const DAILY_RECIPE_LIMIT = 3;
@@ -201,19 +292,20 @@ function attachRecipeImages(recipe, mainIngredient, index = 0) {
   };
 }
 
-function generateFallbackRecipes(mainIngredient, language = 'th', offset = 0) {
+function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0) {
   const isEn = language === 'en';
+  const displayIngredient = isEn ? translateThaiIngredientToEn(mainIngredient) : mainIngredient;
   const pool = [
     {
       id: 'recipe_fallback_1',
-      title: isEn ? `Stir-fried ${mainIngredient} with Garlic` : `ผัดกระเทียมพริกไทย${mainIngredient}`,
+      title: isEn ? `Stir-fried ${displayIngredient} with Garlic & Pepper` : `ผัดกระเทียมพริกไทย${mainIngredient}`,
       description: isEn ? 'Quick, aromatic, and comforting dish in under 10 minutes.' : 'หอมกลิ่นกระเทียมพริกไทย ทำง่าย รสกลมกล่อม',
       cookingTime: '10 min',
       difficulty: 'Very easy',
       dishType: 'stir_fry',
-      expiringIngredient: mainIngredient,
+      expiringIngredient: displayIngredient,
       ingredients: [
-        `${mainIngredient}`,
+        `${displayIngredient}`,
         isEn ? '3 cloves garlic, crushed' : 'กระเทียมสับ 3 กลีบ',
         isEn ? '1 tbsp soy sauce' : 'ซีอิ๊วขาว 1 ช้อนโต๊ะ',
         isEn ? '1 tbsp cooking oil' : 'น้ำมันพืช 1 ช้อนโต๊ะ',
@@ -221,40 +313,40 @@ function generateFallbackRecipes(mainIngredient, language = 'th', offset = 0) {
       ],
       steps: [
         isEn ? 'Heat oil in a pan over medium heat and sauté garlic until fragrant.' : 'ตั้งกระทะใส่น้ำมัน นำกระเทียมลงผัดจนหอมกรุ่น',
-        isEn ? `Add ${mainIngredient} and stir-fry for 3-5 minutes.` : `ใส่${mainIngredient}ลงไปผัดให้สุกและเข้ากัน 3-5 นาที`,
+        isEn ? `Add ${displayIngredient} and stir-fry for 3-5 minutes.` : `ใส่${mainIngredient}ลงไปผัดให้สุกและเข้ากัน 3-5 นาที`,
         isEn ? 'Season with soy sauce and pepper, then serve with warm rice.' : 'ปรุงรสด้วยซีอิ๊วขาวและพริกไทย ตักเสิร์ฟพร้อมข้าวสวยร้อนๆ',
       ],
     },
     {
       id: 'recipe_fallback_2',
-      title: isEn ? `Golden Omelet with ${mainIngredient}` : `ไข่เจียวทรงเครื่องใส่${mainIngredient}`,
+      title: isEn ? `Golden Fluffy Omelet with ${displayIngredient}` : `ไข่เจียวทรงเครื่องใส่${mainIngredient}`,
       description: isEn ? 'Fluffy eggs loaded with savory flavors.' : 'ไข่เจียวฟูนุ่มกรอบนอกนุ่มใน เข้ากันได้อย่างลงตัว',
       cookingTime: '10 min',
       difficulty: 'Very easy',
       dishType: 'omelet',
-      expiringIngredient: mainIngredient,
+      expiringIngredient: displayIngredient,
       ingredients: [
-        `${mainIngredient}`,
+        `${displayIngredient}`,
         isEn ? '2 large eggs' : 'ไข่ไก่ 2 ฟอง',
         isEn ? '1 tsp fish sauce or light soy sauce' : 'น้ำปลาหรือซีอิ๊วขาว 1 ช้อนชา',
         isEn ? 'Cooking oil for frying' : 'น้ำมันสำหรับทอด',
       ],
       steps: [
-        isEn ? `Beat eggs together in a bowl and mix in chopped ${mainIngredient}.` : `ตอกไข่ใส่ชาม ตีให้เข้ากันแล้วใส่${mainIngredient}ที่หั่นพอดีคำลงไป`,
+        isEn ? `Beat eggs together in a bowl and mix in chopped ${displayIngredient}.` : `ตอกไข่ใส่ชาม ตีให้เข้ากันแล้วใส่${mainIngredient}ที่หั่นพอดีคำลงไป`,
         isEn ? 'Heat oil in pan until hot, pour egg mixture and fry until golden.' : 'ตั้งน้ำมันให้ร้อน เทไข่ลงทอดจนเหลืองฟูกรอบทั้งสองด้าน',
         isEn ? 'Drain excess oil and serve hot.' : 'ตักขึ้นสะเด็ดน้ำมัน พร้อมรับประทาน',
       ],
     },
     {
       id: 'recipe_fallback_3',
-      title: isEn ? `Quick Fried Rice with ${mainIngredient}` : `ข้าวผัดโบราณใส่${mainIngredient}`,
+      title: isEn ? `Classic Fried Rice with ${displayIngredient}` : `ข้าวผัดโบราณใส่${mainIngredient}`,
       description: isEn ? 'The ultimate zero-waste meal using leftover rice.' : 'เปลี่ยนข้าวสวยและวัตถุดิบเหลือให้เป็นมื้ออร่อยง่ายๆ',
       cookingTime: '15 min',
       difficulty: 'Easy',
       dishType: 'fried_rice',
-      expiringIngredient: mainIngredient,
+      expiringIngredient: displayIngredient,
       ingredients: [
-        `${mainIngredient}`,
+        `${displayIngredient}`,
         isEn ? '1 plate cooked jasmine rice' : 'ข้าวสวย 1 จาน',
         isEn ? '1 egg' : 'ไข่ไก่ 1 ฟอง',
         isEn ? '1 tbsp soy sauce' : 'ซีอิ๊วขาว 1 ช้อนโต๊ะ',
@@ -262,100 +354,100 @@ function generateFallbackRecipes(mainIngredient, language = 'th', offset = 0) {
       ],
       steps: [
         isEn ? 'Sauté garlic in a hot pan, add egg and scramble lightly.' : 'ผัดกระเทียมในกระทะ ตอกไข่ใส่แล้วยีพอสุก',
-        isEn ? `Add ${mainIngredient} followed by cooked rice.` : `ใส่${mainIngredient}และข้าวสวยลงไป ผัดให้เข้ากัน`,
+        isEn ? `Add ${displayIngredient} followed by cooked rice.` : `ใส่${mainIngredient}และข้าวสวยลงไป ผัดให้เข้ากัน`,
         isEn ? 'Season with soy sauce and sugar, stir over high heat for 2 minutes.' : 'ปรุงรสด้วยซีอิ๊วขาวและน้ำตาล ผัดไฟแรง 2 นาทีจนหอมกระทะ',
       ],
     },
     {
       id: 'recipe_fallback_4',
-      title: isEn ? `Comforting Soup with ${mainIngredient}` : `ต้มจืดซุปร้อนๆ ใส่${mainIngredient}`,
+      title: isEn ? `Comforting Soup with ${displayIngredient}` : `ต้มจืดซุปร้อนๆ ใส่${mainIngredient}`,
       description: isEn ? 'Soothing clear broth that warms the soul.' : 'น้ำซุปใสกลมกล่อม ซดคล่องคอ สบายท้อง',
       cookingTime: '15 min',
       difficulty: 'Easy',
       dishType: 'soup',
-      expiringIngredient: mainIngredient,
+      expiringIngredient: displayIngredient,
       ingredients: [
-        `${mainIngredient}`,
+        `${displayIngredient}`,
         isEn ? '2 cups water or stock' : 'น้ำเปล่าหรือน้ำซุป 2 ถ้วย',
         isEn ? '1 tbsp light soy sauce' : 'ซีอิ๊วขาว 1 ช้อนโต๊ะ',
         isEn ? 'Spring onions or coriander for garnish' : 'ต้นหอมหรือผักชีโรยหน้า',
       ],
       steps: [
         isEn ? 'Bring water or broth to a boil in a pot.' : 'ตั้งน้ำให้เดือดในหม้อ',
-        isEn ? `Add ${mainIngredient} and simmer for 5-8 minutes.` : `ใส่${mainIngredient}ลงไปต้มประมาณ 5-8 นาที`,
+        isEn ? `Add ${displayIngredient} and simmer for 5-8 minutes.` : `ใส่${mainIngredient}ลงไปต้มประมาณ 5-8 นาที`,
         isEn ? 'Season with light soy sauce and garnish with fresh herbs.' : 'ปรุงรสด้วยซีอิ๊วขาว โรยผักชีหรือต้นหอมก่อนเสิร์ฟ',
       ],
     },
     {
       id: 'recipe_fallback_5',
-      title: isEn ? `Crispy ${mainIngredient} Salad` : `ยำหรือสลัดคลีนๆ ใส่${mainIngredient}`,
+      title: isEn ? `Fresh Crispy ${displayIngredient} Salad` : `ยำหรือสลัดคลีนๆ ใส่${mainIngredient}`,
       description: isEn ? 'Refreshing and vibrant meal ready in minutes.' : 'รสชาติสดชื่น อิ่มเบาสบายท้อง ไม่เลี่ยน',
       cookingTime: '8 min',
       difficulty: 'Very easy',
       dishType: 'salad',
-      expiringIngredient: mainIngredient,
+      expiringIngredient: displayIngredient,
       ingredients: [
-        `${mainIngredient}`,
+        `${displayIngredient}`,
         isEn ? 'Assorted salad greens or tomatoes' : 'ผักสลัดหรือมะเขือเทศตามชอบ',
         isEn ? '1 tbsp lemon or lime juice' : 'น้ำมะนาว 1 ช้อนโต๊ะ',
         isEn ? '1 tbsp olive oil or dressing' : 'น้ำมันมะกอกหรือน้ำสลัด 1 ช้อนโต๊ะ',
       ],
       steps: [
-        isEn ? `Warm or prepare ${mainIngredient}.` : `เตรียม${mainIngredient}ให้พร้อมรับประทาน`,
+        isEn ? `Warm or prepare ${displayIngredient}.` : `เตรียม${mainIngredient}ให้พร้อมรับประทาน`,
         isEn ? 'Combine greens in a bowl and arrange ingredients nicely.' : 'จัดผักสดใส่จาน วางวัตถุดิบลงไปให้สวยงาม',
         isEn ? 'Drizzle dressing and toss gently before eating.' : 'ราดน้ำสลัดหรือน้ำยำ คลุกเคล้าเบาๆ พร้อมเสิร์ฟ',
       ],
     },
     {
       id: 'recipe_fallback_6',
-      title: isEn ? `Toasted Sandwich with ${mainIngredient}` : `แซนด์วิชขนมปังปิ้งไส้${mainIngredient}`,
+      title: isEn ? `Toasted Sandwich with ${displayIngredient}` : `แซนด์วิชขนมปังปิ้งไส้${mainIngredient}`,
       description: isEn ? 'Crispy, warm, and satisfying snack or breakfast.' : 'กรอบนอกนุ่มใน อร่อยอยู่ท้อง ทำเสร็จไวสุดๆ',
       cookingTime: '10 min',
       difficulty: 'Very easy',
       dishType: 'sandwich',
-      expiringIngredient: mainIngredient,
+      expiringIngredient: displayIngredient,
       ingredients: [
-        `${mainIngredient}`,
+        `${displayIngredient}`,
         isEn ? '2 slices bread' : 'ขนมปัง 2 แผ่น',
         isEn ? '1 tbsp mayo or butter' : 'มายองเนสหรือเนย 1 ช้อนโต๊ะ',
         isEn ? 'Cheese or lettuce (optional)' : 'ชีสหรือผักสลัด (ถ้ามี)',
       ],
       steps: [
         isEn ? 'Toast bread slices until golden brown.' : 'ปิ้งขนมปังให้เหลืองกรอบ',
-        isEn ? `Spread mayo or butter, then layer with ${mainIngredient}.` : `ทามายองเนสหรือเนย วางไส้${mainIngredient}ลงไป`,
+        isEn ? `Spread mayo or butter, then layer with ${displayIngredient}.` : `ทามายองเนสหรือเนย วางไส้${mainIngredient}ลงไป`,
         isEn ? 'Cut in half diagonally and enjoy warm.' : 'ประกบขนมปัง หั่นครึ่ง พร้อมรับประทาน',
       ],
     },
     {
       id: 'recipe_fallback_7',
-      title: isEn ? `Spicy Basil Stir-fry with ${mainIngredient}` : `ผัดกะเพรารสเด็ดใส่${mainIngredient}`,
+      title: isEn ? `Spicy Basil Stir-fry with ${displayIngredient}` : `ผัดกะเพรารสเด็ดใส่${mainIngredient}`,
       description: isEn ? 'Fiery and aromatic Thai holy basil stir fry.' : 'เผ็ดร้อนหอมกลิ่นใบกะเพรา เมนูยอดฮิตทำง่ายสุดๆ',
       cookingTime: '10 min',
       difficulty: 'Easy',
       dishType: 'stir_fry',
-      expiringIngredient: mainIngredient,
+      expiringIngredient: displayIngredient,
       ingredients: [
-        `${mainIngredient}`,
+        `${displayIngredient}`,
         isEn ? 'Handful of fresh holy basil' : 'ใบกะเพรา 1 กำมือ',
         isEn ? 'Chilies and garlic' : 'พริกขี้หนูและกระเทียมสับ',
         isEn ? 'Oyster sauce and soy sauce' : 'น้ำมันหอยและซีอิ๊วขาว',
       ],
       steps: [
         isEn ? 'Pound chilies and garlic, sauté in hot oil.' : 'โขลกพริกกระเทียมลงผัดในน้ำมันจนหอมฉุน',
-        isEn ? `Add ${mainIngredient} and season.` : `ใส่${mainIngredient}ลงไปผัด ปรุงรสด้วยน้ำมันหอยและซีอิ๊ว`,
+        isEn ? `Add ${displayIngredient} and season.` : `ใส่${mainIngredient}ลงไปผัด ปรุงรสด้วยน้ำมันหอยและซีอิ๊ว`,
         isEn ? 'Toss in holy basil and serve over rice.' : 'ใส่ใบกะเพรา ปิดไฟ ผัดเคล้าให้เข้ากัน เสิร์ฟพร้อมข้าวสวย',
       ],
     },
     {
       id: 'recipe_fallback_8',
-      title: isEn ? `Creamy Lava Egg Bowl with ${mainIngredient}` : `ข้าวไข่ข้นลาวาหน้า${mainIngredient}`,
+      title: isEn ? `Creamy Lava Egg Bowl with ${displayIngredient}` : `ข้าวไข่ข้นลาวาหน้า${mainIngredient}`,
       description: isEn ? 'Silky runny scrambled eggs topping warm rice.' : 'ไข่ข้นเยิ้มๆ นุ่มละมุนลิ้น เข้ากันดีเยี่ยม',
       cookingTime: '8 min',
       difficulty: 'Very easy',
       dishType: 'omelet',
-      expiringIngredient: mainIngredient,
+      expiringIngredient: displayIngredient,
       ingredients: [
-        `${mainIngredient}`,
+        `${displayIngredient}`,
         isEn ? '2 eggs' : 'ไข่ไก่ 2 ฟอง',
         isEn ? '2 tbsp milk' : 'นมสด 2 ช้อนโต๊ะ',
         isEn ? 'Butter or oil' : 'เนยสดหรือน้ำมันพืช',
@@ -363,7 +455,7 @@ function generateFallbackRecipes(mainIngredient, language = 'th', offset = 0) {
       steps: [
         isEn ? 'Whisk eggs with milk.' : 'ตีไข่กับนมสดและซีอิ๊วขาวเบาๆ',
         isEn ? 'Cook gently in butter until half set.' : 'ตั้งกระทะใส่เนย ใช้ไฟอ่อน เทไข่ลงไปใช้ตะหลิวดันเข้าตรงกลาง',
-        isEn ? `Top with ${mainIngredient} and pour over rice.` : `วาง${mainIngredient}ลงไปด้านบน พอไข่เยิ้มๆ ตักราดข้าวทันที`,
+        isEn ? `Top with ${displayIngredient} and pour over rice.` : `วาง${mainIngredient}ลงไปด้านบน พอไข่เยิ้มๆ ตักราดข้าวทันที`,
       ],
     },
   ];
@@ -375,17 +467,18 @@ function generateFallbackRecipes(mainIngredient, language = 'th', offset = 0) {
   return pool.slice(0, 6);
 }
 
-async function scanLabel(buffer, mimeType) {
+async function scanLabel(buffer, mimeType, language = 'en') {
   let model = (process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite').replace(/^["']|["']$/g, '');
   if (model.includes('2.5') || model.includes('1.5')) {
     model = 'gemini-3.5-flash-lite';
   }
 
+  const promptText = getScanLabelPrompt(language);
   const res = await ai.models.generateContent({
     model,
     contents: [
       { inlineData: { mimeType, data: buffer.toString('base64') } },
-      { text: PROMPT },
+      { text: promptText },
     ],
     config: { responseMimeType: 'application/json', temperature: 0.1 },
   });
@@ -399,20 +492,27 @@ async function scanLabel(buffer, mimeType) {
   }
 
   try {
-    return JSON.parse(res.text);
+    const parsed = JSON.parse(res.text);
+    if (language === 'en' && parsed.foodName && /[\u0E00-\u0E7F]/.test(parsed.foodName)) {
+      parsed.foodName = translateThaiIngredientToEn(parsed.foodName);
+    }
+    return parsed;
   } catch (err) {
     throw new Error('Failed to parse AI response into valid JSON');
   }
 }
 
-async function suggestRecipes({ userId, mainIngredient, language = 'th', offset = 0 }) {
-  // Check daily rate limit (10 requests/day per user)
+async function suggestRecipes({ userId, mainIngredient, language = 'en', offset = 0 }) {
+  // Check daily rate limit (3 requests/day per user)
   let remainingQuota = DAILY_RECIPE_LIMIT;
   let usedQuota = 1;
   if (userId) {
     const quota = checkAndIncrementRecipeQuota(userId);
     if (!quota.allowed) {
-      const error = new Error('วันนี้คุณใช้โควตาครบ 3 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨');
+      const errorMsg = language === 'en'
+        ? 'You have reached your daily limit of 3 recipe generations. Try making one of your suggested recipes! ✨'
+        : 'วันนี้คุณใช้โควตาครบ 3 ครั้งแล้ว ลองเลือกเมนูที่แนะนำไปทำอาหารอร่อยๆ กันก่อนนะ! ✨';
+      const error = new Error(errorMsg);
       error.statusCode = 429;
       error.usedQuota = DAILY_RECIPE_LIMIT;
       error.remainingQuota = 0;
@@ -422,11 +522,40 @@ async function suggestRecipes({ userId, mainIngredient, language = 'th', offset 
     usedQuota = quota.used;
   }
 
-  const langInstruction = language === 'en'
-    ? 'All recipe titles, descriptions, ingredients, and instructions MUST be in English.'
+  const isEn = language === 'en';
+  const displayIngredient = isEn ? translateThaiIngredientToEn(mainIngredient) : mainIngredient;
+
+  const langInstruction = isEn
+    ? `All recipe titles, descriptions, ingredients, and instructions MUST be 100% in natural English.
+CRITICAL: Do NOT include any Thai characters in titles, descriptions, ingredients, or steps. The ingredient "${mainIngredient}" translates to "${displayIngredient}". Use "${displayIngredient}" as the primary ingredient name in English.`
     : 'All recipe titles, descriptions, ingredients, and instructions MUST be in natural, creative, and friendly Thai (ภาษาไทยที่น่ากิน เข้าใจง่าย เป็นกันเอง).';
 
-  const prompt = `คุณคือสุดยอดเชฟ AI ผู้เชี่ยวชาญการคิดเมนูอาหารที่สร้างสรรค์ ทำง่าย ใช้วัตถุดิบน้อย (10-20 นาที)
+  const prompt = isEn
+    ? `You are an expert creative chef specializing in quick, delicious zero-waste recipes using minimal ingredients (10-20 minutes).
+Target primary ingredient: "${displayIngredient}" (original: "${mainIngredient}")
+
+Requirements:
+1. Every recipe must highlight and focus strictly on "${displayIngredient}" as the main hero ingredient.
+2. Supporting ingredients should be basic household pantry staples only (e.g. eggs, rice, cooking oil, garlic, soy sauce, salt, pepper, sugar, butter).
+3. The 6 recipes must represent distinct cooking styles (e.g. stir-fry, omelet/egg, soup, salad, rice/noodles, sandwich/toast).
+4. Cooking time 5-20 min, difficulty Easy or Very easy.
+5. ${langInstruction}
+
+Respond strictly in JSON array of 6 items matching this schema:
+[
+  {
+    "id": "recipe_1",
+    "title": "Creative and appetizing dish name in English",
+    "description": "Short appetizing description in 1 sentence",
+    "cookingTime": "15 min",
+    "difficulty": "Easy",
+    "dishType": "stir_fry|omelet|soup|fried_rice|salad|sandwich|pasta",
+    "expiringIngredient": "${displayIngredient}",
+    "ingredients": ["ingredient with quantity in English"],
+    "steps": ["clear concise step in English"]
+  }
+]`
+    : `คุณคือสุดยอดเชฟ AI ผู้เชี่ยวชาญการคิดเมนูอาหารที่สร้างสรรค์ ทำง่าย ใช้วัตถุดิบน้อย (10-20 นาที)
 วัตถุดิบที่ต้องการนำมาทำอาหาร: "${mainIngredient}"
 
 ข้อกำหนดสำคัญมาก:
@@ -485,16 +614,16 @@ async function suggestRecipes({ userId, mainIngredient, language = 'th', offset 
     return attachRecipeImages(
       {
         id: r.id || `recipe_${idx + 1}`,
-        title: r.title || `Menu with ${mainIngredient}`,
+        title: r.title || `Menu with ${displayIngredient}`,
         description: r.description || '',
         cookingTime: r.cookingTime || '15 min',
         difficulty: r.difficulty || 'Easy',
         dishType: r.dishType || 'stir_fry',
-        expiringIngredient: r.expiringIngredient || mainIngredient,
+        expiringIngredient: r.expiringIngredient || displayIngredient,
         ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
         steps: Array.isArray(r.steps) ? r.steps : [],
       },
-      mainIngredient,
+      displayIngredient,
       idx + offset
     );
   });
@@ -514,6 +643,7 @@ module.exports = {
   getRecipeQuota,
   clearRecipeQuotaForTest,
   generateFallbackRecipes,
+  translateThaiIngredientToEn,
   DISH_IMAGES,
   DISH_IMAGE_POOLS,
 };
