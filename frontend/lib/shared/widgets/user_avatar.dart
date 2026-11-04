@@ -9,12 +9,16 @@ class UserAvatar extends StatelessWidget {
   final String? avatarUrl;
   final String name;
   final double radius;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
 
   const UserAvatar({
     super.key,
     this.avatarUrl,
     required this.name,
     this.radius = 24,
+    this.backgroundColor,
+    this.foregroundColor,
   });
 
   String get initials {
@@ -34,9 +38,11 @@ class UserAvatar extends StatelessWidget {
   }
 
   Widget _buildFallback(BuildContext context) {
+    final bg = backgroundColor ?? const Color(0xFFD3DDD1);
+    final fg = foregroundColor ?? const Color(0xFF181D18);
     return CircleAvatar(
       radius: radius,
-      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+      backgroundColor: bg,
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Padding(
@@ -44,7 +50,7 @@ class UserAvatar extends StatelessWidget {
           child: Text(
             initials,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
+              color: fg,
               fontWeight: FontWeight.bold,
               fontSize: radius * 0.7,
             ),
