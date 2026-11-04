@@ -367,6 +367,17 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
     return count > 0;
   }
 
+  /// Get count of active non-expired items with quantity > 0 in a fridge
+  Future<int> getActiveItemCount(String fridgeId) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final items = await (select(itemsTable)..where((t) => t.fridgeId.equals(fridgeId))).get();
+    return items.where((it) {
+      final itemDate = DateTime(it.expiryDate.year, it.expiryDate.month, it.expiryDate.day);
+      return !itemDate.isBefore(today) && it.quantity > 0;
+    }).length;
+  }
+
   /// Delete item locally
   Future<int> deleteItem(String id) {
     return (delete(itemsTable)..where((t) => t.id.equals(id))).go();

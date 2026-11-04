@@ -39,8 +39,8 @@ class FridgeService {
           f.created_at,
           f.updated_at,
           (SELECT COUNT(*) FROM fridge_members WHERE fridge_id = f.id) AS member_count,
-          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id) AS item_count,
-          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id AND TRUNC(expiry_date) <= TRUNC(CURRENT_DATE)) AS expiring_today_count
+          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id AND (expiry_date IS NULL OR TRUNC(expiry_date) >= TRUNC(CURRENT_DATE)) AND quantity > 0) AS item_count,
+          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id AND TRUNC(expiry_date) = TRUNC(CURRENT_DATE) AND quantity > 0) AS expiring_today_count
         FROM fridges f
         JOIN fridge_members fm ON f.id = fm.fridge_id
         WHERE fm.user_id = :userId
@@ -146,8 +146,8 @@ class FridgeService {
       const fridgeSql = `
         SELECT 
           f.id, f.name, f.description, f.owner_id, fm.role, f.created_at, f.updated_at,
-          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id) AS item_count,
-          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id AND TRUNC(expiry_date) <= TRUNC(CURRENT_DATE)) AS expiring_today_count
+          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id AND (expiry_date IS NULL OR TRUNC(expiry_date) >= TRUNC(CURRENT_DATE)) AND quantity > 0) AS item_count,
+          (SELECT COUNT(*) FROM items WHERE fridge_id = f.id AND TRUNC(expiry_date) = TRUNC(CURRENT_DATE) AND quantity > 0) AS expiring_today_count
         FROM fridges f
         JOIN fridge_members fm ON f.id = fm.fridge_id
         WHERE f.id = :fridgeId AND fm.user_id = :userId

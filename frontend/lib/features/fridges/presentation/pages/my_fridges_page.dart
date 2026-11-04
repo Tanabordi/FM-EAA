@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/theme/freshness_colors.dart';
+import '../../../../data/models/item_model.dart';
 import '../../../../shared/widgets/fridge_card.dart';
 import '../widgets/cute_fridge_illustration.dart';
 import '../widgets/edit_fridge_sheet.dart';
 import '../widgets/delete_fridge_dialog.dart';
 import '../../providers/fridges_provider.dart';
+import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 
 /// Screen #5: My Fridges (Supports both Empty State [Image 1] and Populated State [Image 2 / 10])
 class MyFridgesPage extends ConsumerStatefulWidget {
@@ -245,32 +248,60 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
             itemCount: dynamicFridges.length,
             itemBuilder: (context, index) {
               final fridge = dynamicFridges[index];
-              return FridgeCard(
-                name: fridge.name,
-                description: fridge.description,
-                itemsCountText: fridge.itemsCountText,
-                isPersonal: fridge.isPersonal,
-                memberCount: fridge.memberCount,
-                onTap: () => context.push('/fridges/${fridge.id}'),
-                onLongPress: () {
-                  showDialog(
-                    context: context,
-                    useRootNavigator: true,
-                    builder: (_) => DeleteFridgeDialog(
-                      fridgeId: fridge.id,
-                      fridgeName: fridge.name,
-                    ),
-                  );
-                },
-                onMoreOptions: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: const Color(0xFFF6FBF3),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                    ),
-                    builder: (_) => EditFridgeSheet(fridge: fridge),
+              return Consumer(
+                builder: (context, ref, _) {
+                  final liveItems = ref.watch(fridgeItemsProvider(fridge.id));
+                  final isMock = fridge.id == 'fridge_kitchen' ||
+                      fridge.id == 'fridge_studio' ||
+                      fridge.id == 'fridge_demo' ||
+                      fridge.id == 'fridge_main' ||
+                      fridge.id == 'fridge_1' ||
+                      fridge.id == 'fridge_2';
+
+                  int displayCount = fridge.itemCount;
+                  if (liveItems.isNotEmpty || isMock) {
+                    displayCount = liveItems
+                        .where((it) => it.status != FreshnessStatus.expired && it.quantity > 0)
+                        .length;
+                  }
+
+                  final itemsText = displayCount == 0
+                      ? 'Empty'
+                      : (displayCount == 1 ? '1 Item' : '$displayCount Items');
+
+                  return FridgeCard(
+                    name: fridge.name,
+                    description: fridge.description,
+                    itemsCountText: itemsText,
+                    isPersonal: fridge.isPersonal,
+                    memberCount: fridge.memberCount,
+                    onTap: () async {
+                      await context.push('/fridges/${fridge.id}');
+                      if (context.mounted) {
+                        ref.read(fridgesProvider.notifier).loadFridges();
+                      }
+                    },
+                    onLongPress: () {
+                      showDialog(
+                        context: context,
+                        useRootNavigator: true,
+                        builder: (_) => DeleteFridgeDialog(
+                          fridgeId: fridge.id,
+                          fridgeName: fridge.name,
+                        ),
+                      );
+                    },
+                    onMoreOptions: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: const Color(0xFFF6FBF3),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                        ),
+                        builder: (_) => EditFridgeSheet(fridge: fridge),
+                      );
+                    },
                   );
                 },
               );
