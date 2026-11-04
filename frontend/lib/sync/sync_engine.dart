@@ -11,6 +11,7 @@ class SyncEngine {
   final AppDatabaseSkeleton database;
   bool _isSyncing = false;
   StreamSubscription<void>? _connectivitySub;
+  ConnectivityWatcher? _connectivityWatcher;
 
   SyncEngine({required this.apiClient, required this.database});
 
@@ -87,17 +88,22 @@ class SyncEngine {
     required ConnectivityWatcher connectivityWatcher,
     required Future<List<String>> Function() getActiveFridgeIds,
   }) {
-    _connectivitySub?.cancel();
-    _connectivitySub = connectivityWatcher.onBackOnline.listen((_) async {
-      final fridgeIds = await getActiveFridgeIds();
-      if (fridgeIds.isNotEmpty) {
-        await syncAllFridges(fridgeIds, force: true);
-      }
-    });
+    _connectivityWatcher?.stopWatching();
+    _connectivityWatcher = connectivityWatcher;
+    connectivityWatcher.startWatching(
+      onOnline: () async {
+        final fridgeIds = await getActiveFridgeIds();
+        if (fridgeIds.isNotEmpty) {
+          await syncAllFridges(fridgeIds, force: true);
+        }
+      },
+    );
   }
 
   /// Dispose any active listeners.
   void dispose() {
+    _connectivityWatcher?.stopWatching();
+    _connectivityWatcher = null;
     _connectivitySub?.cancel();
     _connectivitySub = null;
   }

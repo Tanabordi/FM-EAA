@@ -179,18 +179,20 @@ void main() {
     });
 
     test('setupAutoSync automatically syncs when connectivity is restored', () async {
-      final controller = StreamController<List<ConnectivityResult>>.broadcast();
+      final controller = StreamController<List<ConnectivityResult>>();
       final watcher = ConnectivityWatcher(
         check: () async => [ConnectivityResult.none],
         changes: () => controller.stream,
       );
 
+      final completer = Completer<void>();
       final dio = Dio();
       var syncCallCount = 0;
       dio.interceptors.add(
         InterceptorsWrapper(
           onRequest: (options, handler) {
             syncCallCount++;
+            if (!completer.isCompleted) completer.complete();
             return handler.resolve(
               Response(
                 requestOptions: options,
@@ -211,9 +213,12 @@ void main() {
         getActiveFridgeIds: () async => ['fridge_auto_1'],
       );
 
+      // Yield microtask so watcher initializes checkOnline()
+      await Future<void>.delayed(Duration.zero);
+
       // Trigger transition from offline to online
       controller.add([ConnectivityResult.wifi]);
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await completer.future.timeout(const Duration(seconds: 3));
 
       expect(syncCallCount, 1);
 
