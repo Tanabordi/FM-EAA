@@ -28,9 +28,10 @@ class NotificationService {
       }
 
       const sql = `
-        SELECT id, user_id, type, payload_json, is_read, created_at
+        SELECT id, user_id, type, payload_json, is_read,
+               FROM_TZ(created_at, '+07:00') AS created_at
         FROM notifications
-        WHERE user_id = :userId
+        WHERE user_id = :userId AND is_read < 2
         ORDER BY created_at DESC
       `;
       const result = await conn.execute(sql, [userId]);
@@ -214,14 +215,14 @@ class NotificationService {
   }
 
   /**
-   * Delete a single notification.
+   * Delete a single notification (marks as dismissed so milestones are not re-triggered).
    */
   async deleteNotification(notificationId, userId) {
     let conn;
     try {
       conn = await db.getDbConnection();
       const result = await conn.execute(
-        `DELETE FROM notifications WHERE id = :id AND user_id = :userId`,
+        `UPDATE notifications SET is_read = 2 WHERE id = :id AND user_id = :userId`,
         [notificationId, userId]
       );
       await conn.commit();
@@ -239,14 +240,14 @@ class NotificationService {
   }
 
   /**
-   * Clear all notifications for a user.
+   * Clear all notifications for a user (marks as dismissed so milestones are not re-triggered).
    */
   async clearAll(userId) {
     let conn;
     try {
       conn = await db.getDbConnection();
       const result = await conn.execute(
-        `DELETE FROM notifications WHERE user_id = :userId`,
+        `UPDATE notifications SET is_read = 2 WHERE user_id = :userId AND is_read < 2`,
         [userId]
       );
       await conn.commit();
@@ -302,15 +303,16 @@ class NotificationService {
   }
 
   /**
-   * Scan items in the user's fridges that are expiring soon (<= 3 days) or already expired,
-   * and generate in-app notifications if not already generated.
+   * Scan items in the user's fridges that are expiring soon (<= 3 days) or recently expired (-1 day),
+   * and generate milestone in-app notifications (one-time per milestone: use_soon, expires_today, expired).
+   * Items that expired more than 1 day ago (days_left < -1) are excluded to prevent spam.
    */
   async checkAndGenerateExpiryNotifications(userId) {
     let conn;
     try {
       conn = await db.getDbConnection();
 
-      // Find items in fridges accessible to user that are expiring soon or expired
+      // Find items in fridges accessible to user that are within the milestone window (-1 to 3 days)
       const itemsSql = `
         SELECT i.id, i.name, i.fridge_id, f.name AS fridge_name,
                TO_CHAR(i.expiry_date, 'YYYY-MM-DD') AS expiry_date,
@@ -319,7 +321,7 @@ class NotificationService {
         JOIN fridge_members fm ON fm.fridge_id = i.fridge_id
         JOIN fridges f ON f.id = i.fridge_id
         WHERE fm.user_id = :userId
-          AND TRUNC(i.expiry_date) <= TRUNC(CURRENT_DATE) + 3
+          AND ROUND(TRUNC(i.expiry_date) - TRUNC(CURRENT_DATE)) BETWEEN -1 AND 3
         ORDER BY i.expiry_date ASC
       `;
 
@@ -329,22 +331,32 @@ class NotificationService {
         return [];
       }
 
-      // Check existing notifications for this user created in the last 24 hours to prevent duplicate spam
+      // Check existing notifications for this user (including dismissed ones) to prevent duplicate milestones
       const existingSql = `
         SELECT payload_json
         FROM notifications
         WHERE user_id = :userId
           AND type = 'expiry'
-          AND created_at >= CURRENT_TIMESTAMP - INTERVAL '1' DAY
       `;
       const existingResult = await conn.execute(existingSql, [userId]);
-      const recentNotifiedItemIds = new Set();
+      const notifiedMilestones = new Set();
 
       for (const row of existingResult.rows || []) {
         try {
           const parsed = typeof row[0] === 'string' ? JSON.parse(row[0]) : (row[0] || {});
           if (parsed.item_id) {
-            recentNotifiedItemIds.add(parsed.item_id);
+            if (parsed.milestone) {
+              notifiedMilestones.add(`${parsed.item_id}_${parsed.milestone}`);
+            } else {
+              // Backward compatibility for existing records
+              if (parsed.days_left < 0) {
+                notifiedMilestones.add(`${parsed.item_id}_expired`);
+              } else if (parsed.days_left === 0) {
+                notifiedMilestones.add(`${parsed.item_id}_expires_today`);
+              } else {
+                notifiedMilestones.add(`${parsed.item_id}_use_soon`);
+              }
+            }
           }
         } catch (_) {}
       }
@@ -358,24 +370,36 @@ class NotificationService {
         const expiryDate = item[4];
         const daysLeft = Number(item[5]);
 
-        if (recentNotifiedItemIds.has(itemId)) {
-          continue; // Already notified recently
+        // Exclude items that expired more than 1 day ago (handled by fridge badges, not notification spam)
+        if (daysLeft < -1 || daysLeft > 3) {
+          continue;
         }
 
+        let milestone;
         let title = '';
         let message = '';
+
         if (daysLeft < 0) {
+          // Milestone 3: Expired (day 1 after expiry)
+          milestone = 'expired';
           title = `${itemName} has expired`;
-          message = `${itemName} in "${fridgeName}" expired on ${expiryDate}.`;
+          message = `${itemName} in "${fridgeName}" expired on ${expiryDate}. Please check and discard.`;
         } else if (daysLeft === 0) {
+          // Milestone 2: Expires today (D-Day)
+          milestone = 'expires_today';
           title = `${itemName} expires today`;
           message = `${itemName} in "${fridgeName}" expires today. Consume soon!`;
-        } else if (daysLeft === 1) {
-          title = `${itemName} expires tomorrow`;
-          message = `${itemName} in "${fridgeName}" expires tomorrow (${expiryDate}).`;
         } else {
-          title = `${itemName} expires in ${daysLeft} days`;
-          message = `${itemName} in "${fridgeName}" expires on ${expiryDate}.`;
+          // Milestone 1: Use soon (1-3 days left)
+          milestone = 'use_soon';
+          const dayWord = daysLeft === 1 ? 'tomorrow' : `in ${daysLeft} days`;
+          title = `${itemName} expires ${dayWord}`;
+          message = `${itemName} in "${fridgeName}" expires ${dayWord} (${expiryDate}). Plan your meal!`;
+        }
+
+        const milestoneKey = `${itemId}_${milestone}`;
+        if (notifiedMilestones.has(milestoneKey)) {
+          continue; // Already notified for this milestone
         }
 
         const id = uuidv4();
@@ -385,6 +409,7 @@ class NotificationService {
           fridge_name: fridgeName,
           expiry_date: expiryDate,
           days_left: daysLeft,
+          milestone,
           title,
           message,
         };
@@ -395,7 +420,7 @@ class NotificationService {
           [id, userId, JSON.stringify(payload)]
         );
 
-        recentNotifiedItemIds.add(itemId);
+        notifiedMilestones.add(milestoneKey);
         generated.push({ id, userId, type: 'expiry', payload, isRead: false });
       }
 

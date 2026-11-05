@@ -73,6 +73,12 @@ class NotificationModel {
       }
     }
 
+    DateTime createdAt = (entry.createdAt as DateTime).toLocal();
+    final now = DateTime.now();
+    if (createdAt.isAfter(now.add(const Duration(minutes: 5)))) {
+      createdAt = createdAt.subtract(now.timeZoneOffset);
+    }
+
     return NotificationModel(
       id: entry.id as String,
       userId: entry.userId as String,
@@ -83,7 +89,7 @@ class NotificationModel {
       inviteId: inviteId,
       itemId: itemId,
       isRead: entry.isRead as bool,
-      createdAt: (entry.createdAt as DateTime).toLocal(),
+      createdAt: createdAt,
     );
   }
 
@@ -146,6 +152,10 @@ class NotificationModel {
           createdAt = rawCreatedAt.toLocal();
         } else {
           createdAt = DateTime.parse(rawCreatedAt.toString()).toLocal();
+        }
+        final now = DateTime.now();
+        if (createdAt.isAfter(now.add(const Duration(minutes: 5)))) {
+          createdAt = createdAt.subtract(now.timeZoneOffset);
         }
       } catch (_) {}
     }
