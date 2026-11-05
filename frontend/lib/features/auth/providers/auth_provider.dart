@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/remote/api_client.dart';
 import '../../../data/repositories/auth_repository.dart';
@@ -28,6 +29,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = await _repo.restoreSession();
       if (user != null) {
         state = AuthState(isAuthenticated: true, user: user);
+        NotificationService().syncFcmTokenWithBackend();
       } else {
         state = const AuthState(isAuthenticated: false);
       }
@@ -44,6 +46,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isAuthenticated: true,
         user: user,
       );
+      NotificationService().syncFcmTokenWithBackend();
     } catch (e) {
       state = const AuthState(isAuthenticated: false);
       rethrow;
@@ -58,6 +61,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isAuthenticated: true,
         user: user,
       );
+      NotificationService().syncFcmTokenWithBackend();
     } catch (e) {
       state = const AuthState(isAuthenticated: false);
       rethrow;
@@ -65,6 +69,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    try {
+      await NotificationService().removeFcmTokenFromBackend();
+    } catch (_) {}
     state = const AuthState(isAuthenticated: false);
     try {
       await _repo.logout();
@@ -80,6 +87,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isAuthenticated: true,
           user: result.user,
         );
+        NotificationService().syncFcmTokenWithBackend();
       } else {
         state = const AuthState(isAuthenticated: false);
       }
@@ -105,4 +113,3 @@ class AuthNotifier extends StateNotifier<AuthState> {
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(ref.watch(authRepositoryProvider));
 });
-

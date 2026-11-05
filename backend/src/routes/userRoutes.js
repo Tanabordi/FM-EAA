@@ -161,5 +161,34 @@ router.get('/search', authenticateToken, async (req, res, next) => {
   }
 });
 
+const pushNotificationService = require('../services/pushNotificationService');
+
+// POST /api/users/fcm-token - Register or update device FCM token
+router.post('/fcm-token', authenticateToken, async (req, res, next) => {
+  try {
+    const { fcmToken } = req.body;
+    if (!fcmToken || typeof fcmToken !== 'string') {
+      return res.status(400).json({ error: 'fcmToken is required' });
+    }
+    await pushNotificationService.registerToken(req.user.id, fcmToken.trim());
+    res.status(200).json({ success: true, message: 'FCM token registered' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/users/fcm-token - Remove device token on logout
+router.delete('/fcm-token', authenticateToken, async (req, res, next) => {
+  try {
+    const { fcmToken } = req.body;
+    if (fcmToken) {
+      await pushNotificationService.removeToken(req.user.id, fcmToken.trim());
+    }
+    res.status(200).json({ success: true, message: 'FCM token removed' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
 

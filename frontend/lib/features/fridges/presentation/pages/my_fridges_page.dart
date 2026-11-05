@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/widgets/fridge_card.dart';
 import '../widgets/cute_fridge_illustration.dart';
@@ -20,16 +21,43 @@ class MyFridgesPage extends ConsumerStatefulWidget {
   ConsumerState<MyFridgesPage> createState() => _MyFridgesPageState();
 }
 
-class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
+class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindingObserver {
+  bool _notificationsEnabled = true;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkNotificationPermission();
     Future.microtask(() async {
       if (ref.read(authProvider).user == null) {
         await ref.read(authProvider.notifier).restoreSession();
       }
       ref.read(fridgesProvider.notifier).loadFridges();
+      ref.read(notificationControllerProvider.notifier).sync();
+      NotificationService().syncFcmTokenWithBackend();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkNotificationPermission();
+      ref.read(notificationControllerProvider.notifier).sync();
+    }
+  }
+
+  Future<void> _checkNotificationPermission() async {
+    final enabled = await NotificationService().areNotificationsEnabled();
+    if (mounted && enabled != _notificationsEnabled) {
+      setState(() => _notificationsEnabled = enabled);
+    }
   }
 
   @override
@@ -37,6 +65,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.isAuthenticated && next.user != null) {
         ref.read(fridgesProvider.notifier).loadFridges();
+        ref.read(notificationControllerProvider.notifier).sync();
       } else if (!next.isAuthenticated) {
         try {
           ref.read(routerProvider).go('/sign-in');
@@ -122,6 +151,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
               ),
             ],
           ),
+          _buildNotificationWarningBanner(context),
           const Spacer(flex: 3),
           const Center(
             child: CuteFridgeIllustration(size: 240),
@@ -230,6 +260,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
               fontWeight: FontWeight.w400,
             ),
           ),
+          _buildNotificationWarningBanner(context),
           const SizedBox(height: 24),
           // Section header: "Your fridges" + "N fridges"
           Row(
@@ -357,6 +388,55 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
             },
           ),
           const SizedBox(height: 90), // Space for FAB
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationWarningBanner(BuildContext context) {
+    if (_notificationsEnabled) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3CD),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFEEBA)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.notifications_off_rounded, color: Color(0xFF856404), size: 22),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'การแจ้งเตือนถูกปิดอยู่',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF856404)),
+                ),
+                Text(
+                  'คุณอาจไม่ได้รับแจ้งเตือนของหมดอายุ',
+                  style: TextStyle(fontSize: 11.5, color: Color(0xFF856404)),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFF856404),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              await NotificationService().requestPermissionsWithFallback(context);
+              _checkNotificationPermission();
+            },
+            child: const Text('เปิดสิทธิ์', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );

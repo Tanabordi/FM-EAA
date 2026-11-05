@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/freshness_colors.dart';
 import '../../../../shared/widgets/app_back_button.dart';
@@ -156,6 +157,16 @@ class SettingsPage extends ConsumerWidget {
                         },
                       ),
                     ),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.notifications_active_outlined),
+                    title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.w500)),
+                    subtitle: const Text('Manage device permissions & alerts', style: TextStyle(fontSize: 12)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () async {
+                      await NotificationService().openNotificationSettings();
+                    },
                   ),
                 ],
               ),
