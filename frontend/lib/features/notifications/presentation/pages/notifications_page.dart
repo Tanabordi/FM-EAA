@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/theme/freshness_colors.dart';
+import '../../../../data/models/fridge_model.dart';
 import '../../../../data/models/notification_model.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../providers/notifications_provider.dart';
@@ -32,6 +33,12 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _checkNotificationPermission();
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(fridgesProvider.notifier).loadFridges();
+        ref.read(notificationControllerProvider.notifier).sync();
+      }
+    });
   }
 
   @override
@@ -86,14 +93,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
     );
   }
 
-  bool _matchesFridge(NotificationModel n, String fridgeId, String? fridgeName) {
-    if (n.fridgeId != null && n.fridgeId!.isNotEmpty) {
-      return n.fridgeId == fridgeId;
-    }
-    if (fridgeName != null && fridgeName.isNotEmpty) {
-      return n.message.toLowerCase().contains(fridgeName.toLowerCase());
-    }
-    return false;
+  bool _matchesFridge(NotificationModel n, String fridgeId, String? fridgeName, List<FridgeModel> allFridges) {
+    return notificationMatchesFridge(n, fridgeId, fridgeName, allFridges);
   }
 
   Future<void> _handleMarkAllAsRead([String? effectiveFridgeName]) async {
@@ -123,6 +124,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
         (widget.fridgeId != null
             ? ref.watch(fridgesProvider).where((f) => f.id == widget.fridgeId).firstOrNull?.name
             : null);
+    final allFridges = ref.watch(fridgesProvider);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -155,7 +157,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
           notificationsAsync.maybeWhen(
             data: (list) {
               final filtered = widget.fridgeId != null
-                  ? list.where((n) => _matchesFridge(n, widget.fridgeId!, effectiveFridgeName)).toList()
+                  ? list.where((n) => _matchesFridge(n, widget.fridgeId!, effectiveFridgeName, allFridges)).toList()
                   : list;
               final hasUnread = filtered.any((n) => !n.isRead);
               if (!hasUnread) return const SizedBox.shrink();
@@ -180,7 +182,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                 error: (err, _) => Center(child: Text('Error loading notifications: $err')),
                 data: (notifications) {
                   final filtered = widget.fridgeId != null
-                      ? notifications.where((n) => _matchesFridge(n, widget.fridgeId!, effectiveFridgeName)).toList()
+                      ? notifications.where((n) => _matchesFridge(n, widget.fridgeId!, effectiveFridgeName, allFridges)).toList()
                       : notifications;
 
                   if (filtered.isEmpty) {

@@ -527,5 +527,52 @@ void main() {
       // Verify Fridge Beta's notification is NOT rendered
       expect(find.text('Eggs added to Beta'), findsNothing);
     });
+
+    test('notificationMatchesFridge strictly rejects notifications belonging to other fridges', () {
+      final notifFromOtherFridge = NotificationModel(
+        id: 'n_other',
+        userId: 'user_1',
+        type: 'item_added',
+        title: 'New Item Added',
+        message: 'Somchai added "Apples" (5 pieces) to "Office Fridge"',
+        fridgeId: null, // Test fallback when fridgeId is missing
+        fridgeName: 'Office Fridge',
+        createdAt: DateTime.now(),
+      );
+
+      final isMatchTarget = notificationMatchesFridge(
+        notifFromOtherFridge,
+        'home_fridge_id',
+        'Home Fridge',
+      );
+      expect(isMatchTarget, isFalse);
+
+      final isMatchOffice = notificationMatchesFridge(
+        notifFromOtherFridge,
+        'office_fridge_id',
+        'Office Fridge',
+      );
+      expect(isMatchOffice, isTrue);
+    });
+
+    test('NotificationModel.fromJson parses dynamic map payload correctly', () {
+      final dynamicJson = <dynamic, dynamic>{
+        'id': 'notif_dyn',
+        'user_id': 'user_1',
+        'type': 'item_added',
+        'payload': <dynamic, dynamic>{
+          'fridge_id': 'f_dyn_123',
+          'fridge_name': 'Kitchen',
+          'title': 'Dynamically parsed',
+          'message': 'Parsed successfully',
+        },
+      };
+
+      final model = NotificationModel.fromJson(Map<String, dynamic>.from(dynamicJson));
+      expect(model.fridgeId, 'f_dyn_123');
+      expect(model.fridgeName, 'Kitchen');
+      expect(model.title, 'Dynamically parsed');
+    });
   });
 }
+

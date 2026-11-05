@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/local/app_database.dart';
+import '../../../data/models/fridge_model.dart';
 import '../../../data/models/notification_model.dart';
 import '../../../data/remote/api_client.dart';
 import '../../../data/repositories/notification_repository.dart';
@@ -84,6 +85,81 @@ final unreadNotificationCountProvider = StreamProvider<int>((ref) {
   return repo.watchUnreadCount(userId);
 });
 
+/// Checks whether a notification strictly belongs to a specific fridge.
+/// Prevents cross-fridge notification leaks.
+bool notificationMatchesFridge(
+  NotificationModel n,
+  String fridgeId,
+  String? fridgeName, [
+  List<FridgeModel> allFridges = const [],
+]) {
+  // 1. Authoritative check: if fridgeId is populated, test ID equality directly.
+  if (n.fridgeId != null && n.fridgeId!.isNotEmpty) {
+    return n.fridgeId == fridgeId;
+  }
+
+  // 2. Extracted fridge name check (from model field or parsed from message pattern)
+  final rawName = (n.fridgeName ?? n.extractedFridgeName)?.trim();
+  if (rawName != null && rawName.isNotEmpty) {
+    // Exact case match with current fridge
+    if (fridgeName != null && rawName == fridgeName.trim()) {
+      return true;
+    }
+
+    // Explicit rejection: If message names another known fridge by exact name, reject!
+    for (final other in allFridges) {
+      if (other.id != fridgeId && other.name.trim() == rawName) {
+        return false;
+      }
+    }
+
+    // Case-insensitive match if current fridge matches and no conflicting other fridge
+    if (fridgeName != null && rawName.toLowerCase() == fridgeName.trim().toLowerCase()) {
+      final hasConflict = allFridges.any(
+        (f) => f.id != fridgeId && f.name.trim().toLowerCase() == rawName.toLowerCase(),
+      );
+      if (!hasConflict) {
+        return true;
+      }
+    }
+
+    // Explicit rejection for case-insensitive match on other fridges
+    for (final other in allFridges) {
+      if (other.id != fridgeId && other.name.trim().toLowerCase() == rawName.toLowerCase()) {
+        return false;
+      }
+    }
+  }
+
+  // 3. Fallback: match quoted fridge name in message (e.g. in "Kitchen" or 'Kitchen')
+  if (fridgeName != null && fridgeName.trim().isNotEmpty) {
+    final curName = fridgeName.trim();
+    final curNameLower = curName.toLowerCase();
+    final quotedMatches = RegExp(r'["\x27]([^"\x27]+)["\x27]').allMatches(n.message);
+
+    for (final q in quotedMatches) {
+      final insideQuote = (q.group(1) ?? '').trim();
+      if (insideQuote == curName) {
+        return true;
+      }
+    }
+
+    for (final q in quotedMatches) {
+      final insideQuote = (q.group(1) ?? '').trim();
+      if (insideQuote.toLowerCase() == curNameLower) {
+        final hasConflict = allFridges.any(
+          (f) => f.id != fridgeId && f.name.trim().toLowerCase() == curNameLower,
+        );
+        if (!hasConflict) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 /// Stream of unread notification count specifically for a fridge with auto-sync polling
 final fridgeUnreadNotificationCountProvider = Provider.family<int, String>((ref, fridgeId) {
   final notifsAsync = ref.watch(defaultNotificationsStreamProvider);
@@ -94,13 +170,7 @@ final fridgeUnreadNotificationCountProvider = Provider.family<int, String>((ref,
       final fridgeName = match.isNotEmpty ? match.first.name : null;
       return list.where((n) {
         if (n.isRead) return false;
-        if (n.fridgeId != null && n.fridgeId!.isNotEmpty) {
-          return n.fridgeId == fridgeId;
-        }
-        if (fridgeName != null && fridgeName.isNotEmpty) {
-          return n.message.toLowerCase().contains(fridgeName.toLowerCase());
-        }
-        return false;
+        return notificationMatchesFridge(n, fridgeId, fridgeName, fridges);
       }).length;
     },
     orElse: () => 0,
@@ -116,13 +186,7 @@ final fridgeNotificationsProvider = Provider.family<List<NotificationModel>, Str
       final match = fridges.where((f) => f.id == fridgeId);
       final fridgeName = match.isNotEmpty ? match.first.name : null;
       return list.where((n) {
-        if (n.fridgeId != null && n.fridgeId!.isNotEmpty) {
-          return n.fridgeId == fridgeId;
-        }
-        if (fridgeName != null && fridgeName.isNotEmpty) {
-          return n.message.toLowerCase().contains(fridgeName.toLowerCase());
-        }
-        return false;
+        return notificationMatchesFridge(n, fridgeId, fridgeName, fridges);
       }).toList();
     },
     orElse: () => const <NotificationModel>[],
@@ -182,9 +246,9 @@ class NotificationController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final allNotifs = await _repository.getNotifications(targetUserId);
+      final allFridges = _ref.read(fridgesProvider);
       for (final n in allNotifs) {
-        final matches = (n.fridgeId != null && n.fridgeId == fridgeId) ||
-            (fridgeName != null && fridgeName.isNotEmpty && n.message.toLowerCase().contains(fridgeName.toLowerCase()));
+        final matches = notificationMatchesFridge(n, fridgeId, fridgeName, allFridges);
         if (matches && !n.isRead) {
           await _repository.markAsRead(n.id);
         }
