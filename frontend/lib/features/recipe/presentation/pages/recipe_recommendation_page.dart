@@ -680,7 +680,10 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
-      final lang = ref.read(localeProvider).languageCode;
+      String lang = 'en';
+      try {
+        lang = ref.read(localeProvider).languageCode;
+      } catch (_) {}
       final result = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
         category: _category,
@@ -753,11 +756,16 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   }
 
   void _showDailyLimitAlert() {
+    final isTh = _isThRead();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('You have reached your daily limit of 3 recipe generations. Try making one of your suggested recipes! ✨'),
-        backgroundColor: Color(0xFFFA8B28),
-        duration: Duration(seconds: 4),
+      SnackBar(
+        content: Text(
+          isTh
+              ? 'คุณใช้งานโควตาสร้างสูตรอาหารครบ 3 ครั้งต่อวันแล้ว ลองทำหนึ่งในสูตรที่แนะนำดูสิ! ✨'
+              : 'You have reached your daily limit of 3 recipe generations. Try making one of your suggested recipes! ✨',
+        ),
+        backgroundColor: const Color(0xFFFA8B28),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -776,7 +784,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     final isOnline = await ref.read(connectivityWatcherProvider).checkOnline();
     if (!isOnline) {
       if (!mounted) return;
-      final isTh = ref.read(localeProvider).languageCode == 'th';
+      final isTh = _isThRead();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -800,7 +808,10 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
     try {
       final aiRepo = ref.read(aiRepositoryProvider);
-      final lang = ref.read(localeProvider).languageCode;
+      String lang = 'en';
+      try {
+        lang = ref.read(localeProvider).languageCode;
+      } catch (_) {}
       final nextCount = (_usedCount + 1).clamp(1, _maxDailyQuota);
       final result = await aiRepo.getSuggestedRecipes(
         _currentIngredient,
@@ -821,7 +832,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       await _persistRecipesForIngredient(_currentIngredient, _recipes, _usedCount);
 
       if (mounted) {
-        final isTh = ref.read(localeProvider).languageCode == 'th';
+        final isTh = _isThRead();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -848,7 +859,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
       } else {
         // Network / server failure when regenerating:
         // DO NOT increment quota! DO NOT persist new quota!
-        final isTh = ref.read(localeProvider).languageCode == 'th';
+        final isTh = _isThRead();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -875,8 +886,33 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     );
   }
 
+  bool get _isTh {
+    try {
+      return ref.watch(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  bool _isThRead() {
+    try {
+      return ref.read(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isTh = _isTh;
     final isQuotaFull = _usedCount >= _maxDailyQuota;
 
     return Scaffold(
@@ -886,7 +922,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
           children: [
             // Top App Bar matching other screens via unified AppTopBar
             AppTopBar(
-              title: 'AI Suggested Recipes',
+              title: isTh ? 'สูตรอาหารแนะนำโดย AI' : 'AI Suggested Recipes',
               onBackPressed: () {
                 try {
                   if (context.canPop()) {
@@ -927,9 +963,11 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              const Text(
-                                '✨ Gemini AI is crafting 6 fresh recipes...',
-                                style: TextStyle(
+                              Text(
+                                isTh
+                                    ? '✨ Gemini AI กำลังคิดค้น 6 สูตรอาหารสดใหม่...'
+                                    : '✨ Gemini AI is crafting 6 fresh recipes...',
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF1E281E),
@@ -938,7 +976,9 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Creating delicious meal ideas from "$_currentIngredient" for you',
+                                isTh
+                                    ? 'กำลังสร้างสรรค์ไอเดียเมนูแสนอร่อยจาก "$_currentIngredient" ให้คุณ'
+                                    : 'Creating delicious meal ideas from "$_currentIngredient" for you',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF555F55),
@@ -950,19 +990,21 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                         ),
                       )
                     else if (_isRegenerating)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
                         child: Center(
                           child: Column(
                             children: [
-                              CircularProgressIndicator(
+                              const CircularProgressIndicator(
                                 strokeWidth: 3,
                                 color: Color(0xFF2E6A44),
                               ),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
                               Text(
-                                '✨ Gemini AI is generating 6 fresh recipes...',
-                                style: TextStyle(
+                                isTh
+                                    ? '✨ Gemini AI กำลังสร้างสรรค์ 6 สูตรอาหารสดใหม่...'
+                                    : '✨ Gemini AI is generating 6 fresh recipes...',
+                                style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF1E281E),
@@ -973,7 +1015,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                         ),
                       )
                     else
-                      ..._recipes.map((recipe) => _buildRecipeCard(recipe)),
+                      ..._recipes.map((recipe) => _buildRecipeCard(recipe, isTh)),
                     const SizedBox(height: 16),
                     // Regenerate Button with Usage Counter, Lock state and Loading lock
                     Center(
@@ -984,18 +1026,20 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                 color: const Color(0xFFE4E9E2),
                                 borderRadius: BorderRadius.circular(24),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.lock_rounded,
                                     color: Color(0xFF8A938A),
                                     size: 18,
                                   ),
-                                  SizedBox(width: 8),
+                                  const SizedBox(width: 8),
                                   Text(
-                                    'Regenerate (3/3 - Daily limit reached 🔒)',
-                                    style: TextStyle(
+                                    isTh
+                                        ? 'แนะนำสูตรใหม่ (3/3 - ครบโควตารายวันแล้ว 🔒)'
+                                        : 'Regenerate (3/3 - Daily limit reached 🔒)',
+                                    style: const TextStyle(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF8A938A),
@@ -1011,10 +1055,10 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                     color: const Color(0xFFE4E9E2),
                                     borderRadius: BorderRadius.circular(24),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      SizedBox(
+                                      const SizedBox(
                                         width: 14,
                                         height: 14,
                                         child: CircularProgressIndicator(
@@ -1022,10 +1066,12 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                           color: Color(0xFF8A938A),
                                         ),
                                       ),
-                                      SizedBox(width: 8),
+                                      const SizedBox(width: 8),
                                       Text(
-                                        'Loading fresh recipes...',
-                                        style: TextStyle(
+                                        isTh
+                                            ? 'กำลังโหลดสูตรอาหารสดใหม่...'
+                                            : 'Loading fresh recipes...',
+                                        style: const TextStyle(
                                           fontSize: 13.5,
                                           fontWeight: FontWeight.w600,
                                           color: Color(0xFF8A938A),
@@ -1060,7 +1106,9 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                           ),
                                           const SizedBox(width: 8),
                                           Text(
-                                            'Regenerate (${_cooldownSeconds}s) · ($_usedCount/$_maxDailyQuota)',
+                                            isTh
+                                                ? 'แนะนำสูตรใหม่ (${_cooldownSeconds}s) · ($_usedCount/$_maxDailyQuota)'
+                                                : 'Regenerate (${_cooldownSeconds}s) · ($_usedCount/$_maxDailyQuota)',
                                             style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
@@ -1075,7 +1123,9 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                           ),
                                           const SizedBox(width: 8),
                                           Text(
-                                            'Regenerate ($_usedCount/$_maxDailyQuota)',
+                                            isTh
+                                                ? 'แนะนำสูตรใหม่ ($_usedCount/$_maxDailyQuota)'
+                                                : 'Regenerate ($_usedCount/$_maxDailyQuota)',
                                             style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
@@ -1099,7 +1149,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     );
   }
 
-  Widget _buildRecipeCard(RecipeModel recipe) {
+  Widget _buildRecipeCard(RecipeModel recipe, [bool isTh = false]) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 6, 16, 10),
       decoration: BoxDecoration(
@@ -1224,9 +1274,9 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                           ),
                           onPressed: () => _onViewRecipe(recipe),
-                          child: const Text(
-                            'View Recipe',
-                            style: TextStyle(
+                          child: Text(
+                            isTh ? 'ดูสูตรอาหาร' : 'View Recipe',
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                             ),

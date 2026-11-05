@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
@@ -43,6 +44,30 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   XFile? _selectedImageFile;
   bool _removeAvatar = false;
   bool _forceExit = false;
+
+  bool get _isTh {
+    try {
+      return ref.watch(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  bool _isThRead() {
+    try {
+      return ref.read(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -92,14 +117,17 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   }
 
   void _handleBack() {
+    final isTh = _isThRead();
     if (_hasUnsavedChanges) {
       showDialog(
         context: context,
         builder: (dialogContext) => ConfirmDialog(
-          title: 'Discard changes?',
-          message: 'You have unsaved changes. Are you sure you want to discard them?',
-          confirmLabel: 'Discard',
-          cancelLabel: 'Keep editing',
+          title: isTh ? 'ละทิ้งการเปลี่ยนแปลง?' : 'Discard changes?',
+          message: isTh
+              ? 'คุณมีข้อมูลที่ยังไม่ได้บันทึก คุณแน่ใจหรือไม่ว่าต้องการละทิ้ง?'
+              : 'You have unsaved changes. Are you sure you want to discard them?',
+          confirmLabel: isTh ? 'ละทิ้ง' : 'Discard',
+          cancelLabel: isTh ? 'แก้ไขต่อ' : 'Keep editing',
           isDestructive: true,
           onConfirm: () {
             setState(() => _forceExit = true);
@@ -139,9 +167,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const Text(
-                  'Change Profile Photo',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                Text(
+                  _isThRead() ? 'เปลี่ยนรูปโปรไฟล์' : 'Change Profile Photo',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 12),
                 ListTile(
@@ -149,7 +177,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
                     child: Icon(Icons.photo_camera_outlined, color: theme.colorScheme.primary),
                   ),
-                  title: const Text('Take Photo'),
+                  title: Text(_isThRead() ? 'ถ่ายภาพ' : 'Take Photo'),
                   onTap: () {
                     Navigator.of(bottomSheetContext).pop();
                     _pickImage(ImageSource.camera);
@@ -160,7 +188,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
                     child: Icon(Icons.photo_library_outlined, color: theme.colorScheme.primary),
                   ),
-                  title: const Text('Choose from Gallery'),
+                  title: Text(_isThRead() ? 'เลือกจากคลังภาพ' : 'Choose from Gallery'),
                   onTap: () {
                     Navigator.of(bottomSheetContext).pop();
                     _pickImage(ImageSource.gallery);
@@ -172,9 +200,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       backgroundColor: Color(0xFFFFEBEE),
                       child: Icon(Icons.delete_outline, color: Color(0xFFB91C1C)),
                     ),
-                    title: const Text(
-                      'Remove Photo',
-                      style: TextStyle(color: Color(0xFFB91C1C), fontWeight: FontWeight.w500),
+                    title: Text(
+                      _isThRead() ? 'ลบรูปภาพ' : 'Remove Photo',
+                      style: const TextStyle(color: Color(0xFFB91C1C), fontWeight: FontWeight.w500),
                     ),
                     onTap: () {
                       Navigator.of(bottomSheetContext).pop();
@@ -240,38 +268,39 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     final newPassword = _newPasswordController.text;
 
     bool hasError = false;
+    final isTh = _isThRead();
 
     if (name.isEmpty) {
-      setState(() => _nameError = 'Name is required');
+      setState(() => _nameError = isTh ? 'กรุณากรอกชื่อ' : 'Name is required');
       hasError = true;
     } else if (name.length < 3) {
-      setState(() => _nameError = 'Username must be at least 3 characters');
+      setState(() => _nameError = isTh ? 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร' : 'Username must be at least 3 characters');
       hasError = true;
     } else if (name.length > 20) {
-      setState(() => _nameError = 'Username must not exceed 20 characters');
+      setState(() => _nameError = isTh ? 'ชื่อผู้ใช้ต้องไม่เกิน 20 ตัวอักษร' : 'Username must not exceed 20 characters');
       hasError = true;
     } else if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(name)) {
-      setState(() => _nameError = 'Letters, numbers, and underscores only');
+      setState(() => _nameError = isTh ? 'ใช้ได้เฉพาะตัวอักษร ตัวเลข และขีดล่างเท่านั้น' : 'Letters, numbers, and underscores only');
       hasError = true;
     }
 
     if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
-      setState(() => _emailError = 'Please enter a valid email address');
+      setState(() => _emailError = isTh ? 'กรุณากรอกอีเมลที่ถูกต้อง' : 'Please enter a valid email address');
       hasError = true;
     }
 
     if (newPassword.isNotEmpty) {
       if (currentPassword.isEmpty) {
-        setState(() => _passwordError = 'Current password is required to set a new password');
+        setState(() => _passwordError = isTh ? 'ต้องระบุรหัสผ่านปัจจุบันเพื่อตั้งรหัสผ่านใหม่' : 'Current password is required to set a new password');
         hasError = true;
       } else if (newPassword.length < 8) {
-        setState(() => _passwordError = 'New password must be at least 8 characters long');
+        setState(() => _passwordError = isTh ? 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร' : 'New password must be at least 8 characters long');
         hasError = true;
       } else if (newPassword.length > 64) {
-        setState(() => _passwordError = 'New password must not exceed 64 characters');
+        setState(() => _passwordError = isTh ? 'รหัสผ่านใหม่ต้องไม่เกิน 64 ตัวอักษร' : 'New password must not exceed 64 characters');
         hasError = true;
       } else if (!RegExp(r'[a-zA-Z]').hasMatch(newPassword) || !RegExp(r'[0-9]').hasMatch(newPassword)) {
-        setState(() => _passwordError = 'New password must contain both letters and numbers');
+        setState(() => _passwordError = isTh ? 'รหัสผ่านใหม่ต้องมีทั้งตัวอักษรและตัวเลข' : 'New password must contain both letters and numbers');
         hasError = true;
       }
     }
@@ -307,15 +336,15 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
       String successMessage;
       if (isUsernameChanged && isPasswordChanged && !isAvatarChanged) {
-        successMessage = 'Username and password updated successfully';
+        successMessage = isTh ? 'อัปเดตชื่อผู้ใช้และรหัสผ่านเรียบร้อยแล้ว' : 'Username and password updated successfully';
       } else if (isUsernameChanged && !isPasswordChanged && !isAvatarChanged) {
-        successMessage = 'Username updated successfully';
+        successMessage = isTh ? 'อัปเดตชื่อผู้ใช้เรียบร้อยแล้ว' : 'Username updated successfully';
       } else if (isPasswordChanged && !isUsernameChanged && !isAvatarChanged) {
-        successMessage = 'Password updated successfully';
+        successMessage = isTh ? 'อัปเดตรหัสผ่านเรียบร้อยแล้ว' : 'Password updated successfully';
       } else if (isAvatarChanged && !isUsernameChanged && !isPasswordChanged) {
-        successMessage = 'Profile photo updated successfully';
+        successMessage = isTh ? 'อัปเดตรูปโปรไฟล์เรียบร้อยแล้ว' : 'Profile photo updated successfully';
       } else {
-        successMessage = 'Profile updated successfully';
+        successMessage = isTh ? 'อัปเดตโปรไฟล์เรียบร้อยแล้ว' : 'Profile updated successfully';
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -352,6 +381,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     final theme = Theme.of(context);
     final user = ref.watch(userProfileProvider);
     final displayedAvatarUrl = _removeAvatar ? null : (_selectedAvatarPath ?? user.avatarUrl);
+    final isTh = _isTh;
 
     int? usernameCooldownDays;
     if (user.lastUsernameChange != null) {
@@ -382,7 +412,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               onPressed: _handleBack,
             ),
           ),
-          title: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(isTh ? 'แก้ไขโปรไฟล์' : 'Edit Profile', style: const TextStyle(fontWeight: FontWeight.bold)),
         ),
         body: SafeArea(
           child: GestureDetector(
@@ -419,11 +449,15 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   AppTextField(
                     controller: _nameController,
                     focusNode: _nameFocus,
-                    labelText: 'Name',
-                    hintText: 'Enter your name',
+                    labelText: isTh ? 'ชื่อ' : 'Name',
+                    hintText: isTh ? 'กรอกชื่อของคุณ' : 'Enter your name',
                     helperText: isUsernameLocked
-                        ? 'You can change your username again in $usernameCooldownDays day${usernameCooldownDays > 1 ? 's' : ''}'
-                        : '• 3–20 characters (letters, numbers, underscores)\n• Can be changed once every 14 days',
+                        ? (isTh
+                            ? 'คุณจะเปลี่ยนชื่อผู้ใช้ได้อีกครั้งในอีก $usernameCooldownDays วัน'
+                            : 'You can change your username again in $usernameCooldownDays day${usernameCooldownDays > 1 ? 's' : ''}')
+                        : (isTh
+                            ? '• 3–20 ตัวอักษร (ตัวอักษร, ตัวเลข, ขีดล่าง)\n• เปลี่ยนได้ 1 ครั้งทุกๆ 14 วัน'
+                            : '• 3–20 characters (letters, numbers, underscores)\n• Can be changed once every 14 days'),
                     errorText: _nameError,
                     readOnly: isUsernameLocked,
                     keyboardType: TextInputType.name,
@@ -446,8 +480,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   AppTextField(
                     controller: _emailController,
                     focusNode: _emailFocus,
-                    labelText: 'Email',
-                    hintText: 'Enter your email',
+                    labelText: isTh ? 'อีเมล' : 'Email',
+                    hintText: isTh ? 'กรอกอีเมลของคุณ' : 'Enter your email',
                     errorText: _emailError,
                     readOnly: true,
                     keyboardType: TextInputType.emailAddress,
@@ -463,13 +497,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   const SizedBox(height: 32),
 
                   // Change Password Section
-                  const Text(
-                    'Change password',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  Text(
+                    isTh ? 'เปลี่ยนรหัสผ่าน' : 'Change password',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Leave blank to keep your current password.',
+                    isTh ? 'เว้นว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่าน' : 'Leave blank to keep your current password.',
                     style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
                   ),
                   if (_passwordError != null) ...[
@@ -484,8 +518,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   AppTextField(
                     controller: _currentPasswordController,
                     focusNode: _currentPasswordFocus,
-                    labelText: 'Current Password',
-                    hintText: 'Enter current password',
+                    labelText: isTh ? 'รหัสผ่านปัจจุบัน' : 'Current Password',
+                    hintText: isTh ? 'กรอกรหัสผ่านปัจจุบัน' : 'Enter current password',
                     obscureText: _obscureCurrentPassword,
                     textInputAction: TextInputAction.next,
                     onSubmitted: (_) => _newPasswordFocus.requestFocus(),
@@ -505,8 +539,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   AppTextField(
                     controller: _newPasswordController,
                     focusNode: _newPasswordFocus,
-                    labelText: 'New Password',
-                    hintText: 'Enter new password',
+                    labelText: isTh ? 'รหัสผ่านใหม่' : 'New Password',
+                    hintText: isTh ? 'กรอกรหัสผ่านใหม่' : 'Enter new password',
                     obscureText: _obscureNewPassword,
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) {
@@ -535,17 +569,17 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       children: [
                         _buildRequirementItem(
                           isMet: _hasNewPasswordMinLength,
-                          label: 'At least 8 characters (8–64 characters)',
+                          label: isTh ? 'อย่างน้อย 8 ตัวอักษร (8–64 ตัวอักษร)' : 'At least 8 characters (8–64 characters)',
                           colorScheme: theme.colorScheme,
                         ),
                         _buildRequirementItem(
                           isMet: _hasNewPasswordLetter,
-                          label: 'At least 1 letter (a-z, A-Z)',
+                          label: isTh ? 'มีตัวอักษรภาษาอังกฤษอย่างน้อย 1 ตัว (a-z, A-Z)' : 'At least 1 letter (a-z, A-Z)',
                           colorScheme: theme.colorScheme,
                         ),
                         _buildRequirementItem(
                           isMet: _hasNewPasswordNumber,
-                          label: 'At least 1 number (0-9)',
+                          label: isTh ? 'มีตัวเลขอย่างน้อย 1 ตัว (0-9)' : 'At least 1 number (0-9)',
                           colorScheme: theme.colorScheme,
                         ),
                       ],
@@ -555,7 +589,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
                   // Save Changes Button
                   PrimaryButton(
-                    label: 'Save Changes',
+                    label: isTh ? 'บันทึกการเปลี่ยนแปลง' : 'Save Changes',
                     isLoading: _isLoading,
                     onPressed: _isLoading ? null : _handleSave,
                   ),

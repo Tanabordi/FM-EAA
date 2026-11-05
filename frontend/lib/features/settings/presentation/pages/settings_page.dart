@@ -34,6 +34,7 @@ class SettingsPage extends ConsumerWidget {
     final user = ref.watch(userProfileProvider);
     final currentLocale = ref.watch(localeProvider);
     final currentThemeMode = ref.watch(themeModeProvider);
+    final isTh = currentLocale.languageCode == 'th';
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -46,16 +47,16 @@ class SettingsPage extends ConsumerWidget {
           padding: EdgeInsets.only(left: 16),
           child: AppBackButton(),
         ),
-        title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(isTh ? 'การตั้งค่า' : 'Settings', style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           children: [
             // Profile Section
-            const Text(
-              'Profile',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Text(
+              isTh ? 'ข้อมูลส่วนตัว' : 'Profile',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 12),
             Card(
@@ -93,7 +94,7 @@ class SettingsPage extends ConsumerWidget {
                     ),
                     IconButton(
                       icon: const Icon(Icons.edit_outlined),
-                      tooltip: 'Edit Profile',
+                      tooltip: isTh ? 'แก้ไขโปรไฟล์' : 'Edit Profile',
                       onPressed: () => context.push('/settings/profile'),
                     ),
                   ],
@@ -103,9 +104,9 @@ class SettingsPage extends ConsumerWidget {
             const SizedBox(height: 28),
 
             // Preferences Section
-            const Text(
-              'Preferences',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Text(
+              isTh ? 'การตั้งค่าทั่วไป' : 'Preferences',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 12),
             Card(
@@ -115,7 +116,7 @@ class SettingsPage extends ConsumerWidget {
               child: Column(
                 children: [
                   ListTile(
-                    title: const Text('Language', style: TextStyle(fontWeight: FontWeight.w500)),
+                    title: Text(isTh ? 'ภาษา' : 'Language', style: const TextStyle(fontWeight: FontWeight.w500)),
                     trailing: SizedBox(
                       width: 130,
                       child: SegmentedButton<String>(
@@ -130,14 +131,27 @@ class SettingsPage extends ConsumerWidget {
                         ],
                         selected: {currentLocale.languageCode},
                         onSelectionChanged: (set) {
-                          ref.read(localeProvider.notifier).setLocale(set.first);
+                          final newLang = set.first;
+                          ref.read(localeProvider.notifier).setLocale(newLang);
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                newLang == 'th'
+                                    ? 'เปลี่ยนภาษาเป็นภาษาไทยแล้ว'
+                                    : 'Switched language to English',
+                              ),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
                         },
                       ),
                     ),
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    title: const Text('Theme', style: TextStyle(fontWeight: FontWeight.w500)),
+                    title: Text(isTh ? 'ธีม' : 'Theme', style: const TextStyle(fontWeight: FontWeight.w500)),
                     trailing: SizedBox(
                       width: 140,
                       child: SegmentedButton<ThemeMode>(
@@ -146,9 +160,9 @@ class SettingsPage extends ConsumerWidget {
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
                         ),
-                        segments: const [
-                          ButtonSegment(value: ThemeMode.light, label: Text('Light')),
-                          ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+                        segments: [
+                          ButtonSegment(value: ThemeMode.light, label: Text(isTh ? 'สว่าง' : 'Light')),
+                          ButtonSegment(value: ThemeMode.dark, label: Text(isTh ? 'มืด' : 'Dark')),
                         ],
                         selected: {currentThemeMode},
                         onSelectionChanged: (set) {
@@ -164,7 +178,7 @@ class SettingsPage extends ConsumerWidget {
 
             // Log out Button
             PrimaryButton(
-              label: 'Log out',
+              label: isTh ? 'ออกจากระบบ' : 'Log out',
               backgroundColor: FreshnessColors.danger,
               onPressed: () {
                 showDialog(

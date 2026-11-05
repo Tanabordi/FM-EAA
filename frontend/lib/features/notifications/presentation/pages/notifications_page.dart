@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/theme/freshness_colors.dart';
 import '../../../../data/models/notification_model.dart';
 import '../../../../shared/widgets/app_back_button.dart';
@@ -17,6 +18,7 @@ class NotificationsPage extends ConsumerStatefulWidget {
 class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   Future<void> _handleInviteResponse(NotificationModel notif, bool accept) async {
     final messenger = ScaffoldMessenger.of(context);
+    final isTh = ref.read(localeProvider).languageCode == 'th';
     await ref.read(notificationControllerProvider.notifier).respondToInvite(
           notificationId: notif.id,
           inviteId: notif.inviteId,
@@ -27,7 +29,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          accept ? 'Accepted invitation.' : 'Declined invitation.',
+          isTh
+              ? (accept ? 'ยอมรับคำเชิญแล้ว' : 'ปฏิเสธคำเชิญแล้ว')
+              : (accept ? 'Accepted invitation.' : 'Declined invitation.'),
         ),
       ),
     );
@@ -35,19 +39,21 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   Future<void> _handleDismiss(NotificationModel notif) async {
     final messenger = ScaffoldMessenger.of(context);
+    final isTh = ref.read(localeProvider).languageCode == 'th';
     await ref.read(notificationControllerProvider.notifier).deleteNotification(notif.id);
 
     if (!mounted) return;
     messenger.showSnackBar(
-      const SnackBar(content: Text('Notification dismissed.')),
+      SnackBar(content: Text(isTh ? 'ปิดการแจ้งเตือนแล้ว' : 'Notification dismissed.')),
     );
   }
 
   Future<void> _handleMarkAllAsRead() async {
+    final isTh = ref.read(localeProvider).languageCode == 'th';
     await ref.read(notificationControllerProvider.notifier).markAllAsRead();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('All notifications marked as read')),
+      SnackBar(content: Text(isTh ? 'ทำเครื่องหมายว่าอ่านแล้วทั้งหมดแล้ว' : 'All notifications marked as read')),
     );
   }
 
@@ -55,6 +61,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final notificationsAsync = ref.watch(defaultNotificationsStreamProvider);
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -67,7 +74,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           padding: EdgeInsets.only(left: 16),
           child: AppBackButton(),
         ),
-        title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(isTh ? 'การแจ้งเตือน' : 'Notifications', style: const TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           notificationsAsync.maybeWhen(
             data: (list) {
@@ -75,7 +82,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
               if (!hasUnread) return const SizedBox.shrink();
               return IconButton(
                 icon: const Icon(Icons.done_all_rounded, size: 22),
-                tooltip: 'Mark all as read',
+                tooltip: isTh ? 'ทำเครื่องหมายว่าอ่านแล้วทั้งหมด' : 'Mark all as read',
                 onPressed: _handleMarkAllAsRead,
               );
             },
@@ -118,20 +125,22 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                                 ),
                               ),
                               const SizedBox(height: 18),
-                              const Text(
-                                'No Notifications',
-                                style: TextStyle(
+                              Text(
+                                isTh ? 'ไม่มีการแจ้งเตือน' : 'No Notifications',
+                                style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF181D18),
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                                 child: Text(
-                                  "You're all caught up! Expiry alerts and family invites will appear here.",
-                                  style: TextStyle(
+                                  isTh
+                                      ? 'คุณอ่านครบทั้งหมดแล้ว! การแจ้งเตือนวันหมดอายุและคำเชิญจะแสดงที่นี่'
+                                      : "You're all caught up! Expiry alerts and family invites will appear here.",
+                                  style: const TextStyle(
                                     fontSize: 13.5,
                                     color: Color(0xFF717971),
                                     height: 1.45,
@@ -164,7 +173,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                 itemBuilder: (context, index) {
                   final notif = sortedNotifications[index];
                   if (notif.isInvite) {
-                    return _buildInviteCard(context, notif);
+                    return _buildInviteCard(context, notif, isTh);
                   } else if (notif.isMemberJoined) {
                     return _buildMemberJoinedCard(context, notif);
                   } else if (notif.isItemAction) {
@@ -181,7 +190,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     );
   }
 
-  Widget _buildInviteCard(BuildContext context, NotificationModel notif) {
+  Widget _buildInviteCard(BuildContext context, NotificationModel notif, [bool isTh = false]) {
     final theme = Theme.of(context);
     final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
 
@@ -277,7 +286,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     ),
                     onPressed: () => _handleInviteResponse(notif, false),
-                    child: const Text('Decline'),
+                    child: Text(isTh ? 'ปฏิเสธ' : 'Decline'),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
@@ -290,7 +299,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                       elevation: 0,
                     ),
                     onPressed: () => _handleInviteResponse(notif, true),
-                    child: const Text('Accept'),
+                    child: Text(isTh ? 'ยอมรับ' : 'Accept'),
                   ),
                 ],
               ),

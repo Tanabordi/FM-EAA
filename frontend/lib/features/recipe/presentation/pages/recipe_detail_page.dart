@@ -6,6 +6,7 @@ import '../../data/models/recipe_model.dart';
 import '../../../history/providers/history_provider.dart';
 import '../../../../data/repositories/item_repository.dart';
 import '../../../../data/models/item_model.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../item/presentation/widgets/mark_consumed_sheet.dart';
 
 /// Screen #26: Recipe Details
@@ -28,6 +29,30 @@ class RecipeDetailPage extends ConsumerStatefulWidget {
 
 class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
   final Set<int> _checkedIngredients = {};
+
+  bool get _isTh {
+    try {
+      return ref.watch(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  bool _isThRead() {
+    try {
+      return ref.read(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
 
   void _toggleIngredient(int index) {
     setState(() {
@@ -132,9 +157,11 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     if (!mounted) return;
 
     // 3. Show feedback SnackBar
+    final isTh = _isThRead();
+    final locUnit = ItemModel.localizeUnit(unit, isTh);
     final feedbackText = isCompletelyFinished
-        ? '✨ Finished all $itemName! Recorded to History.'
-        : '✨ Consumed ${amount.toInt()} $unit of $itemName! Recorded to History.';
+        ? (isTh ? '✨ บริโภค $itemName หมดแล้ว! บันทึกลงในประวัติเรียบร้อย' : '✨ Finished all $itemName! Recorded to History.')
+        : (isTh ? '✨ บริโภค $itemName ไป ${amount.toInt()} $locUnit! บันทึกลงในประวัติเรียบร้อย' : '✨ Consumed ${amount.toInt()} $unit of $itemName! Recorded to History.');
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -157,6 +184,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isTh = _isTh;
     final recipe = widget.recipe;
 
     return Scaffold(
@@ -166,7 +194,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
           children: [
             // Top App Bar matching other screens via unified AppTopBar
             AppTopBar(
-              title: 'Recipe',
+              title: isTh ? 'สูตรอาหาร' : 'Recipe',
               onBackPressed: () {
                 try {
                   if (context.canPop()) {
@@ -289,9 +317,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     ),
                     const SizedBox(height: 22),
                     // Ingredients Section
-                    const Text(
-                      'Ingredients',
-                      style: TextStyle(
+                    Text(
+                      isTh ? 'วัตถุดิบที่ต้องใช้' : 'Ingredients',
+                      style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181D17),
@@ -355,9 +383,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     }),
                     const SizedBox(height: 22),
                     // Instructions Section
-                    const Text(
-                      'Instructions',
-                      style: TextStyle(
+                    Text(
+                      isTh ? 'วิธีทำทีละขั้นตอน' : 'Instructions',
+                      style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181D17),
@@ -435,14 +463,14 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     elevation: 0,
                   ),
                   onPressed: _onDoneMarkAsConsumed,
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check, size: 22, color: Colors.white),
-                      SizedBox(width: 8),
+                      const Icon(Icons.check, size: 22, color: Colors.white),
+                      const SizedBox(width: 8),
                       Text(
-                        'Done! Mark as Consumed',
-                        style: TextStyle(
+                        isTh ? 'ทำเสร็จแล้ว! บันทึกว่ารับประทานแล้ว' : 'Done! Mark as Consumed',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
