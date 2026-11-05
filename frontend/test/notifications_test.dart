@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:fm_eaa/data/local/app_database.dart';
 import 'package:fm_eaa/data/models/notification_model.dart';
 import 'package:fm_eaa/data/remote/api_client.dart';
 import 'package:fm_eaa/data/repositories/notification_repository.dart';
+import 'package:fm_eaa/features/fridges/providers/fridges_provider.dart';
 import 'package:fm_eaa/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:fm_eaa/features/notifications/providers/notifications_provider.dart';
 
@@ -16,8 +18,22 @@ void main() {
   late NotificationRepository notificationRepo;
 
   setUp(() {
+    final dio = Dio();
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          return handler.resolve(
+            Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {'notifications': []},
+            ),
+          );
+        },
+      ),
+    );
     db = AppDatabase(NativeDatabase.memory());
-    notificationRepo = NotificationRepository(apiClient: ApiClient(), database: db);
+    notificationRepo = NotificationRepository(apiClient: ApiClient(customDio: dio), database: db);
   });
 
   tearDown(() async {
@@ -464,9 +480,12 @@ void main() {
 
       final container = ProviderContainer(
         overrides: [
+          appDatabaseProvider.overrideWithValue(db),
+          notificationRepositoryProvider.overrideWithValue(notificationRepo),
           defaultNotificationsStreamProvider.overrideWith((ref) => Stream.value(notifs)),
         ],
       );
+      addTearDown(container.dispose);
 
       // Wait for stream to emit
       await container.read(defaultNotificationsStreamProvider.future);
@@ -572,6 +591,51 @@ void main() {
       expect(model.fridgeId, 'f_dyn_123');
       expect(model.fridgeName, 'Kitchen');
       expect(model.title, 'Dynamically parsed');
+    });
+
+    testWidgets('NotificationController performs actions and state transitions cleanly', (tester) async {
+      final container = ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(db),
+          notificationRepositoryProvider.overrideWithValue(notificationRepo),
+          fridgesProvider.overrideWith((ref) => FridgesNotifier()),
+        ],
+        child: Container(),
+      );
+
+      await tester.pumpWidget(container);
+      final element = tester.element(find.byType(Container));
+      final containerRef = ProviderScope.containerOf(element);
+
+      final controller = containerRef.read(notificationControllerProvider.notifier);
+
+      // Insert test notification into db
+      await db.insertNotification(
+        id: 'notif_ctrl_1',
+        userId: 'user_1',
+        type: 'item_added',
+        payloadJson: '{"title":"Test Notif","message":"Testing controller"}',
+      );
+
+      // Mark single read
+      await controller.markAsRead('notif_ctrl_1');
+      expect(containerRef.read(notificationControllerProvider), isA<AsyncData<void>>());
+
+      // Mark fridge as read
+      await controller.markFridgeAsRead('fridge_1', 'user_1', 'Kitchen');
+      expect(containerRef.read(notificationControllerProvider), isA<AsyncData<void>>());
+
+      // Mark all as read
+      await controller.markAllAsRead('user_1');
+      expect(containerRef.read(notificationControllerProvider), isA<AsyncData<void>>());
+
+      // Delete notification
+      await controller.deleteNotification('notif_ctrl_1');
+      expect(containerRef.read(notificationControllerProvider), isA<AsyncData<void>>());
+
+      // Clear all
+      await controller.clearAll('user_1');
+      expect(containerRef.read(notificationControllerProvider), isA<AsyncData<void>>());
     });
   });
 }

@@ -237,6 +237,33 @@ describe('Fridge & Item CRUD API Integration Tests', () => {
       expect(res.body.item.quantity).toBe(5);
       expect(res.body.item.unit).toBe('packs');
     });
+
+    it('retrieves and updates item via short /api/items/:itemId endpoint', async () => {
+      // Test GET /api/items/:itemId
+      const getRes = await request(app)
+        .get(`/api/items/${createdItemId}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(getRes.statusCode).toBe(200);
+      expect(getRes.body.item.id).toBe(createdItemId);
+
+      // Test PATCH /api/items/:itemId
+      const patchRes = await request(app)
+        .patch(`/api/items/${createdItemId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ quantity: 5 });
+
+      expect(patchRes.statusCode).toBe(200);
+      expect(patchRes.body.item.quantity).toBe(5);
+
+      // Test GET /api/items without params returns 400
+      const noFridgeRes = await request(app)
+        .get('/api/items')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(noFridgeRes.statusCode).toBe(400);
+      expect(noFridgeRes.body.error).toMatch(/Fridge ID not found or specified/i);
+    });
   });
 
   // ==========================================
@@ -287,6 +314,36 @@ describe('Fridge & Item CRUD API Integration Tests', () => {
       expect(itemRes.body.item.quantity).toBe(5);
     });
 
+    it('undoes consumption via short /api/items/history/:historyId/undo path', async () => {
+      // Consume 1 again
+      const cRes = await request(app)
+        .post(`/api/fridges/${createdFridgeId}/items/${createdItemId}/consume`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ amount: 1 });
+
+      const newHistId = cRes.body.historyId;
+      if (newHistId) {
+        const undoRes = await request(app)
+          .post(`/api/items/history/${newHistId}/undo`)
+          .set('Authorization', `Bearer ${authToken}`);
+
+        expect(undoRes.statusCode).toBe(200);
+        expect(undoRes.body).toHaveProperty('success', true);
+      }
+    });
+
+    it('retrieves and clears expired history', async () => {
+      const getExpRes = await request(app)
+        .get(`/api/fridges/${createdFridgeId}/history?kind=expired`)
+        .set('Authorization', `Bearer ${authToken}`);
+      expect(getExpRes.statusCode).toBe(200);
+
+      const clearExpRes = await request(app)
+        .delete(`/api/fridges/${createdFridgeId}/history/clear?kind=expired`)
+        .set('Authorization', `Bearer ${authToken}`);
+      expect(clearExpRes.statusCode).toBe(200);
+    });
+
     it('consumes with finishAll: true which deletes the item from items table', async () => {
       const res = await request(app)
         .post(`/api/fridges/${createdFridgeId}/items/${createdItemId}/consume`)
@@ -303,6 +360,50 @@ describe('Fridge & Item CRUD API Integration Tests', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(checkRes.statusCode).toBe(404);
+    });
+
+    it('fails to undo consumption without historyId', async () => {
+      const res = await request(app)
+        .post(`/api/fridges/${createdFridgeId}/items/${createdItemId}/consume/undo`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({});
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toMatch(/historyId is required/i);
+    });
+
+    it('records manual history entry and deletes single history item', async () => {
+      // Record manual history entry
+      const histRes = await request(app)
+        .post(`/api/fridges/${createdFridgeId}/history`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          itemName: 'Manual Item',
+          kind: 'consumed',
+          quantityChanged: 1,
+          quantityLeft: 0,
+          unit: 'pcs',
+        });
+
+      expect(histRes.statusCode).toBe(201);
+      const manualHistId = histRes.body.history?.id || histRes.body.id;
+
+      if (manualHistId) {
+        // Delete single history record
+        const delRes = await request(app)
+          .delete(`/api/fridges/${createdFridgeId}/history/${manualHistId}`)
+          .set('Authorization', `Bearer ${authToken}`);
+        expect(delRes.statusCode).toBe(200);
+      }
+    });
+
+    it('fails to upload item image when no file is attached', async () => {
+      const res = await request(app)
+        .post('/api/items/upload-image')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toMatch(/image file is required/i);
     });
 
     it('clears consumption history', async () => {
