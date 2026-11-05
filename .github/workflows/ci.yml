@@ -78,5 +78,42 @@ jobs:
       - name: Run Tests with Coverage (Automated Testing)
         run: flutter test --coverage
 
+      - name: Setup google-services.json for CI Build
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          mkdir -p android/app
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat << 'EOF' > android/app/google-services.json
+          {
+            "project_info": {
+              "project_number": "6402963456",
+              "project_id": "fm-eaa",
+              "storage_bucket": "fm-eaa.firebasestorage.app"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:6402963456:android:78100af4b7ec3d1adf00e5",
+                  "android_client_info": {
+                    "package_name": "com.fmeaa.app"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "dummy_ci_build_key"
+                  }
+                ],
+                "services": {}
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+          fi
+
       - name: Build Android APK (Automated Build)
         run: flutter build apk --debug
