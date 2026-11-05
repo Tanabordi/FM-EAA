@@ -52,6 +52,8 @@ class CategoryChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTh = Localizations.localeOf(context).languageCode == 'th';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
       child: LayoutBuilder(
@@ -99,7 +101,7 @@ class CategoryChips extends StatelessWidget {
                       const SizedBox(height: 5),
                       // Category label underneath
                       Text(
-                        category,
+                        isTh ? _getThaiCategoryLabel(category) : category,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -318,5 +320,24 @@ class CategoryIconPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CategoryIconPainter oldDelegate) {
     return oldDelegate.category != category || oldDelegate.color != color;
+  }
+}
+
+String _getThaiCategoryLabel(String cat) {
+  switch (cat.toLowerCase()) {
+    case 'all':
+      return 'ทั้งหมด';
+    case 'proteins':
+      return 'โปรตีน';
+    case 'veggies':
+      return 'ผักผลไม้';
+    case 'beverages':
+      return 'เครื่องดื่ม';
+    case 'meals':
+      return 'อาหาร';
+    case 'sauces':
+      return 'ซอส';
+    default:
+      return cat;
   }
 }
