@@ -16,6 +16,7 @@ class OnboardingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isTh = Localizations.localeOf(context).languageCode == 'th';
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -44,7 +45,7 @@ class OnboardingPage extends StatelessWidget {
 
                       // Title matching Figma
                       Text(
-                        'Reduce Food Waste',
+                        isTh ? 'ลดขยะอาหารในบ้านคุณ' : 'Reduce Food Waste',
                         style: theme.textTheme.headlineMedium?.copyWith(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
@@ -57,7 +58,9 @@ class OnboardingPage extends StatelessWidget {
 
                       // Subtitle
                       Text(
-                        'Get smart alerts before your groceries expire.',
+                        isTh
+                            ? 'รับการแจ้งเตือนอัจฉริยะก่อนอาหารของคุณจะหมดอายุ'
+                            : 'Get smart alerts before your groceries expire.',
                         style: TextStyle(
                           fontSize: 16,
                           color: colorScheme.onSurfaceVariant,
@@ -70,7 +73,7 @@ class OnboardingPage extends StatelessWidget {
 
                       // Enable Notifications: Permitted and marked as permanently done
                       PrimaryButton(
-                        label: 'Enable Notifications',
+                        label: isTh ? 'เปิดการแจ้งเตือน' : 'Enable Notifications',
                         onPressed: () async {
                           try {
                             await NotificationService().requestPermissions();
@@ -99,7 +102,7 @@ class OnboardingPage extends StatelessWidget {
                           minimumSize: const Size(double.infinity, 44),
                         ),
                         child: Text(
-                          'Skip',
+                          isTh ? 'ข้าม' : 'Skip',
                           style: TextStyle(
                             fontSize: 15,
                             color: colorScheme.onSurfaceVariant,
