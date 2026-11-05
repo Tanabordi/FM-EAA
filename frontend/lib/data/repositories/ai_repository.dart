@@ -342,13 +342,13 @@ class AiRepository {
 
   /// Specifically scans for expiration date on close-up image (bottle cap, bottom of can)
   Future<DateTime?> scanExpiryDate(File imageFile, {String language = 'en'}) async {
-    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    if (isTestEnvironment()) {
       return DateTime.now().add(const Duration(days: 30));
     }
     if (imageFile.path.isEmpty || !imageFile.existsSync()) return null;
 
     try {
-      final fileName = imageFile.path.split(Platform.pathSeparator).last;
+      final fileName = imageFile.path.split(RegExp(r'[/\\]')).last;
       final formData = FormData.fromMap({
         'image': await MultipartFile.fromFile(imageFile.path, filename: fileName),
         'language': language,
@@ -373,7 +373,7 @@ class AiRepository {
 
   /// Specifically scans for expiration date from image bytes
   Future<DateTime?> scanExpiryBytes(Uint8List bytes, {String? filename, String language = 'en'}) async {
-    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    if (isTestEnvironment()) {
       return DateTime.now().add(const Duration(days: 30));
     }
     try {

@@ -9,6 +9,7 @@ import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
 import '../../../../data/repositories/item_repository.dart';
 import '../../../../shared/utils/date_input_formatter.dart';
+import '../../../../shared/utils/environment.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../../core/l10n/locale_provider.dart';
@@ -507,7 +508,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     if (_imagePath != null &&
         !_imagePath!.startsWith('http') &&
         !_imagePath!.startsWith('assets/') &&
-        !Platform.environment.containsKey('FLUTTER_TEST')) {
+        !isTestEnvironment()) {
       try {
         if (_imageBytes == null && !kIsWeb) {
           final f = File(_imagePath!);
@@ -588,7 +589,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
         }
 
         // Upload to OCI Object Storage in background
-        if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        if (!isTestEnvironment()) {
           try {
             final cloudUrl = await ref.read(itemRepositoryProvider).uploadItemImageBytes(
               bytes,
