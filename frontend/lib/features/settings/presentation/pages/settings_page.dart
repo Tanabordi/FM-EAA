@@ -197,6 +197,7 @@ class SettingsPage extends ConsumerWidget {
             PrimaryButton(
               label: isTh ? 'ออกจากระบบ' : 'Log out',
               backgroundColor: FreshnessColors.danger,
+              foregroundColor: Colors.white,
               onPressed: () {
                 showDialog(
                   context: context,

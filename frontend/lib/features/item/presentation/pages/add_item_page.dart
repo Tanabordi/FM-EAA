@@ -1487,7 +1487,14 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           ),
                         ),
                         onPressed: _onSave,
-                        child: Text(isTh ? 'บันทึก' : 'Save'),
+                        child: Text(
+                          isTh ? 'บันทึก' : 'Save',
+                          style: TextStyle(
+                            color: theme.colorScheme.onPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],

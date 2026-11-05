@@ -168,6 +168,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
     final theme = Theme.of(context);
     final bgColor = theme.colorScheme.surface;
     final primaryGreen = theme.colorScheme.primary;
+    final onPrimaryGreen = theme.colorScheme.onPrimary;
     final textDark = theme.colorScheme.onSurface;
     final isTh = _isTh;
 
@@ -263,21 +264,21 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                         // Button: Create Fridge
                         SizedBox(
                           width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
+                          height: 50,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
                               backgroundColor: primaryGreen,
-                              foregroundColor: Colors.white,
+                              foregroundColor: onPrimaryGreen,
                               shape: const StadiumBorder(),
                               elevation: 0,
                             ),
                             onPressed: _createFridge,
                             child: Text(
                               isTh ? 'สร้างตู้เย็น' : 'Create Fridge',
-                              style: const TextStyle(
-                                fontSize: 15.5,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: onPrimaryGreen,
                               ),
                             ),
                           ),

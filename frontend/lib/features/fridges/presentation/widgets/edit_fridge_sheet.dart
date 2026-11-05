@@ -159,7 +159,8 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
     final sheetBg = theme.colorScheme.surface;
     final borderColor = theme.colorScheme.outline;
     final primaryGreen = theme.colorScheme.primary;
-    final deleteRed = theme.colorScheme.error;
+    final onPrimaryGreen = theme.colorScheme.onPrimary;
+    const deleteRed = Color(0xFFB71C1C);
     final textDark = theme.colorScheme.onSurface;
     final textMuted = theme.colorScheme.onSurfaceVariant;
     final isTh = _isTh;
@@ -271,20 +272,24 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
                     backgroundColor: primaryGreen,
-                    foregroundColor: Colors.white,
+                    foregroundColor: onPrimaryGreen,
                     shape: const StadiumBorder(),
                     elevation: 0,
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   onPressed: _save,
                   child: Text(
                     isTh ? 'บันทึก' : 'Save',
-                    style: const TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: onPrimaryGreen,
                     ),
                   ),
                 ),
@@ -304,17 +309,17 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: ElevatedButton.icon(
+                child: FilledButton.icon(
                   icon: const Icon(Icons.delete_outline, color: Colors.white, size: 20),
                   label: Text(
                     isTh ? 'ลบตู้เย็น' : 'Delete Fridge',
                     style: const TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
+                  style: FilledButton.styleFrom(
                     backgroundColor: deleteRed,
                     foregroundColor: Colors.white,
                     shape: const StadiumBorder(),
