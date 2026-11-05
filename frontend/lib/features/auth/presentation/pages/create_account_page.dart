@@ -235,6 +235,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
         backgroundColor: colorScheme.surface,
         body: SafeArea(
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

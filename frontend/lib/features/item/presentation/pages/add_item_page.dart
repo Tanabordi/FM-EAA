@@ -1182,6 +1182,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
               // Form Content
             Expanded(
               child: SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
