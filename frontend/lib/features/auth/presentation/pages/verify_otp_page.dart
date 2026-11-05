@@ -270,7 +270,7 @@ class _VerifyOtpPageState extends ConsumerState<VerifyOtpPage> {
                           : Text(
                               _resendCooldown > 0
                                   ? (isTh
-                                      ? 'ส่งรหัสอีกครั้งใน ${_resendCooldown} วิ'
+                                      ? 'ส่งรหัสอีกครั้งใน $_resendCooldown วิ'
                                       : 'Resend in ${_resendCooldown}s')
                                   : (isTh ? 'ส่งรหัสอีกครั้ง' : 'Resend Code'),
                               style: TextStyle(
