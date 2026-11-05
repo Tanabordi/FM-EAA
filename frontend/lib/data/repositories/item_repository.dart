@@ -332,7 +332,7 @@ class ItemRepository {
     if (!file.existsSync()) return null;
     try {
       final bytes = await file.readAsBytes();
-      final filename = file.path.split(Platform.pathSeparator).last;
+      final filename = file.path.split(RegExp(r'[/\\]')).last;
       return await uploadItemImageBytes(bytes, filename: filename);
     } catch (_) {
       return null;

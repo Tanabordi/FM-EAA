@@ -539,7 +539,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
   Future<void> _pickAndScanExpiryOnly([ImageSource source = ImageSource.camera]) async {
     try {
-      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+      final isTest = isTestEnvironment();
       if (isTest) {
         setState(() {
           if (_scanResult != null) {
@@ -1203,7 +1203,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                         onPressed: _isScanningExpiry
                             ? null
                             : () {
-                                if (Platform.environment.containsKey('FLUTTER_TEST')) {
+                                if (isTestEnvironment()) {
                                   _pickAndScanExpiryOnly();
                                 } else {
                                   _showExpirySourceSheet();
