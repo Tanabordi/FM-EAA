@@ -104,8 +104,10 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
       return matchesZone && matchesCategory;
     }).toList();
 
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3), // Figma exact background #F6FBF3
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -124,7 +126,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             ),
             const SizedBox(height: 4),
             // Fridge | Freezer Tabs
-            _buildTabs(isTh),
+            _buildTabs(context, isTh),
             // Food Items Section Header ("Your food" & "N items")
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
@@ -133,17 +135,17 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                 children: [
                   Text(
                     isTh ? 'รายการอาหารของคุณ' : 'Your food',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF1A201C),
+                      color: theme.colorScheme.onSurface,
                       letterSpacing: -0.3,
                     ),
                   ),
                   Text(
                     isTh ? '${items.length} รายการ' : '${items.length} items',
-                    style: const TextStyle(
-                      color: Color(0xFF5C665F),
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -235,25 +237,29 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
   }
 
   Widget _buildSearchBar(BuildContext context, [bool isTh = false]) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: const Color(0xFFEAEFE8), // Figma exact background #EAEFE8
+          color: theme.colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(28),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x45000000), // Prominent deep drop shadow matching Image 2
-              blurRadius: 18,
-              offset: Offset(0, 6),
-            ),
-            BoxShadow(
-              color: Color(0x12000000),
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
-          ],
+          boxShadow: isDark
+              ? null
+              : const [
+                  BoxShadow(
+                    color: Color(0x45000000), // Prominent deep drop shadow matching Image 2
+                    blurRadius: 18,
+                    offset: Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: Color(0x12000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Material(
@@ -266,15 +272,15 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             },
             child: Row(
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(left: 18, right: 12),
-                  child: Icon(Icons.search, color: Color(0xFF3A4A3E), size: 22),
+                Padding(
+                  padding: const EdgeInsets.only(left: 18, right: 12),
+                  child: Icon(Icons.search, color: theme.colorScheme.onSurfaceVariant, size: 22),
                 ),
                 Expanded(
                   child: Text(
                     isTh ? 'ค้นหารายการอาหาร' : 'Search for items',
-                    style: const TextStyle(
-                      color: Color(0xFF4A5A4E),
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant,
                       fontSize: 15,
                       fontWeight: FontWeight.w400,
                     ),
@@ -289,14 +295,15 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     );
   }
 
-  Widget _buildTabs(bool isTh) {
+  Widget _buildTabs(BuildContext context, bool isTh) {
+    final theme = Theme.of(context);
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [
         // Thin baseline border across tabs
         Container(
           height: 1.2,
-          color: const Color(0xFFD7E2D5),
+          color: theme.colorScheme.outlineVariant,
         ),
         TabBar(
           controller: _tabController,
@@ -305,11 +312,11 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                   index == 0 ? 'fridge' : 'freezer',
                 );
           },
-          indicatorColor: const Color(0xFF2E6A44), // Figma exact green indicator
+          indicatorColor: theme.colorScheme.primary,
           indicatorWeight: 3.5,
           indicatorSize: TabBarIndicatorSize.label,
-          labelColor: const Color(0xFF1A201C),
-          unselectedLabelColor: const Color(0xFF5C665F),
+          labelColor: theme.colorScheme.onSurface,
+          unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
           labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           unselectedLabelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           dividerColor: Colors.transparent,

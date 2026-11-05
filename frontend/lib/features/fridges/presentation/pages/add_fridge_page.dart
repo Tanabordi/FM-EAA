@@ -165,9 +165,11 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
   @override
   Widget build(BuildContext context) {
     ref.watch(localeProvider);
-    const bgColor = Color(0xFFF6FBF3);
-    const primaryGreen = Color(0xFF2E6A44);
-    const textDark = Color(0xFF181D18);
+    final theme = Theme.of(context);
+    final bgColor = theme.colorScheme.surface;
+    final primaryGreen = theme.colorScheme.primary;
+    final onPrimaryGreen = theme.colorScheme.onPrimary;
+    final textDark = theme.colorScheme.onSurface;
     final isTh = _isTh;
 
     return PopScope(
@@ -198,7 +200,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                             const SizedBox(width: 14),
                             Text(
                               isTh ? 'เพิ่มตู้เย็นใหม่' : 'Add New Fridge',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: textDark,
@@ -262,21 +264,21 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                         // Button: Create Fridge
                         SizedBox(
                           width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
+                          height: 50,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
                               backgroundColor: primaryGreen,
-                              foregroundColor: Colors.white,
+                              foregroundColor: onPrimaryGreen,
                               shape: const StadiumBorder(),
                               elevation: 0,
                             ),
                             onPressed: _createFridge,
                             child: Text(
                               isTh ? 'สร้างตู้เย็น' : 'Create Fridge',
-                              style: const TextStyle(
-                                fontSize: 15.5,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: onPrimaryGreen,
                               ),
                             ),
                           ),

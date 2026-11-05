@@ -24,6 +24,7 @@ class AppTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
       child: Row(
@@ -35,10 +36,10 @@ class AppTopBar extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 25,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF1A201C),
+                color: theme.colorScheme.onSurface,
                 letterSpacing: -0.5,
               ),
               maxLines: 1,
@@ -72,6 +73,7 @@ class AppTopBarAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 6.0),
       child: Stack(
@@ -85,11 +87,11 @@ class AppTopBarAction extends StatelessWidget {
               child: Container(
                 width: size,
                 height: size,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEAEFE8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainer,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: iconSize, color: const Color(0xFF2C3A2F)),
+                child: Icon(icon, size: iconSize, color: theme.colorScheme.onSurface),
               ),
             ),
           ),

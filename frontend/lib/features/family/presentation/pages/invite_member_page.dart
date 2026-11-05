@@ -142,62 +142,67 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
     final isTh = _isTh;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          UserAvatar(
-            name: user.username,
-            avatarUrl: user.avatarUrl,
-            radius: 24,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              user.username,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF181D18),
+      child: Builder(
+        builder: (context) {
+          final theme = Theme.of(context);
+          return Row(
+            children: [
+              UserAvatar(
+                name: user.username,
+                avatarUrl: user.avatarUrl,
+                radius: 24,
               ),
-            ),
-          ),
-          if (currentStatus == 'already')
-            Text(
-              isTh ? 'อยู่ในครอบครัวแล้ว' : 'Already in family',
-              style: const TextStyle(fontSize: 13, color: Color(0xFF414942)),
-            )
-          else if (currentStatus == 'pending')
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF717971)),
-              ),
-              child: Text(
-                isTh ? 'รอการตอบรับ' : 'Pending',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF181D18),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  user.username,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
               ),
-            )
-          else
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2E6A44),
-                foregroundColor: Colors.white,
-                shape: const StadiumBorder(),
-                minimumSize: const Size(76, 38),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                elevation: 0,
-              ),
-              onPressed: _isInviting ? null : () => _handleInvite(user.username),
-              child: Text(
-                isTh ? 'เชิญ' : 'Invite',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-            ),
-        ],
+              if (currentStatus == 'already')
+                Text(
+                  isTh ? 'อยู่ในครอบครัวแล้ว' : 'Already in family',
+                  style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                )
+              else if (currentStatus == 'pending')
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: theme.colorScheme.outline),
+                  ),
+                  child: Text(
+                    isTh ? 'รอการตอบรับ' : 'Pending',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                )
+              else
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    shape: const StadiumBorder(),
+                    minimumSize: const Size(76, 38),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                    elevation: 0,
+                  ),
+                  onPressed: _isInviting ? null : () => _handleInvite(user.username),
+                  child: Text(
+                    isTh ? 'เชิญ' : 'Invite',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -242,7 +247,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                   Container(
                     height: 52,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEAEFE8),
+                      color: colorScheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(28),
                     ),
                     child: Row(
@@ -251,11 +256,11 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: _doSearch,
-                          child: const SizedBox(
+                          child: SizedBox(
                             width: 48,
                             height: 52,
                             child: Center(
-                              child: Icon(Icons.search, color: Color(0xFF181D18), size: 22),
+                              child: Icon(Icons.search, color: colorScheme.onSurface, size: 22),
                             ),
                           ),
                         ),
@@ -266,11 +271,11 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                             focusNode: _focusNode,
                             textInputAction: TextInputAction.search,
                             onSubmitted: (_) => _doSearch(),
-                            style: const TextStyle(fontSize: 16, color: Color(0xFF181D18)),
+                            style: TextStyle(fontSize: 16, color: colorScheme.onSurface),
                             decoration: InputDecoration(
                               hintText: isTh ? 'ค้นหาชื่อผู้ใช้' : 'Search Username',
-                              hintStyle: const TextStyle(
-                                color: Color(0xFF414942),
+                              hintStyle: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
                                 fontSize: 16,
                               ),
                               border: InputBorder.none,
@@ -288,14 +293,14 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                           GestureDetector(
                             behavior: HitTestBehavior.opaque,
                             onTap: _clearSearch,
-                            child: const SizedBox(
+                            child: SizedBox(
                               width: 48,
                               height: 52,
                               child: Center(
                                 child: CircleAvatar(
                                   radius: 12,
-                                  backgroundColor: Color(0xFFD3DDD1),
-                                  child: Icon(Icons.close, size: 14, color: Color(0xFF181D18)),
+                                  backgroundColor: colorScheme.surfaceContainerHighest,
+                                  child: Icon(Icons.close, size: 14, color: colorScheme.onSurface),
                                 ),
                               ),
                             ),
@@ -311,10 +316,10 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
 
             // ─── Search Progress or Message ───
             if (_isSearching)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Center(
-                  child: CircularProgressIndicator(color: Color(0xFF2E6A44)),
+                  child: CircularProgressIndicator(color: theme.colorScheme.primary),
                 ),
               )
             else if (_searchMessage != null)
@@ -323,9 +328,9 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                 child: Center(
                   child: Text(
                     _searchMessage!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF414941),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -343,19 +348,19 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                       children: [
                         Text(
                           isTh ? 'ผลการค้นหา' : 'Search results',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF181D18),
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         Text(
                           isTh
                               ? '${_searchResults.length} ผู้ใช้'
                               : '${_searchResults.length} ${_searchResults.length == 1 ? "User" : "Users"}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF414941),
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -363,7 +368,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                     const SizedBox(height: 12),
                     Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEAEFE8),
+                        color: colorScheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(24),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -377,9 +382,9 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                       isTh
                           ? 'เพื่อนจะได้รับคำเชิญในการแจ้งเตือน และต้องกดยอมรับก่อนจึงจะเข้าร่วมครอบครัวได้'
                           : 'Friends will receive an invitation in their notifications and must accept it before they can join the family.',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF414942),
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],

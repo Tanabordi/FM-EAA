@@ -30,10 +30,12 @@ class ItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4.5),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAEFE8), // Figma exact card background
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(22),
       ),
       child: Material(
@@ -52,7 +54,7 @@ class ItemCard extends StatelessWidget {
                   child: Container(
                     width: 68,
                     height: 68,
-                    color: const Color(0xFFDDE4DC),
+                    color: theme.colorScheme.surfaceContainerHigh,
                     child: _buildFoodImage(),
                   ),
                 ),
@@ -66,10 +68,10 @@ class ItemCard extends StatelessWidget {
                         name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 16.5,
-                          color: Color(0xFF1A201C),
+                          color: theme.colorScheme.onSurface,
                           letterSpacing: -0.2,
                         ),
                       ),
@@ -78,8 +80,8 @@ class ItemCard extends StatelessWidget {
                         quantityText,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF5C665F),
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
                         ),
@@ -94,8 +96,8 @@ class ItemCard extends StatelessWidget {
                               statusText,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF5C665F),
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w500,
                               ),

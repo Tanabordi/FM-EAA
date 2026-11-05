@@ -38,8 +38,10 @@ class UserAvatar extends StatelessWidget {
   }
 
   Widget _buildFallback(BuildContext context) {
-    final bg = backgroundColor ?? const Color(0xFFD3DDD1);
-    final fg = foregroundColor ?? const Color(0xFF181D18);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bg = backgroundColor ?? (isDark ? theme.colorScheme.surfaceContainerHigh : const Color(0xFFD3DDD1));
+    final fg = foregroundColor ?? (isDark ? theme.colorScheme.onSurface : const Color(0xFF181D18));
     return CircleAvatar(
       radius: radius,
       backgroundColor: bg,

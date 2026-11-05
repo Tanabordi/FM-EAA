@@ -40,14 +40,33 @@ final localeProvider = StateNotifierProvider<LocaleNotifier, Locale>((ref) {
 
 // Theme Mode Provider (Supports ThemeMode.light and ThemeMode.dark)
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier() : super(ThemeMode.light);
+  ThemeModeNotifier() : super(ThemeMode.light) {
+    _loadPersistedTheme();
+  }
 
-  void setThemeMode(ThemeMode mode) {
+  Future<void> _loadPersistedTheme() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final modeStr = prefs.getString('app_theme_mode');
+      if (modeStr == 'dark') {
+        state = ThemeMode.dark;
+      } else if (modeStr == 'light') {
+        state = ThemeMode.light;
+      }
+    } catch (_) {}
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
     state = mode;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('app_theme_mode', mode == ThemeMode.dark ? 'dark' : 'light');
+    } catch (_) {}
   }
 
   void toggleTheme() {
-    state = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    final next = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    setThemeMode(next);
   }
 }
 

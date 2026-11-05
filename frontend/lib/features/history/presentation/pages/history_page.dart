@@ -175,10 +175,10 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
         ),
         title: Text(
           isTh ? 'ประวัติ' : 'History',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         bottom: PreferredSize(
@@ -190,12 +190,12 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
               controller: _tabController,
               isScrollable: false,
               indicatorSize: TabBarIndicatorSize.tab,
-              indicatorColor: const Color(0xFF2E6A44),
+              indicatorColor: theme.colorScheme.primary,
               indicatorWeight: 2.5,
               dividerColor: Colors.transparent,
-              labelColor: const Color(0xFF2E6A44),
+              labelColor: theme.colorScheme.primary,
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              unselectedLabelColor: const Color(0xFF717971),
+              unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
               unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
               tabs: [
                 Tab(text: isTh ? 'บริโภคแล้ว' : 'Consumed'),
@@ -221,10 +221,10 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.info_outline,
                         size: 15,
-                        color: Color(0xFF6B726B),
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -232,7 +232,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                           _tabController.index == 0
                               ? (isTh ? 'ประวัติการบริโภคจะถูกลบอัตโนมัติหลังจาก 30 วัน' : 'Consumed is auto-deleted after 30 days')
                               : (isTh ? 'ประวัติหมดอายุจะถูกลบอัตโนมัติหลังจาก 30 วัน' : 'Expired is auto-deleted after 30 days'),
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B726B)),
+                          style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                         ),
                       ),
                       InkWell(
@@ -289,6 +289,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
     required bool isConsumedTab,
     bool isTh = false,
   }) {
+    final theme = Theme.of(context);
     if (items.isEmpty) {
       return Center(
         child: Column(
@@ -296,14 +297,14 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEAEFE8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainer,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 isConsumedTab ? Icons.restaurant_outlined : Icons.alarm_off_outlined,
                 size: 44,
-                color: const Color(0xFF717971),
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),
@@ -311,14 +312,18 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
               isConsumedTab
                   ? (isTh ? 'ไม่มีประวัติการบริโภค' : 'No Consumed History')
                   : (isTh ? 'ไม่มีประวัติหมดอายุ' : 'No Expired History'),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               isConsumedTab
                   ? (isTh ? 'รายการอาหารที่ถูกบริโภคจะแสดงที่นี่' : 'Items consumed from your fridge will appear here.')
                   : (isTh ? 'รายการอาหารที่หมดอายุจะแสดงที่นี่' : 'Expired items will appear here.'),
-              style: const TextStyle(fontSize: 13, color: Color(0xFF717971)),
+              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -367,12 +372,13 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
     final timeStr = DateFormat('hh:mm a').format(item.createdAt);
     final dateStr = DateFormat('d MMM').format(item.createdAt);
     final localizedUnit = ItemModel.localizeUnit(item.unit, isTh);
+    final theme = Theme.of(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAEFE8), // Figma card background
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -396,10 +402,10 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
               children: [
                 Text(
                   item.itemName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF181D18),
+                    color: theme.colorScheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -410,18 +416,18 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                     isTh
                         ? '-$qtyChanged $localizedUnit (เหลือ $qtyLeft) • โดย @${item.byUsername}'
                         : '-$qtyChanged ${item.unit} ($qtyLeft left) • by @${item.byUsername}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF555F55),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     '• $dateStr • $timeStr',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF555F55),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ] else ...[
@@ -429,10 +435,10 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                     isTh
                         ? '$qtyChanged $localizedUnit หมดอายุ'
                         : '$qtyChanged ${item.unit} expired',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF555F55),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

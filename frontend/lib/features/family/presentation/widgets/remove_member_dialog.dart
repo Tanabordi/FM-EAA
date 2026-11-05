@@ -12,10 +12,11 @@ class RemoveMemberDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isTh = Localizations.localeOf(context).languageCode == 'th';
 
     return Dialog(
-      backgroundColor: const Color(0xFFEAEFE8),
+      backgroundColor: theme.colorScheme.surfaceContainer,
       elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
@@ -27,19 +28,19 @@ class RemoveMemberDialog extends StatelessWidget {
           children: [
             Text(
               isTh ? 'ลบ $memberName ออกจาก\nครอบครัวหรือไม่?' : 'Remove $memberName from\nFamily?',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF181D18),
+                color: theme.colorScheme.onSurface,
                 height: 1.25,
               ),
             ),
             const SizedBox(height: 12),
             Text(
               isTh ? 'พวกเขาจะไม่สามารถเข้าถึงตู้เย็นที่แชร์นี้ได้อีก' : 'They will lose access to this shared fridge.',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF414942),
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 24),
@@ -52,10 +53,10 @@ class RemoveMemberDialog extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     child: Text(
                       isTh ? 'ยกเลิก' : 'Cancel',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF181D18),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ),

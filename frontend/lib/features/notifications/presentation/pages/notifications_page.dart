@@ -148,23 +148,23 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(22),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFEAEFE8),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainer,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.notifications_none_outlined,
                                   size: 48,
-                                  color: Color(0xFF717971),
+                                  color: theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
                               const SizedBox(height: 18),
                               Text(
                                 isTh ? 'ไม่มีการแจ้งเตือน' : 'No Notifications',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF181D18),
+                                  color: theme.colorScheme.onSurface,
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -174,9 +174,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                                   isTh
                                       ? 'คุณอ่านครบทั้งหมดแล้ว! การแจ้งเตือนวันหมดอายุและคำเชิญจะแสดงที่นี่'
                                       : "You're all caught up! Expiry alerts and family invites will appear here.",
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13.5,
-                                    color: Color(0xFF717971),
+                                    color: theme.colorScheme.onSurfaceVariant,
                                     height: 1.45,
                                   ),
                                   textAlign: TextAlign.center,
@@ -229,17 +229,25 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
 
   Widget _buildNotificationWarningBanner(BuildContext context, [bool isTh = false]) {
     if (_notificationsEnabled) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bannerBg = isDark ? const Color(0xFF332A15) : const Color(0xFFFFF3CD);
+    final bannerBorder = isDark ? const Color(0xFF5E4E24) : const Color(0xFFFFEEBA);
+    final textColor = isDark ? const Color(0xFFFFE58F) : const Color(0xFF856404);
+    final iconColor = isDark ? const Color(0xFFFFD666) : const Color(0xFF856404);
+    final btnBg = isDark ? const Color(0xFFD48806) : const Color(0xFF856404);
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3CD),
+        color: bannerBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFEEBA)),
+        border: Border.all(color: bannerBorder),
       ),
       child: Row(
         children: [
-          const Icon(Icons.notifications_off_rounded, color: Color(0xFF856404), size: 22),
+          Icon(Icons.notifications_off_rounded, color: iconColor, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -247,18 +255,18 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
               children: [
                 Text(
                   isTh ? 'การแจ้งเตือนถูกปิดอยู่ในการตั้งค่า' : 'Notifications disabled in settings',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF856404)),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
                 ),
                 Text(
                   isTh ? 'เปิดการแจ้งเตือนเพื่อรับการอัปเดตแบบเรียลไทม์' : 'Enable notifications for real-time updates',
-                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF856404)),
+                  style: TextStyle(fontSize: 11.5, color: textColor),
                 ),
               ],
             ),
           ),
           TextButton(
             style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFF856404),
+              backgroundColor: btnBg,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               minimumSize: Size.zero,
@@ -281,7 +289,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
 
   Widget _buildInviteCard(BuildContext context, NotificationModel notif, [bool isTh = false]) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
+    final cardBg = notif.isRead
+        ? theme.colorScheme.surfaceContainer
+        : (isDark ? theme.colorScheme.surfaceContainerHigh : const Color(0xFFEFF5ED));
+    final borderColor = notif.isRead
+        ? BorderSide.none
+        : BorderSide(color: isDark ? theme.colorScheme.primary.withValues(alpha: 0.5) : const Color(0xFFC3D8C0), width: 1);
 
     return InkWell(
       onTap: () {
@@ -292,12 +307,10 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
       borderRadius: BorderRadius.circular(16),
       child: Card(
         elevation: 0,
-        color: notif.isRead ? theme.colorScheme.surfaceContainer : const Color(0xFFEFF5ED),
+        color: cardBg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: notif.isRead
-              ? BorderSide.none
-              : const BorderSide(color: Color(0xFFC3D8C0), width: 1),
+          side: borderColor,
         ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -310,7 +323,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                      color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.25 : 0.12),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -401,7 +414,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
 
   Widget _buildExpiryCard(BuildContext context, NotificationModel notif, [bool isTh = false]) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
+    final cardBg = notif.isRead
+        ? theme.colorScheme.surfaceContainer
+        : (isDark ? const Color(0xFF2B2117) : const Color(0xFFFFF7ED));
+    final borderColor = notif.isRead
+        ? BorderSide.none
+        : BorderSide(color: isDark ? FreshnessColors.useSoon.withValues(alpha: 0.5) : const Color(0xFFFFD8A8), width: 1);
 
     return InkWell(
       onTap: () {
@@ -423,21 +443,19 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
       borderRadius: BorderRadius.circular(16),
       child: Card(
         elevation: 0,
-        color: notif.isRead ? theme.colorScheme.surfaceContainer : const Color(0xFFFFF7ED),
+        color: cardBg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: notif.isRead
-              ? BorderSide.none
-              : const BorderSide(color: Color(0xFFFFD8A8), width: 1),
+          side: borderColor,
         ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CircleAvatar(
-                backgroundColor: Color(0xFFFFE8D6),
-                child: Icon(
+              CircleAvatar(
+                backgroundColor: isDark ? const Color(0xFF3E2815) : const Color(0xFFFFE8D6),
+                child: const Icon(
                   Icons.access_time_rounded,
                   color: FreshnessColors.useSoon,
                 ),
@@ -506,7 +524,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
 
   Widget _buildMemberJoinedCard(BuildContext context, NotificationModel notif, [bool isTh = false]) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
+    final cardBg = notif.isRead
+        ? theme.colorScheme.surfaceContainer
+        : (isDark ? theme.colorScheme.surfaceContainerHigh : const Color(0xFFE8F5E9));
+    final borderColor = notif.isRead
+        ? BorderSide.none
+        : BorderSide(color: isDark ? theme.colorScheme.primary.withValues(alpha: 0.5) : const Color(0xFFA5D6A7), width: 1);
 
     return InkWell(
       onTap: () {
@@ -523,21 +548,19 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
       borderRadius: BorderRadius.circular(16),
       child: Card(
         elevation: 0,
-        color: notif.isRead ? theme.colorScheme.surfaceContainer : const Color(0xFFE8F5E9),
+        color: cardBg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: notif.isRead
-              ? BorderSide.none
-              : const BorderSide(color: Color(0xFFA5D6A7), width: 1),
+          side: borderColor,
         ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CircleAvatar(
-                backgroundColor: Color(0xFFC8E6C9),
-                child: Icon(
+              CircleAvatar(
+                backgroundColor: isDark ? const Color(0xFF1B3B22) : const Color(0xFFC8E6C9),
+                child: const Icon(
                   Icons.group_add_rounded,
                   color: Color(0xFF2E7D32),
                 ),
@@ -608,6 +631,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
 
   Widget _buildItemActionCard(BuildContext context, NotificationModel notif, [bool isTh = false]) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
 
     Color avatarBg;
@@ -617,24 +641,30 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
     Color borderColor;
 
     if (notif.isItemAdded) {
-      avatarBg = const Color(0xFFE8F5E9);
+      avatarBg = isDark ? const Color(0xFF1B3B22) : const Color(0xFFE8F5E9);
       iconColor = const Color(0xFF2E7D32);
       icon = Icons.add_circle_outline_rounded;
-      cardBg = notif.isRead ? theme.colorScheme.surfaceContainer : const Color(0xFFF1F8E9);
-      borderColor = const Color(0xFFC5E1A5);
+      cardBg = notif.isRead
+          ? theme.colorScheme.surfaceContainer
+          : (isDark ? theme.colorScheme.surfaceContainerHigh : const Color(0xFFF1F8E9));
+      borderColor = isDark ? theme.colorScheme.primary.withValues(alpha: 0.5) : const Color(0xFFC5E1A5);
     } else if (notif.isItemConsumed) {
-      avatarBg = const Color(0xFFFFF3E0);
+      avatarBg = isDark ? const Color(0xFF3E2815) : const Color(0xFFFFF3E0);
       iconColor = const Color(0xFFE65100);
       icon = Icons.restaurant_rounded;
-      cardBg = notif.isRead ? theme.colorScheme.surfaceContainer : const Color(0xFFFFF8E1);
-      borderColor = const Color(0xFFFFE082);
+      cardBg = notif.isRead
+          ? theme.colorScheme.surfaceContainer
+          : (isDark ? const Color(0xFF2B2117) : const Color(0xFFFFF8E1));
+      borderColor = isDark ? FreshnessColors.useSoon.withValues(alpha: 0.5) : const Color(0xFFFFE082);
     } else {
       // isItemDeleted
-      avatarBg = const Color(0xFFFFEBEE);
+      avatarBg = isDark ? const Color(0xFF3E1818) : const Color(0xFFFFEBEE);
       iconColor = const Color(0xFFC62828);
       icon = Icons.delete_outline_rounded;
-      cardBg = notif.isRead ? theme.colorScheme.surfaceContainer : const Color(0xFFFFF5F5);
-      borderColor = const Color(0xFFFFCDD2);
+      cardBg = notif.isRead
+          ? theme.colorScheme.surfaceContainer
+          : (isDark ? const Color(0xFF2D1616) : const Color(0xFFFFF5F5));
+      borderColor = isDark ? FreshnessColors.danger.withValues(alpha: 0.5) : const Color(0xFFFFCDD2);
     }
 
     return InkWell(

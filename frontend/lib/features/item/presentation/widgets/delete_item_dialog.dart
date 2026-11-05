@@ -21,10 +21,11 @@ class DeleteItemDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isTh = Localizations.localeOf(context).languageCode == 'th';
 
     return AlertDialog(
-      backgroundColor: const Color(0xFFEAEFE8),
+      backgroundColor: theme.colorScheme.surfaceContainer,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(28),
       ),
@@ -32,17 +33,17 @@ class DeleteItemDialog extends StatelessWidget {
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 20, 20),
       title: Text(
         isTh ? 'ลบ $itemName?' : 'Delete $itemName?',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 22,
           fontWeight: FontWeight.bold,
-          color: Color(0xFF181D17),
+          color: theme.colorScheme.onSurface,
         ),
       ),
       content: Text(
         isTh ? 'การดำเนินการนี้ไม่สามารถยกเลิกได้' : 'This action cannot be undone',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
-          color: Color(0xFF414941),
+          color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
       actions: [
@@ -50,10 +51,10 @@ class DeleteItemDialog extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
           child: Text(
             isTh ? 'ยกเลิก' : 'Cancel',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF181D17),
+              color: theme.colorScheme.onSurface,
             ),
           ),
         ),

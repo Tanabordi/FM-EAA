@@ -438,9 +438,10 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
   void _showExpirySourceSheet() {
     final isTh = _isTh;
+    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.surfaceContainerHigh,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -455,7 +456,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFDDE4DC),
+                  color: theme.colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -465,17 +466,17 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                   alignment: Alignment.centerLeft,
                   child: Text(
                     isTh ? 'สแกนวันหมดอายุ' : 'Scan Expiration Date',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF181D17),
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 8),
               ListTile(
-                leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFF2E6A44)),
+                leading: Icon(Icons.camera_alt_outlined, color: theme.colorScheme.primary),
                 title: Text(isTh ? 'ถ่ายภาพด้วยกล้อง' : 'Take Photo with Camera'),
                 subtitle: Text(isTh ? 'ถ่ายภาพฝาขวด ก้นกระป๋อง หรือตราประทับวันหมดอายุ' : 'Capture bottle cap, can bottom, or stamp'),
                 onTap: () {

@@ -17,11 +17,12 @@ class LeaveFridgeDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final isTh = ref.watch(localeProvider).languageCode == 'th';
-    const dialogBg = Color(0xFFEAEFE8);
+    final dialogBg = theme.colorScheme.surfaceContainer;
     const leaveRed = Color(0xFFBA1A1A);
-    const textDark = Color(0xFF181D18);
-    const textMuted = Color(0xFF414942);
+    final textDark = theme.colorScheme.onSurface;
+    final textMuted = theme.colorScheme.onSurfaceVariant;
 
     final displayName = (fridgeName != null && fridgeName!.isNotEmpty)
         ? '"$fridgeName"'
@@ -41,7 +42,7 @@ class LeaveFridgeDialog extends ConsumerWidget {
           children: [
             Text(
               isTh ? 'ออกจากตู้เย็น?' : 'Leave Fridge?',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: textDark,
@@ -53,7 +54,7 @@ class LeaveFridgeDialog extends ConsumerWidget {
               isTh
                   ? 'คุณแน่ใจหรือไม่ว่าต้องการออกจาก $displayName? คุณจะไม่สามารถเข้าถึงวัตถุดิบในตู้เย็นนี้ได้อีก'
                   : 'Are you sure you want to leave $displayName? You will lose access to its items.',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15.5,
                 color: textMuted,
                 fontWeight: FontWeight.w400,
@@ -72,7 +73,7 @@ class LeaveFridgeDialog extends ConsumerWidget {
                   onPressed: () => Navigator.of(context).pop(false),
                   child: Text(
                     isTh ? 'ยกเลิก' : 'Cancel',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: textDark,

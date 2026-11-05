@@ -26,11 +26,12 @@ class FridgeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isTh = Localizations.localeOf(context).languageCode == 'th';
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFEAEFE8),
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Stack(
@@ -47,26 +48,26 @@ class FridgeCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Top Row: Outline fridge line icon + space for 3-dots
-                    const Row(
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         _FridgeLineIcon(
                           width: 17,
                           height: 26,
-                          color: Color(0xFF2E6A44),
+                          color: theme.colorScheme.primary,
                         ),
-                        SizedBox(width: 36, height: 26),
+                        const SizedBox(width: 36, height: 26),
                       ],
                     ),
                 const SizedBox(height: 14),
                 // Middle: Name & Description
                 Text(
                   name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16.5,
-                    color: Color(0xFF181D18),
+                    color: theme.colorScheme.onSurface,
                     letterSpacing: -0.2,
                   ),
                   maxLines: 1,
@@ -75,8 +76,8 @@ class FridgeCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   description,
-                  style: const TextStyle(
-                    color: Color(0xFF414942),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w400,
                   ),
@@ -87,15 +88,15 @@ class FridgeCard extends StatelessWidget {
                 // Items count row (Isometric box icon + text)
                 Row(
                   children: [
-                    const _IsometricBoxIcon(
+                    _IsometricBoxIcon(
                       size: 13,
-                      color: Color(0xFF414942),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       itemsCountText,
-                      style: const TextStyle(
-                        color: Color(0xFF414942),
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
                       ),
@@ -106,7 +107,7 @@ class FridgeCard extends StatelessWidget {
                 // Thin Divider
                 Container(
                   height: 1,
-                  color: const Color(0xFFB5BBB3),
+                  color: theme.colorScheme.outlineVariant,
                 ),
                 const SizedBox(height: 10),
                 // Bottom: Member status row (Person outline icon + text)
@@ -115,16 +116,16 @@ class FridgeCard extends StatelessWidget {
                     Icon(
                       isPersonal ? Icons.person_outline : Icons.people_outline,
                       size: 15,
-                      color: const Color(0xFF414942),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       isPersonal
                           ? (isTh ? 'ส่วนตัว' : 'Personal')
                           : (isTh ? '$memberCount สมาชิก' : '$memberCount members'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF414942),
+                        color: theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -144,14 +145,14 @@ class FridgeCard extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
               onTap: onMoreOptions,
-              child: const SizedBox(
+              child: SizedBox(
                 width: 44,
                 height: 44,
                 child: Center(
                   child: Icon(
                     Icons.more_vert,
                     size: 20,
-                    color: Color(0xFF2E6A44),
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ),

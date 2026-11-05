@@ -183,15 +183,15 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAEFE8),
+                    color: colorScheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.kitchen_outlined,
                         size: 32,
-                        color: Color(0xFF181D18),
+                        color: colorScheme.onSurface,
                       ),
                       const SizedBox(width: 20),
                       Expanded(
@@ -200,7 +200,7 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
-                            color: const Color(0xFF181D18),
+                            color: colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -239,18 +239,18 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                   Container(
                     height: 140,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEAEFE8),
+                      color: colorScheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: const Center(
-                      child: CircularProgressIndicator(color: Color(0xFF2E6A44)),
+                    child: Center(
+                      child: CircularProgressIndicator(color: colorScheme.primary),
                     ),
                   )
                 else if (members.isEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEAEFE8),
+                      color: colorScheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Center(
@@ -268,7 +268,7 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                 else
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEAEFE8),
+                      color: colorScheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -297,18 +297,18 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                               Expanded(
                                 child: Text(
                                   displayName,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF181D18),
+                                    color: colorScheme.onSurface,
                                   ),
                                 ),
                               ),
                               Text(
                                 isTh ? (member.role.toLowerCase() == 'owner' ? 'เจ้าของ' : 'สมาชิก') : member.role,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
-                                  color: Color(0xFF414942),
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                               const SizedBox(width: 4),
@@ -347,12 +347,12 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
                       child: Icon(
                         Icons.kitchen_outlined,
                         size: 20,
-                        color: Color(0xFF414942),
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(width: 10),

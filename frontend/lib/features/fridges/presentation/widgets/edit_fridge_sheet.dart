@@ -155,12 +155,14 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
   @override
   Widget build(BuildContext context) {
     ref.watch(localeProvider);
-    const sheetBg = Color(0xFFF6FBF3);
-    const borderColor = Color(0xFF717971);
-    const primaryGreen = Color(0xFF2E6A44);
-    const deleteRed = Color(0xFFBA1A1A);
-    const textDark = Color(0xFF181D18);
-    const textMuted = Color(0xFF414942);
+    final theme = Theme.of(context);
+    final sheetBg = theme.colorScheme.surface;
+    final borderColor = theme.colorScheme.outline;
+    final primaryGreen = theme.colorScheme.primary;
+    final onPrimaryGreen = theme.colorScheme.onPrimary;
+    const deleteRed = Color(0xFFB71C1C);
+    final textDark = theme.colorScheme.onSurface;
+    final textMuted = theme.colorScheme.onSurfaceVariant;
     final isTh = _isTh;
 
     return PopScope(
@@ -170,9 +172,9 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
         _handleClose();
       },
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: sheetBg,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: EdgeInsets.only(
           left: 20,
@@ -192,7 +194,7 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
                 children: [
                   Text(
                     isTh ? 'แก้ไขข้อมูลตู้เย็น' : 'Edit Fridge',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: textDark,
@@ -200,7 +202,7 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 24, color: textMuted),
+                    icon: Icon(Icons.close, size: 24, color: textMuted),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     tooltip: isTh ? 'ปิด' : 'Close',
@@ -211,7 +213,7 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
               const SizedBox(height: 4),
               Text(
                 isTh ? 'อัปเดตรายละเอียดตู้เย็นของคุณ' : 'Update your fridge details.',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14.5,
                   color: textMuted,
                   fontWeight: FontWeight.w400,
@@ -270,20 +272,24 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
                     backgroundColor: primaryGreen,
-                    foregroundColor: Colors.white,
+                    foregroundColor: onPrimaryGreen,
                     shape: const StadiumBorder(),
                     elevation: 0,
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   onPressed: _save,
                   child: Text(
                     isTh ? 'บันทึก' : 'Save',
-                    style: const TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: onPrimaryGreen,
                     ),
                   ),
                 ),
@@ -303,17 +309,17 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: ElevatedButton.icon(
+                child: FilledButton.icon(
                   icon: const Icon(Icons.delete_outline, color: Colors.white, size: 20),
                   label: Text(
                     isTh ? 'ลบตู้เย็น' : 'Delete Fridge',
                     style: const TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
+                  style: FilledButton.styleFrom(
                     backgroundColor: deleteRed,
                     foregroundColor: Colors.white,
                     shape: const StadiumBorder(),

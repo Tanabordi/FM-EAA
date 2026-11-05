@@ -196,13 +196,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 ),
                 if (hasPhoto)
                   ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Color(0xFFFFEBEE),
-                      child: Icon(Icons.delete_outline, color: Color(0xFFB91C1C)),
+                    leading: CircleAvatar(
+                      backgroundColor: theme.colorScheme.errorContainer,
+                      child: Icon(Icons.delete_outline, color: theme.colorScheme.error),
                     ),
                     title: Text(
                       _isThRead() ? 'ลบรูปภาพ' : 'Remove Photo',
-                      style: const TextStyle(color: Color(0xFFB91C1C), fontWeight: FontWeight.w500),
+                      style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w500),
                     ),
                     onTap: () {
                       Navigator.of(bottomSheetContext).pop();

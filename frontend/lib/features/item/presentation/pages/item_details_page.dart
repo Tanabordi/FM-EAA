@@ -86,8 +86,10 @@ class ItemDetailsPage extends ConsumerWidget {
       ),
     );
 
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3),
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -101,22 +103,22 @@ class ItemDetailsPage extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       isTh ? 'รายละเอียดวัตถุดิบ' : 'item details',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF181D17),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ),
                   Container(
                     width: 42,
                     height: 42,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF2E6A44),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 22),
+                      icon: Icon(Icons.edit_outlined, color: theme.colorScheme.onPrimary, size: 22),
                       padding: EdgeInsets.zero,
                       onPressed: () => context.push('/fridges/$fridgeId/items/$itemId/edit'),
                     ),
@@ -136,7 +138,7 @@ class ItemDetailsPage extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(24),
                       child: Container(
                         height: 240,
-                        color: const Color(0xFFEAEFE8),
+                        color: theme.colorScheme.surfaceContainer,
                         child: _buildDetailImage(item),
                       ),
                     ),
@@ -144,19 +146,19 @@ class ItemDetailsPage extends ConsumerWidget {
                     // Item Name
                     Text(
                       item.localizedName(isTh),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF181D17),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     // Quantity and Unit Subtitle
                     Text(
                       item.formattedQuantityLocalized(isTh),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
-                        color: Color(0xFF414941),
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -176,7 +178,7 @@ class ItemDetailsPage extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEAEFE8),
+                            color: theme.colorScheme.surfaceContainer,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
@@ -185,15 +187,15 @@ class ItemDetailsPage extends ConsumerWidget {
                               CategoryIcon(
                                 category: item.category,
                                 size: 16,
-                                color: const Color(0xFF181D17),
+                                color: theme.colorScheme.onSurface,
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 isTh ? _getThaiCategoryLabel(item.category) : _capitalize(item.category),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF181D17),
+                                  color: theme.colorScheme.onSurface,
                                 ),
                               ),
                             ],
@@ -202,17 +204,17 @@ class ItemDetailsPage extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEAEFE8),
+                            color: theme.colorScheme.surfaceContainer,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             isTh
                                 ? (item.zone.toLowerCase() == 'freezer' ? 'ช่องแช่แข็ง' : 'ช่องแช่เย็น')
                                 : _capitalize(item.zone),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF181D17),
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -224,8 +226,8 @@ class ItemDetailsPage extends ConsumerWidget {
                       height: 52,
                       child: FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF2E6A44),
-                          foregroundColor: Colors.white,
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
                           shape: const StadiumBorder(),
                           textStyle: const TextStyle(
                             fontSize: 16,
