@@ -427,5 +427,105 @@ void main() {
       // The parsed time should have subtracted the timezone offset and be near 'now', NOT in the future
       expect(model.createdAt.isBefore(now.add(const Duration(minutes: 5))), true);
     });
+
+    testWidgets('fridgeUnreadNotificationCountProvider calculates unread count strictly for specified fridge', (tester) async {
+      final notifs = [
+        NotificationModel(
+          id: 'n_f1_unread',
+          userId: 'user_1',
+          type: 'item_added',
+          title: 'Added',
+          message: 'Item added',
+          fridgeId: 'fridge_alpha',
+          isRead: false,
+          createdAt: DateTime.now(),
+        ),
+        NotificationModel(
+          id: 'n_f1_read',
+          userId: 'user_1',
+          type: 'item_added',
+          title: 'Added',
+          message: 'Item added',
+          fridgeId: 'fridge_alpha',
+          isRead: true,
+          createdAt: DateTime.now(),
+        ),
+        NotificationModel(
+          id: 'n_f2_unread',
+          userId: 'user_1',
+          type: 'item_added',
+          title: 'Added',
+          message: 'Item added',
+          fridgeId: 'fridge_beta',
+          isRead: false,
+          createdAt: DateTime.now(),
+        ),
+      ];
+
+      final container = ProviderContainer(
+        overrides: [
+          defaultNotificationsStreamProvider.overrideWith((ref) => Stream.value(notifs)),
+        ],
+      );
+
+      // Wait for stream to emit
+      await container.read(defaultNotificationsStreamProvider.future);
+
+      final countAlpha = container.read(fridgeUnreadNotificationCountProvider('fridge_alpha'));
+      final countBeta = container.read(fridgeUnreadNotificationCountProvider('fridge_beta'));
+      final countGamma = container.read(fridgeUnreadNotificationCountProvider('fridge_gamma'));
+
+      expect(countAlpha, 1);
+      expect(countBeta, 1);
+      expect(countGamma, 0);
+    });
+
+    testWidgets('NotificationsPage with fridgeId only renders notifications for that fridge', (tester) async {
+      final sampleNotifs = [
+        NotificationModel(
+          id: 'notif_alpha',
+          userId: 'user_1',
+          type: 'item_added',
+          title: 'New Item Added',
+          message: 'Milk added to Alpha',
+          fridgeId: 'fridge_alpha',
+          createdAt: DateTime.now(),
+        ),
+        NotificationModel(
+          id: 'notif_beta',
+          userId: 'user_1',
+          type: 'item_added',
+          title: 'New Item Added',
+          message: 'Eggs added to Beta',
+          fridgeId: 'fridge_beta',
+          createdAt: DateTime.now(),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            notificationRepositoryProvider.overrideWithValue(notificationRepo),
+            defaultNotificationsStreamProvider.overrideWith((ref) => Stream.value(sampleNotifs)),
+          ],
+          child: const MaterialApp(
+            home: NotificationsPage(
+              fridgeId: 'fridge_alpha',
+              fridgeName: 'Fridge Alpha',
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Verify Fridge Alpha's notification is present
+      expect(find.text('Milk added to Alpha'), findsOneWidget);
+      expect(find.text('Fridge Alpha'), findsOneWidget);
+
+      // Verify Fridge Beta's notification is NOT rendered
+      expect(find.text('Eggs added to Beta'), findsNothing);
+    });
   });
 }

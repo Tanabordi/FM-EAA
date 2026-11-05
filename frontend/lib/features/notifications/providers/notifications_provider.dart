@@ -84,6 +84,51 @@ final unreadNotificationCountProvider = StreamProvider<int>((ref) {
   return repo.watchUnreadCount(userId);
 });
 
+/// Stream of unread notification count specifically for a fridge with auto-sync polling
+final fridgeUnreadNotificationCountProvider = Provider.family<int, String>((ref, fridgeId) {
+  final notifsAsync = ref.watch(defaultNotificationsStreamProvider);
+  return notifsAsync.maybeWhen(
+    data: (list) {
+      final fridges = ref.watch(fridgesProvider);
+      final match = fridges.where((f) => f.id == fridgeId);
+      final fridgeName = match.isNotEmpty ? match.first.name : null;
+      return list.where((n) {
+        if (n.isRead) return false;
+        if (n.fridgeId != null && n.fridgeId!.isNotEmpty) {
+          return n.fridgeId == fridgeId;
+        }
+        if (fridgeName != null && fridgeName.isNotEmpty) {
+          return n.message.toLowerCase().contains(fridgeName.toLowerCase());
+        }
+        return false;
+      }).length;
+    },
+    orElse: () => 0,
+  );
+});
+
+/// Filtered list of notifications specifically for a fridge
+final fridgeNotificationsProvider = Provider.family<List<NotificationModel>, String>((ref, fridgeId) {
+  final notifsAsync = ref.watch(defaultNotificationsStreamProvider);
+  return notifsAsync.maybeWhen(
+    data: (list) {
+      final fridges = ref.watch(fridgesProvider);
+      final match = fridges.where((f) => f.id == fridgeId);
+      final fridgeName = match.isNotEmpty ? match.first.name : null;
+      return list.where((n) {
+        if (n.fridgeId != null && n.fridgeId!.isNotEmpty) {
+          return n.fridgeId == fridgeId;
+        }
+        if (fridgeName != null && fridgeName.isNotEmpty) {
+          return n.message.toLowerCase().contains(fridgeName.toLowerCase());
+        }
+        return false;
+      }).toList();
+    },
+    orElse: () => const <NotificationModel>[],
+  );
+});
+
 /// Backward-compatible FutureProvider for notifications list
 final notificationsListProvider = FutureProvider<List<NotificationModel>>((ref) async {
   final userId = ref.watch(currentNotificationUserIdProvider);
@@ -130,6 +175,21 @@ class NotificationController extends StateNotifier<AsyncValue<void>> {
     final String targetUserId = userId ?? _ref.read(currentNotificationUserIdProvider);
     state = const AsyncLoading();
     state = await AsyncValue.guard(() => _repository.markAllAsRead(targetUserId));
+  }
+
+  Future<void> markFridgeAsRead(String fridgeId, [String? userId, String? fridgeName]) async {
+    final String targetUserId = userId ?? _ref.read(currentNotificationUserIdProvider);
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final allNotifs = await _repository.getNotifications(targetUserId);
+      for (final n in allNotifs) {
+        final matches = (n.fridgeId != null && n.fridgeId == fridgeId) ||
+            (fridgeName != null && fridgeName.isNotEmpty && n.message.toLowerCase().contains(fridgeName.toLowerCase()));
+        if (matches && !n.isRead) {
+          await _repository.markAsRead(n.id);
+        }
+      }
+    });
   }
 
   Future<void> deleteNotification(String id) async {

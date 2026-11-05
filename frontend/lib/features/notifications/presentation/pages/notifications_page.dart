@@ -8,9 +8,17 @@ import '../../../../core/theme/freshness_colors.dart';
 import '../../../../data/models/notification_model.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../providers/notifications_provider.dart';
+import '../../../fridges/providers/fridges_provider.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
-  const NotificationsPage({super.key});
+  final String? fridgeId;
+  final String? fridgeName;
+
+  const NotificationsPage({
+    super.key,
+    this.fridgeId,
+    this.fridgeName,
+  });
 
   @override
   ConsumerState<NotificationsPage> createState() => _NotificationsPageState();
@@ -78,9 +86,27 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
     );
   }
 
-  Future<void> _handleMarkAllAsRead() async {
+  bool _matchesFridge(NotificationModel n, String fridgeId, String? fridgeName) {
+    if (n.fridgeId != null && n.fridgeId!.isNotEmpty) {
+      return n.fridgeId == fridgeId;
+    }
+    if (fridgeName != null && fridgeName.isNotEmpty) {
+      return n.message.toLowerCase().contains(fridgeName.toLowerCase());
+    }
+    return false;
+  }
+
+  Future<void> _handleMarkAllAsRead([String? effectiveFridgeName]) async {
     final isTh = ref.read(localeProvider).languageCode == 'th';
-    await ref.read(notificationControllerProvider.notifier).markAllAsRead();
+    if (widget.fridgeId != null) {
+      await ref.read(notificationControllerProvider.notifier).markFridgeAsRead(
+            widget.fridgeId!,
+            null,
+            effectiveFridgeName,
+          );
+    } else {
+      await ref.read(notificationControllerProvider.notifier).markAllAsRead();
+    }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(isTh ? 'ทำเครื่องหมายว่าอ่านแล้วทั้งหมดแล้ว' : 'All notifications marked as read')),
@@ -93,6 +119,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
     final notificationsAsync = ref.watch(defaultNotificationsStreamProvider);
     final isTh = ref.watch(localeProvider).languageCode == 'th';
 
+    final effectiveFridgeName = widget.fridgeName ??
+        (widget.fridgeId != null
+            ? ref.watch(fridgesProvider).where((f) => f.id == widget.fridgeId).firstOrNull?.name
+            : null);
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
@@ -104,16 +135,34 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
           padding: EdgeInsets.only(left: 16),
           child: AppBackButton(),
         ),
-        title: Text(isTh ? 'การแจ้งเตือน' : 'Notifications', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(isTh ? 'การแจ้งเตือน' : 'Notifications', style: const TextStyle(fontWeight: FontWeight.bold)),
+            if (widget.fridgeId != null && effectiveFridgeName != null && effectiveFridgeName.isNotEmpty)
+              Text(
+                effectiveFridgeName,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ),
         actions: [
           notificationsAsync.maybeWhen(
             data: (list) {
-              final hasUnread = list.any((n) => !n.isRead);
+              final filtered = widget.fridgeId != null
+                  ? list.where((n) => _matchesFridge(n, widget.fridgeId!, effectiveFridgeName)).toList()
+                  : list;
+              final hasUnread = filtered.any((n) => !n.isRead);
               if (!hasUnread) return const SizedBox.shrink();
               return IconButton(
                 icon: const Icon(Icons.done_all_rounded, size: 22),
                 tooltip: isTh ? 'ทำเครื่องหมายว่าอ่านแล้วทั้งหมด' : 'Mark all as read',
-                onPressed: _handleMarkAllAsRead,
+                onPressed: () => _handleMarkAllAsRead(effectiveFridgeName),
               );
             },
             orElse: () => const SizedBox.shrink(),
@@ -130,70 +179,80 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (err, _) => Center(child: Text('Error loading notifications: $err')),
                 data: (notifications) {
-            if (notifications.isEmpty) {
-              return RefreshIndicator(
-                onRefresh: () async {
-                  await ref.read(notificationControllerProvider.notifier).sync();
-                },
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.7,
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(22),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.surfaceContainer,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.notifications_none_outlined,
-                                  size: 48,
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              Text(
-                                isTh ? 'ไม่มีการแจ้งเตือน' : 'No Notifications',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onSurface,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                child: Text(
-                                  isTh
-                                      ? 'คุณอ่านครบทั้งหมดแล้ว! การแจ้งเตือนวันหมดอายุและคำเชิญจะแสดงที่นี่'
-                                      : "You're all caught up! Expiry alerts and family invites will appear here.",
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    height: 1.45,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
+                  final filtered = widget.fridgeId != null
+                      ? notifications.where((n) => _matchesFridge(n, widget.fridgeId!, effectiveFridgeName)).toList()
+                      : notifications;
 
-            final sortedNotifications = [...notifications]
-              ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                  if (filtered.isEmpty) {
+                    return RefreshIndicator(
+                      onRefresh: () async {
+                        await ref.read(notificationControllerProvider.notifier).sync();
+                      },
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.7,
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(22),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.surfaceContainer,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.notifications_none_outlined,
+                                        size: 48,
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 18),
+                                    Text(
+                                      widget.fridgeId != null
+                                          ? (isTh ? 'ไม่มีการแจ้งเตือนสำหรับตู้นี้' : 'No notifications for this fridge')
+                                          : (isTh ? 'ไม่มีการแจ้งเตือน' : 'No Notifications'),
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                      child: Text(
+                                        widget.fridgeId != null
+                                            ? (isTh
+                                                ? 'การแจ้งเตือนวันหมดอายุและกิจกรรมในตู้เย็นนี้จะแสดงที่นี่'
+                                                : 'Expiry alerts and item updates for this fridge will appear here.')
+                                            : (isTh
+                                                ? 'คุณอ่านครบทั้งหมดแล้ว! การแจ้งเตือนวันหมดอายุและคำเชิญจะแสดงที่นี่'
+                                                : "You're all caught up! Expiry alerts and family invites will appear here."),
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          color: theme.colorScheme.onSurfaceVariant,
+                                          height: 1.45,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final sortedNotifications = [...filtered]
+                    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
             return RefreshIndicator(
               onRefresh: () async {
