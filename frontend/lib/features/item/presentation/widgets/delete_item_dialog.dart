@@ -51,10 +51,10 @@ class DeleteItemDialog extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
           child: Text(
             isTh ? 'ยกเลิก' : 'Cancel',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF181D17),
+              color: theme.colorScheme.onSurface,
             ),
           ),
         ),

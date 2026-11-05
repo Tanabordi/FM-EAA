@@ -316,10 +316,10 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
 
             // ─── Search Progress or Message ───
             if (_isSearching)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Center(
-                  child: CircularProgressIndicator(color: Color(0xFF2E6A44)),
+                  child: CircularProgressIndicator(color: theme.colorScheme.primary),
                 ),
               )
             else if (_searchMessage != null)
@@ -328,9 +328,9 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                 child: Center(
                   child: Text(
                     _searchMessage!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF414941),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     textAlign: TextAlign.center,
                   ),

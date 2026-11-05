@@ -961,9 +961,9 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                   color: const Color(0xFF2E6A44).withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const CircularProgressIndicator(
+                                child: CircularProgressIndicator(
                                   strokeWidth: 3,
-                                  color: Color(0xFF2E6A44),
+                                  color: theme.colorScheme.primary,
                                 ),
                               ),
                               const SizedBox(height: 20),
@@ -971,10 +971,10 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                 isTh
                                     ? '✨ Gemini AI กำลังคิดค้น 6 สูตรอาหารสดใหม่...'
                                     : '✨ Gemini AI is crafting 6 fresh recipes...',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1E281E),
+                                  color: theme.colorScheme.onSurface,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -983,9 +983,9 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                 isTh
                                     ? 'กำลังสร้างสรรค์ไอเดียเมนูแสนอร่อยจาก "$_currentIngredient" ให้คุณ'
                                     : 'Creating delicious meal ideas from "$_currentIngredient" for you',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF555F55),
+                                  color: theme.colorScheme.onSurfaceVariant,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -999,19 +999,19 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                         child: Center(
                           child: Column(
                             children: [
-                              const CircularProgressIndicator(
+                              CircularProgressIndicator(
                                 strokeWidth: 3,
-                                color: Color(0xFF2E6A44),
+                                color: theme.colorScheme.primary,
                               ),
                               const SizedBox(height: 16),
                               Text(
                                 isTh
                                     ? '✨ Gemini AI กำลังสร้างสรรค์ 6 สูตรอาหารสดใหม่...'
                                     : '✨ Gemini AI is generating 6 fresh recipes...',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1E281E),
+                                  color: theme.colorScheme.onSurface,
                                 ),
                               ),
                             ],
@@ -1090,10 +1090,10 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFE8F2EA),
+                                      color: theme.colorScheme.surfaceContainer,
                                       borderRadius: BorderRadius.circular(24),
                                       border: Border.all(
-                                        color: const Color(0xFF2E6A44).withValues(alpha: 0.3),
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     child: Row(
@@ -1120,9 +1120,9 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                             ),
                                           ),
                                         ] else ...[
-                                          const Icon(
+                                          Icon(
                                             Icons.sync_rounded,
-                                            color: Color(0xFF2E6A44),
+                                            color: theme.colorScheme.primary,
                                             size: 18,
                                           ),
                                           const SizedBox(width: 8),
@@ -1130,10 +1130,10 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                             isTh
                                                 ? 'แนะนำสูตรใหม่ ($_usedCount/$_maxDailyQuota)'
                                                 : 'Regenerate ($_usedCount/$_maxDailyQuota)',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
-                                              color: Color(0xFF2E6A44),
+                                              color: theme.colorScheme.primary,
                                             ),
                                           ),
                                         ],
@@ -1165,13 +1165,14 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
   }
 
   Widget _buildRecipeCard(RecipeModel recipe, [bool isTh = false]) {
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 6, 16, 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF717971).withValues(alpha: 0.28),
+          color: theme.colorScheme.outlineVariant,
           width: 1.0,
         ),
         boxShadow: [
@@ -1283,8 +1284,8 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                         height: 36,
                         child: FilledButton(
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF2E6A44),
-                            foregroundColor: Colors.white,
+                            backgroundColor: theme.colorScheme.primary,
+                            foregroundColor: theme.colorScheme.onPrimary,
                             shape: const StadiumBorder(),
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                           ),

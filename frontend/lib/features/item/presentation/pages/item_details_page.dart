@@ -156,9 +156,9 @@ class ItemDetailsPage extends ConsumerWidget {
                     // Quantity and Unit Subtitle
                     Text(
                       item.formattedQuantityLocalized(isTh),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
-                        color: Color(0xFF414941),
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -226,8 +226,8 @@ class ItemDetailsPage extends ConsumerWidget {
                       height: 52,
                       child: FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF2E6A44),
-                          foregroundColor: Colors.white,
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
                           shape: const StadiumBorder(),
                           textStyle: const TextStyle(
                             fontSize: 16,

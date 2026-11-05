@@ -99,10 +99,10 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
               // Title
               Text(
                 isTh ? 'บริโภคไปปริมาณเท่าไหร่?' : 'How much did you consume?',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF181D17),
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 6),
@@ -111,9 +111,9 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                 isTh
                     ? '${widget.itemName} · ${widget.availablePieces.toInt()} $localizedUnit ในตู้เย็น'
                     : '${widget.itemName} · ${widget.availablePieces.toInt()} ${widget.unit} in fridge',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF414941),
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 24),
@@ -134,8 +134,8 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: canDecrement
-                              ? const Color(0xFF717971)
-                              : const Color(0xFFC4C8C1),
+                              ? theme.colorScheme.outline
+                              : theme.colorScheme.outlineVariant,
                           width: 1.5,
                         ),
                       ),
@@ -143,8 +143,8 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                         Icons.remove,
                         size: 20,
                         color: canDecrement
-                            ? const Color(0xFF181D17)
-                            : const Color(0xFFA8ADA5),
+                            ? theme.colorScheme.onSurface
+                            : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -155,19 +155,19 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                       children: [
                         Text(
                           '${_consumeAmount.toInt()}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 34,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF181D17),
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
                         Text(
                           isTh
                               ? 'จากทั้งหมด ${widget.availablePieces.toInt()} $localizedUnit'
                               : 'of ${widget.availablePieces.toInt()} ${widget.unit}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF414941),
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -185,13 +185,15 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: canIncrement
-                            ? const Color(0xFF2E6A44)
-                            : const Color(0xFF818981),
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.surfaceContainerHigh,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.add,
                         size: 22,
-                        color: Colors.white,
+                        color: canIncrement
+                            ? theme.colorScheme.onPrimary
+                            : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                       ),
                     ),
                   ),
@@ -255,10 +257,10 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                           isTh
                               ? 'ขอไอเดียเมนูอาหารจาก Gemini AI'
                               : 'Ask Gemini AI for recipe ideas',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF181D17),
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
                       ],
@@ -272,8 +274,8 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                 height: 52,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E6A44),
-                    foregroundColor: Colors.white,
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
                     shape: const StadiumBorder(),
                     textStyle: const TextStyle(
                       fontSize: 16,

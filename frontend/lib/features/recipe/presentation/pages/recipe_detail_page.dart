@@ -252,10 +252,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     // Recipe Title
                     Text(
                       _localizeRecipeText(recipe.title, isTh),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF181D17),
+                        color: theme.colorScheme.onSurface,
                         height: 1.2,
                       ),
                     ),
@@ -335,10 +335,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     // Ingredients Section
                     Text(
                       isTh ? 'วัตถุดิบที่ต้องใช้' : 'Ingredients',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF181D17),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -359,21 +359,21 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                                 height: 19,
                                 decoration: BoxDecoration(
                                   color: isChecked
-                                      ? const Color(0xFF2E6A44)
+                                      ? theme.colorScheme.primary
                                       : Colors.transparent,
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(
                                     color: isChecked
-                                        ? const Color(0xFF2E6A44)
-                                        : const Color(0xFF717971),
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.outline,
                                     width: 1.5,
                                   ),
                                 ),
                                 child: isChecked
-                                    ? const Icon(
+                                    ? Icon(
                                         Icons.check,
                                         size: 14,
-                                        color: Colors.white,
+                                        color: theme.colorScheme.onPrimary,
                                       )
                                     : null,
                               ),
@@ -383,12 +383,12 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                                   _localizeRecipeText(ing, isTh),
                                   style: TextStyle(
                                     fontSize: 15,
-                                    color: const Color(0xFF181D17),
+                                    color: theme.colorScheme.onSurface,
                                     fontWeight: FontWeight.w400,
                                     decoration: isChecked
                                         ? TextDecoration.lineThrough
                                         : null,
-                                    decorationColor: const Color(0xFF717971),
+                                    decorationColor: theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ),
@@ -401,10 +401,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     // Instructions Section
                     Text(
                       isTh ? 'วิธีทำทีละขั้นตอน' : 'Instructions',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF181D17),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -473,8 +473,8 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                 height: 52,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E6A44),
-                    foregroundColor: Colors.white,
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
                     shape: const StadiumBorder(),
                     elevation: 0,
                   ),
@@ -482,14 +482,14 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.check, size: 22, color: Colors.white),
+                      Icon(Icons.check, size: 22, color: theme.colorScheme.onPrimary),
                       const SizedBox(width: 8),
                       Text(
                         isTh ? 'ทำเสร็จแล้ว! บันทึกว่ารับประทานแล้ว' : 'Done! Mark as Consumed',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: theme.colorScheme.onPrimary,
                         ),
                       ),
                     ],

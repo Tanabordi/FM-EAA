@@ -369,44 +369,48 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   }
 
   InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon, String? errorText}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(
-        color: Color(0xFF717971),
+      hintStyle: TextStyle(
+        color: isDark ? theme.colorScheme.onSurfaceVariant : const Color(0xFF717971),
         fontSize: 15,
         fontWeight: FontWeight.w400,
       ),
       errorText: errorText,
-      errorStyle: const TextStyle(
-        color: Color(0xFFBA1A1A),
+      errorStyle: TextStyle(
+        color: theme.colorScheme.error,
         fontSize: 12,
         fontWeight: FontWeight.w400,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       filled: true,
-      fillColor: Theme.of(context).colorScheme.surface,
+      fillColor: isDark ? theme.colorScheme.surfaceContainer : theme.colorScheme.surface,
       suffixIcon: suffixIcon,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: errorText != null ? const Color(0xFFBA1A1A) : const Color(0xFF717971),
+          color: errorText != null
+              ? theme.colorScheme.error
+              : (isDark ? theme.colorScheme.outlineVariant : const Color(0xFF717971)),
           width: errorText != null ? 1.5 : 1.0,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: errorText != null ? const Color(0xFFBA1A1A) : const Color(0xFF2E6A44),
+          color: errorText != null ? theme.colorScheme.error : theme.colorScheme.primary,
           width: 1.5,
         ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFBA1A1A), width: 1.5),
+        borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFBA1A1A), width: 1.5),
+        borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
       ),
     );
   }
@@ -655,9 +659,10 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
     final isTh = _isThRead();
 
+    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.surfaceContainerHigh,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -672,7 +677,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFDDE4DC),
+                  color: theme.colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -682,10 +687,10 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     isTh ? 'นำรูปออกหรือรีเซ็ตแบบฟอร์ม?' : 'Remove Photo or Reset Form?',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF181D17),
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -695,24 +700,24 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainer,
+                    color: theme.colorScheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.photo_outlined, color: Theme.of(context).colorScheme.primary, size: 22),
+                  child: Icon(Icons.photo_outlined, color: theme.colorScheme.primary, size: 22),
                 ),
                 title: Text(
                   isTh ? 'นำรูปภาพออกเท่านั้น' : 'Remove photo only',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 subtitle: Text(
                   isTh
                       ? 'เก็บรายละเอียดที่กรอกไว้ และลบเฉพาะรูปภาพ'
                       : 'Keep entered details and delete only the photo',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF5C665F)),
+                  style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -724,24 +729,24 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEE2E2),
+                    color: theme.colorScheme.errorContainer,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.delete_sweep_outlined, color: Color(0xFFDC2626), size: 22),
+                  child: Icon(Icons.delete_sweep_outlined, color: theme.colorScheme.error, size: 22),
                 ),
                 title: Text(
                   isTh ? 'ล้างข้อมูลทั้งหมดและรีเซ็ต' : 'Clear all and reset form',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFDC2626),
+                    color: theme.colorScheme.error,
                   ),
                 ),
                 subtitle: Text(
                   isTh
                       ? 'ลบรูปภาพและรีเซ็ตข้อมูลอาหารทั้งหมด'
                       : 'Delete photo and reset all food details',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF5C665F)),
+                  style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -823,14 +828,16 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   }
 
   Widget _buildScanCardContent([bool isTh = false]) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     if (_isScanning) {
       return Column(
         children: [
           Container(
             width: 44,
             height: 44,
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: isDark ? theme.colorScheme.surfaceContainerHigh : Colors.white,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -857,10 +864,10 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
             isTh
                 ? 'กำลังวิเคราะห์ฉลากด้วย Gemini AI Vision...'
                 : 'Analyzing label with Gemini AI Vision...',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF181D17),
+              color: theme.colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 6),
@@ -868,18 +875,18 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
             isTh
                 ? 'กำลังดึงชื่อผลิตภัณฑ์และวันหมดอายุ'
                 : 'Extracting product name and expiration date',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF414941),
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 14),
-          const ClipRRect(
-            borderRadius: BorderRadius.all(Radius.circular(4)),
+          ClipRRect(
+            borderRadius: const BorderRadius.all(Radius.circular(4)),
             child: LinearProgressIndicator(
               minHeight: 4,
-              backgroundColor: Color(0xFFDDE4DC),
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2E6A44)),
+              backgroundColor: theme.colorScheme.surfaceContainerHigh,
+              valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
             ),
           ),
         ],
@@ -1002,10 +1009,10 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                   : (_foodNameController.text.isNotEmpty
                       ? _foodNameController.text
                       : (isTh ? 'แนบรูปภาพอาหารแล้ว' : 'Food photo attached')),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF181D17),
+                color: theme.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 4),
@@ -1013,9 +1020,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
               isTh
                   ? 'แตะการ์ดเพื่อเปลี่ยนรูป หรือแตะ ✕ เพื่อนำออก'
                   : 'Tap card to change photo, or tap ✕ to remove',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF414941),
+                color: theme.colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
@@ -1027,18 +1034,18 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     // Default Card: AI Scan & Manual Photo Options
     return Column(
       children: [
-        const Icon(
+        Icon(
           Icons.camera_alt_outlined,
           size: 32,
-          color: Color(0xFF181D17),
+          color: theme.colorScheme.onSurface,
         ),
         const SizedBox(height: 8),
         Text(
           isTh ? 'เพิ่มรูปภาพหรือสแกนฉลาก' : 'Add Photo or Scan Label',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF181D17),
+            color: theme.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 4),
@@ -1046,9 +1053,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
           isTh
               ? 'สแกนฉลากเพื่อกรอกข้อมูลอัตโนมัติ หรือถ่ายภาพ/อัปโหลดภาพ'
               : 'Scan label to autofill details, or take/upload a photo',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: Color(0xFF414941),
+            color: theme.colorScheme.onSurfaceVariant,
           ),
           textAlign: TextAlign.center,
         ),
@@ -1059,18 +1066,18 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
           child: ElevatedButton.icon(
             key: const Key('add_item_scan_ai_btn'),
             onPressed: _openScanLabelScanner,
-            icon: const Icon(Icons.auto_awesome, size: 18, color: Colors.white),
+            icon: Icon(Icons.auto_awesome, size: 18, color: theme.colorScheme.onPrimary),
             label: Text(
               isTh ? 'สแกนฉลากด้วย AI' : 'Scan Label with AI',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: theme.colorScheme.onPrimary,
               ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2E6A44),
-              foregroundColor: Colors.white,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -1087,18 +1094,18 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
               child: OutlinedButton.icon(
                 key: const Key('add_item_take_photo_btn'),
                 onPressed: () => _pickManualPhoto(ImageSource.camera),
-                icon: const Icon(Icons.camera_alt_outlined, size: 16, color: Color(0xFF2E6A44)),
+                icon: Icon(Icons.camera_alt_outlined, size: 16, color: theme.colorScheme.primary),
                 label: Text(
                   isTh ? 'ถ่ายภาพ' : 'Take Photo',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF181D17),
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(alpha: 0.8),
-                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  backgroundColor: isDark ? theme.colorScheme.surfaceContainerHigh : Colors.white.withValues(alpha: 0.8),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1111,18 +1118,18 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
               child: OutlinedButton.icon(
                 key: const Key('add_item_gallery_btn'),
                 onPressed: () => _pickManualPhoto(ImageSource.gallery),
-                icon: const Icon(Icons.photo_library_outlined, size: 16, color: Color(0xFF2E6A44)),
+                icon: Icon(Icons.photo_library_outlined, size: 16, color: theme.colorScheme.primary),
                 label: Text(
                   isTh ? 'คลังภาพ' : 'Gallery',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF181D17),
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(alpha: 0.8),
-                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  backgroundColor: isDark ? theme.colorScheme.surfaceContainerHigh : Colors.white.withValues(alpha: 0.8),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1139,6 +1146,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   @override
   Widget build(BuildContext context) {
     final isTh = _isTh;
+    final theme = Theme.of(context);
 
     return PopScope(
       canPop: !_hasUnsavedChanges,
@@ -1197,9 +1205,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                     // Food Name Field
                     TextFormField(
                       controller: _foodNameController,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
-                        color: Color(0xFF181D17),
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w400,
                       ),
                       decoration: _inputDecoration(
@@ -1217,29 +1225,30 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                     DropdownButtonFormField<String>(
                       key: ValueKey('cat_$_selectedCategory'),
                       initialValue: _selectedCategory,
-                      style: const TextStyle(
+                      dropdownColor: theme.colorScheme.surfaceContainerHigh,
+                      style: TextStyle(
                         fontSize: 15,
-                        color: Color(0xFF181D17),
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w400,
                       ),
                       hint: Text(
                         isTh ? 'หมวดหมู่' : 'Category',
-                        style: const TextStyle(
-                          color: Color(0xFF717971),
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
                           fontSize: 15,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
-                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
+                      icon: Icon(Icons.keyboard_arrow_down, color: theme.colorScheme.onSurfaceVariant),
                       decoration: _inputDecoration(errorText: _categoryError),
                       items: _categories
                           .map((c) => DropdownMenuItem(
                                 value: c,
                                 child: Text(
                                   _getCategoryDisplay(c, isTh),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
-                                    color: Color(0xFF181D17),
+                                    color: theme.colorScheme.onSurface,
                                     fontWeight: FontWeight.w400,
                                   ),
                                 ),
@@ -1262,9 +1271,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           child: TextFormField(
                             controller: _quantityController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
-                              color: Color(0xFF181D17),
+                              color: theme.colorScheme.onSurface,
                               fontWeight: FontWeight.w400,
                             ),
                             decoration: _inputDecoration(
@@ -1284,29 +1293,30 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           child: DropdownButtonFormField<String>(
                             key: ValueKey('unit_$_selectedUnit'),
                             initialValue: _selectedUnit,
-                            style: const TextStyle(
+                            dropdownColor: theme.colorScheme.surfaceContainerHigh,
+                            style: TextStyle(
                               fontSize: 15,
-                              color: Color(0xFF181D17),
+                              color: theme.colorScheme.onSurface,
                               fontWeight: FontWeight.w400,
                             ),
                             hint: Text(
                               isTh ? 'หน่วย' : 'Unit',
-                              style: const TextStyle(
-                                color: Color(0xFF717971),
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w400,
                               ),
                             ),
-                            icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
+                            icon: Icon(Icons.keyboard_arrow_down, color: theme.colorScheme.onSurfaceVariant),
                             decoration: _inputDecoration(errorText: _unitError),
                             items: _units
                                 .map((u) => DropdownMenuItem(
                                       value: u,
                                       child: Text(
                                         _getUnitDisplay(u, isTh),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 15,
-                                          color: Color(0xFF181D17),
+                                          color: theme.colorScheme.onSurface,
                                           fontWeight: FontWeight.w400,
                                         ),
                                       ),
@@ -1327,29 +1337,30 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                     DropdownButtonFormField<String>(
                       key: ValueKey('storage_$_selectedStorage'),
                       initialValue: _selectedStorage,
-                      style: const TextStyle(
+                      dropdownColor: theme.colorScheme.surfaceContainerHigh,
+                      style: TextStyle(
                         fontSize: 15,
-                        color: Color(0xFF181D17),
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w400,
                       ),
                       hint: Text(
                         isTh ? 'สถานที่จัดเก็บ' : 'Storage Location',
-                        style: const TextStyle(
-                          color: Color(0xFF717971),
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
                           fontSize: 15,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
-                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF414941)),
+                      icon: Icon(Icons.keyboard_arrow_down, color: theme.colorScheme.onSurfaceVariant),
                       decoration: _inputDecoration(errorText: _storageError),
                       items: _storages
                           .map((s) => DropdownMenuItem(
                                 value: s,
                                 child: Text(
                                   _getStorageDisplay(s, isTh),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
-                                    color: Color(0xFF181D17),
+                                    color: theme.colorScheme.onSurface,
                                     fontWeight: FontWeight.w400,
                                   ),
                                 ),
@@ -1400,19 +1411,19 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9/]')),
                         DateInputFormatter(),
                       ],
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
-                        color: Color(0xFF181D17),
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w400,
                       ),
                       decoration: _inputDecoration(
                         hintText: isTh ? 'วันหมดอายุ (วว/ดด/ปปปป)' : 'Expiration Date (MM/DD/YYYY)',
                         errorText: _expirationDateError,
                         suffixIcon: IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.calendar_month_outlined,
                             size: 22,
-                            color: Color(0xFF414941),
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                           tooltip: isTh ? 'เลือกวันที่' : 'Choose date',
                           onPressed: () async {
@@ -1424,18 +1435,6 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                               initialDate: initial,
                               firstDate: DateTime(2020),
                               lastDate: DateTime(2035),
-                              builder: (context, child) {
-                                return Theme(
-                                  data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: Color(0xFF2E6A44),
-                                      onPrimary: Colors.white,
-                                      onSurface: Color(0xFF181D17),
-                                    ),
-                                  ),
-                                  child: child!,
-                                );
-                              },
                             );
                             if (picked != null) {
                               setState(() {
@@ -1470,7 +1469,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         isTh
                             ? 'วันหมดอายุหรือควรบริโภคก่อน (วว/ดด/ปปปป)'
                             : 'Use-by or best-before date (MM/DD/YYYY)',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF414941)),
+                        style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                       ),
                     ),
                     const SizedBox(height: 28),
@@ -1479,8 +1478,8 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                       height: 52,
                       child: FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF2E6A44),
-                          foregroundColor: Colors.white,
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
                           shape: const StadiumBorder(),
                           textStyle: const TextStyle(
                             fontSize: 16,
