@@ -28,6 +28,7 @@ class HistoryModel {
   });
 
   bool get isConsumed => kind == 'consumed';
+  bool get isExpired => kind == 'expired';
 
   factory HistoryModel.fromEntry(ItemHistoryData entry, {String? username}) {
     final cleanUsername = username ??

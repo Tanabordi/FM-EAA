@@ -149,6 +149,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
               );
             }
 
+            final sortedNotifications = [...notifications]
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
             return RefreshIndicator(
               onRefresh: () async {
                 await ref.read(notificationControllerProvider.notifier).sync();
@@ -156,10 +159,10 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
               child: ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
-                itemCount: notifications.length,
+                itemCount: sortedNotifications.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  final notif = notifications[index];
+                  final notif = sortedNotifications[index];
                   if (notif.isInvite) {
                     return _buildInviteCard(context, notif);
                   } else if (notif.isMemberJoined) {
@@ -180,7 +183,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   Widget _buildInviteCard(BuildContext context, NotificationModel notif) {
     final theme = Theme.of(context);
-    final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt);
+    final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
 
     return InkWell(
       onTap: () {
@@ -300,7 +303,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   Widget _buildExpiryCard(BuildContext context, NotificationModel notif) {
     final theme = Theme.of(context);
-    final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt);
+    final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
 
     return InkWell(
       onTap: () {
@@ -403,7 +406,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   Widget _buildMemberJoinedCard(BuildContext context, NotificationModel notif) {
     final theme = Theme.of(context);
-    final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt);
+    final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
 
     return InkWell(
       onTap: () {
@@ -501,7 +504,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   Widget _buildItemActionCard(BuildContext context, NotificationModel notif) {
     final theme = Theme.of(context);
-    final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt);
+    final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
 
     Color avatarBg;
     Color iconColor;

@@ -83,7 +83,7 @@ class NotificationModel {
       inviteId: inviteId,
       itemId: itemId,
       isRead: entry.isRead as bool,
-      createdAt: entry.createdAt as DateTime,
+      createdAt: (entry.createdAt as DateTime).toLocal(),
     );
   }
 
@@ -142,7 +142,11 @@ class NotificationModel {
     DateTime createdAt = DateTime.now();
     if (rawCreatedAt != null) {
       try {
-        createdAt = DateTime.parse(rawCreatedAt.toString());
+        if (rawCreatedAt is DateTime) {
+          createdAt = rawCreatedAt.toLocal();
+        } else {
+          createdAt = DateTime.parse(rawCreatedAt.toString()).toLocal();
+        }
       } catch (_) {}
     }
 

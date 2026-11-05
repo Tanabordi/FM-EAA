@@ -53,12 +53,15 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
       return;
     }
 
+    final isExpired = _currentKind == 'expired';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Clear All $_currentTabLabel History?'),
         content: Text(
-          'Are you sure you want to clear all $_currentTabLabel records for this fridge? This action cannot be undone.',
+          isExpired
+              ? 'Are you sure you want to clear all expired records for this fridge? This will also remove these expired items from your fridge inventory. This action cannot be undone.'
+              : 'Are you sure you want to clear all consumed records for this fridge? This will only remove the records from your history and does not affect your fridge inventory. This action cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -90,11 +93,16 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
   }
 
   Future<void> _confirmDeleteSingle(HistoryModel item) async {
+    final isExpired = item.isExpired;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete History Record'),
-        content: Text('Remove "${item.itemName}" from history?'),
+        title: Text(isExpired ? 'Delete Expired Item' : 'Delete Consumption Record'),
+        content: Text(
+          isExpired
+              ? 'Remove "${item.itemName}" from history and your fridge? This will also remove the item from your fridge inventory.'
+              : 'Remove "${item.itemName}" from consumption history? This will only remove the record from your history.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -116,7 +124,13 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
       await ref.read(historyControllerProvider.notifier).deleteItem(item.id, fridgeId: widget.fridgeId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Removed "${item.itemName}" from history.')),
+        SnackBar(
+          content: Text(
+            isExpired
+                ? 'Removed "${item.itemName}" from history and fridge.'
+                : 'Removed "${item.itemName}" from consumption history.',
+          ),
+        ),
       );
     }
   }
