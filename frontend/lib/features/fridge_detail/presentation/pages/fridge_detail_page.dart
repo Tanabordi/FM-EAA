@@ -51,7 +51,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
 
   bool get _isTh {
     try {
-      return ref.watch(localeProvider).languageCode == 'th';
+      return ref.read(localeProvider).languageCode == 'th';
     } catch (_) {
       try {
         return Localizations.localeOf(context).languageCode == 'th';

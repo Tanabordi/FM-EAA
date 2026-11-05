@@ -31,7 +31,7 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
 
   bool get _isTh {
     try {
-      return ref.watch(localeProvider).languageCode == 'th';
+      return ref.read(localeProvider).languageCode == 'th';
     } catch (_) {
       try {
         return Localizations.localeOf(context).languageCode == 'th';
@@ -154,6 +154,7 @@ class _EditFridgeSheetState extends ConsumerState<EditFridgeSheet> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
     const sheetBg = Color(0xFFF6FBF3);
     const borderColor = Color(0xFF717971);
     const primaryGreen = Color(0xFF2E6A44);

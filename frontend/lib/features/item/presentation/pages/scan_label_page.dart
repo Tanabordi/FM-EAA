@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/utils/environment.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../shared/widgets/app_back_button.dart';
@@ -51,8 +52,9 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   late AnimationController _laserController;
   late Animation<double> _laserAnimation;
 
-  String _getCategoryDisplay(String c) {
-    if (!_isTh) return c;
+  String _getCategoryDisplay(String c, [bool? isThParam]) {
+    final isTh = isThParam ?? _isTh;
+    if (!isTh) return c;
     switch (c.toLowerCase()) {
       case 'proteins':
         return 'โปรตีน';
@@ -70,8 +72,9 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     }
   }
 
-  String _getStorageDisplay(String s) {
-    if (!_isTh) return s;
+  String _getStorageDisplay(String s, [bool? isThParam]) {
+    final isTh = isThParam ?? _isTh;
+    if (!isTh) return s;
     switch (s.toLowerCase()) {
       case 'fridge':
         return 'ช่องแช่เย็น (Fridge)';
@@ -412,6 +415,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
   }
 
   void _showExpirySourceSheet() {
+    final isTh = _isTh;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -438,7 +442,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    _isTh ? 'สแกนวันหมดอายุ' : 'Scan Expiration Date',
+                    isTh ? 'สแกนวันหมดอายุ' : 'Scan Expiration Date',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -450,8 +454,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               const SizedBox(height: 8),
               ListTile(
                 leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFF2E6A44)),
-                title: Text(_isTh ? 'ถ่ายภาพด้วยกล้อง' : 'Take Photo with Camera'),
-                subtitle: Text(_isTh ? 'ถ่ายภาพฝาขวด ก้นกระป๋อง หรือตราประทับวันหมดอายุ' : 'Capture bottle cap, can bottom, or stamp'),
+                title: Text(isTh ? 'ถ่ายภาพด้วยกล้อง' : 'Take Photo with Camera'),
+                subtitle: Text(isTh ? 'ถ่ายภาพฝาขวด ก้นกระป๋อง หรือตราประทับวันหมดอายุ' : 'Capture bottle cap, can bottom, or stamp'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickAndScanExpiryOnly(ImageSource.camera);
@@ -459,8 +463,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined, color: Color(0xFF2E6A44)),
-                title: Text(_isTh ? 'เลือกภาพจากคลังภาพ' : 'Choose Photo from Gallery'),
-                subtitle: Text(_isTh ? 'เลือกภาพที่มีรอยประทับวันหมดอายุ' : 'Select photo containing expiry stamp'),
+                title: Text(isTh ? 'เลือกภาพจากคลังภาพ' : 'Choose Photo from Gallery'),
+                subtitle: Text(isTh ? 'เลือกภาพที่มีรอยประทับวันหมดอายุ' : 'Select photo containing expiry stamp'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickAndScanExpiryOnly(ImageSource.gallery);
@@ -468,8 +472,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               ),
               ListTile(
                 leading: const Icon(Icons.auto_awesome, color: Color(0xFF2E6A44)),
-                title: Text(_isTh ? 'ประมาณการอายุการเก็บรักษาด้วย AI' : 'Estimate Shelf Life with AI'),
-                subtitle: Text(_isTh ? 'สำหรับของสด ผัก ผลไม้ หรือเนื้อสัตว์ที่ไม่มีวันที่พิมพ์ระบุ' : 'For fresh produce, meat & veggies without printed date'),
+                title: Text(isTh ? 'ประมาณการอายุการเก็บรักษาด้วย AI' : 'Estimate Shelf Life with AI'),
+                subtitle: Text(isTh ? 'สำหรับของสด ผัก ผลไม้ หรือเนื้อสัตว์ที่ไม่มีวันที่พิมพ์ระบุ' : 'For fresh produce, meat & veggies without printed date'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _estimateShelfLifeWithAi();
@@ -641,7 +645,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
   bool get _isTh {
     try {
-      return ref.watch(localeProvider).languageCode == 'th';
+      return ref.read(localeProvider).languageCode == 'th';
     } catch (_) {
       try {
         return Localizations.localeOf(context).languageCode == 'th';
@@ -653,6 +657,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
     final isTh = _isTh;
     return Scaffold(
       backgroundColor: const Color(0xFF0F1713),
@@ -763,7 +768,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 width: double.infinity,
                 height: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildEmptyViewfinderContent(),
+                errorBuilder: (context, error, stackTrace) => _buildEmptyViewfinderContent(isTh),
               )
             else if (_isCameraInitialized && _cameraController != null && _cameraController!.value.isInitialized)
               SizedBox.expand(
@@ -777,7 +782,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                 ),
               )
             else
-              _buildEmptyViewfinderContent(),
+              _buildEmptyViewfinderContent(isTh),
 
             // Scanning laser line animation (when active or analyzing)
             if (_isAnalyzing || _imageBytes == null)
@@ -856,7 +861,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
     );
   }
 
-  Widget _buildEmptyViewfinderContent() {
+  Widget _buildEmptyViewfinderContent([bool? isThParam]) {
+    final isTh = isThParam ?? _isTh;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -877,8 +883,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
           const SizedBox(height: 16),
           Text(
             _isCameraError
-                ? (_cameraErrorMessage ?? (_isTh ? 'ไม่สามารถเปิดกล้องได้' : 'Unable to start camera'))
-                : (_isTh ? 'หันกล้องไปที่ฉลากอาหารหรือวันหมดอายุ' : 'Point camera at food label or expiration date'),
+                ? (_cameraErrorMessage ?? (isTh ? 'ไม่สามารถเปิดกล้องได้' : 'Unable to start camera'))
+                : (isTh ? 'หันกล้องไปที่ฉลากอาหารหรือวันหมดอายุ' : 'Point camera at food label or expiration date'),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 15,
@@ -891,10 +897,10 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Text(
               _isCameraError
-                  ? (_isTh
+                  ? (isTh
                       ? 'โปรดอนุญาตให้เข้าถึงกล้องในการตั้งค่าอุปกรณ์ หรือเลือกรูปภาพจากคลังภาพด้านล่าง'
                       : 'Please allow camera access in device Settings, or select a photo from your gallery below.')
-                  : (_isTh
+                  : (isTh
                       ? 'หากชื่ออาหารและวันหมดอายุอยู่คนละด้าน ให้ถ่ายด้านใดด้านหนึ่งแล้วกรอกข้อมูลส่วนที่เหลือในฟอร์ม'
                       : 'If food name and expiration date are on different sides, capture one and fill in the rest in the form.'),
               style: const TextStyle(
@@ -956,7 +962,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       );
     }
 
-    final name = res.foodName!;
+    final name = isTh ? ItemModel.getThaiFoodName(res.foodName!) : res.foodName!;
     final dateStr = res.expiryDate != null
         ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}${res.isAiEstimated ? (isTh ? ' (AI ประเมิน)' : ' (AI Estimated)') : ''}'
         : (isTh ? 'ไม่ได้ระบุ (ไม่พบในรูปภาพ)' : 'Not specified (Not found on image)');
@@ -1019,7 +1025,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  _getCategoryDisplay(res.category),
+                  _getCategoryDisplay(res.category, isTh),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -1077,7 +1083,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                   const Icon(Icons.kitchen_outlined, color: Colors.white70, size: 15),
                   const SizedBox(width: 4),
                   Text(
-                    '${isTh ? 'สถานที่จัดเก็บ' : 'Storage'}: ${_getStorageDisplay(res.storage)}',
+                    '${isTh ? 'สถานที่จัดเก็บ' : 'Storage'}: ${_getStorageDisplay(res.storage, isTh)}',
                     style: const TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ],

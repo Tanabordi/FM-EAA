@@ -47,7 +47,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   bool get _isTh {
     try {
-      return ref.watch(localeProvider).languageCode == 'th';
+      return ref.read(localeProvider).languageCode == 'th';
     } catch (_) {
       try {
         return Localizations.localeOf(context).languageCode == 'th';
@@ -378,6 +378,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
     final theme = Theme.of(context);
     final user = ref.watch(userProfileProvider);
     final displayedAvatarUrl = _removeAvatar ? null : (_selectedAvatarPath ?? user.avatarUrl);

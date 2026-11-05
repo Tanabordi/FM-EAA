@@ -32,7 +32,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
 
   bool get _isTh {
     try {
-      return ref.watch(localeProvider).languageCode == 'th';
+      return ref.read(localeProvider).languageCode == 'th';
     } catch (_) {
       try {
         return Localizations.localeOf(context).languageCode == 'th';
@@ -164,6 +164,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
     const bgColor = Color(0xFFF6FBF3);
     const primaryGreen = Color(0xFF2E6A44);
     const textDark = Color(0xFF181D18);

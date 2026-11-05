@@ -889,7 +889,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
   bool get _isTh {
     try {
-      return ref.watch(localeProvider).languageCode == 'th';
+      return ref.read(localeProvider).languageCode == 'th';
     } catch (_) {
       try {
         return Localizations.localeOf(context).languageCode == 'th';
@@ -913,6 +913,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
     final isTh = _isTh;
     final isQuotaFull = _usedCount >= _maxDailyQuota;
 
