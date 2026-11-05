@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/data/local/app_database.dart';
@@ -397,7 +398,20 @@ void main() {
     });
 
     test('ItemRepository adds item with is_synced = false immediately', () async {
-      final repo = ItemRepository(apiClient: ApiClient(), database: db);
+      final mockDio = Dio();
+      mockDio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                type: DioExceptionType.connectionError,
+              ),
+            );
+          },
+        ),
+      );
+      final repo = ItemRepository(apiClient: ApiClient(customDio: mockDio), database: db);
 
       final itemModel = ItemModel(
         id: 'item_repo_1',
