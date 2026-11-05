@@ -242,7 +242,7 @@ class ItemService {
         await notificationService.notifyFridgeMembers(conn, fridgeId, userId, {
           type: 'item_added',
           subType: 'item_added',
-          title: 'New Item Added',
+          title: '🥬 New Item Added',
           message: `${actorUsername} added "${cleanName}" (${numQuantity} ${cleanUnit}) to "${fridgeName}"`,
           item_id: itemId,
           item_name: cleanName,
@@ -512,7 +512,7 @@ class ItemService {
         await notificationService.notifyFridgeMembers(conn, fridgeId, userId, {
           type: 'item_deleted',
           subType: 'item_deleted',
-          title: 'Item Removed',
+          title: '🗑️ Item Removed',
           message: `${actorUsername} removed "${deletedItemName}" from "${fridgeName}"`,
           item_id: itemId,
           item_name: deletedItemName,
@@ -612,7 +612,7 @@ class ItemService {
         await notificationService.notifyFridgeMembers(conn, fridgeId, userId, {
           type: 'item_consumed',
           subType: 'item_consumed',
-          title: 'Item Consumed',
+          title: '🍽️ Item Consumed',
           message,
           item_id: itemId,
           item_name: item.name,

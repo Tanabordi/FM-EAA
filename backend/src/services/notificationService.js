@@ -416,18 +416,18 @@ class NotificationService {
         if (daysLeft < 0) {
           // Milestone 3: Expired (day 1 after expiry)
           milestone = 'expired';
-          title = `${itemName} has expired`;
+          title = `❌ ${itemName} has expired`;
           message = `${itemName} in "${fridgeName}" expired on ${expiryDate}. Please check and discard.`;
         } else if (daysLeft === 0) {
           // Milestone 2: Expires today (D-Day)
           milestone = 'expires_today';
-          title = `${itemName} expires today`;
+          title = `🚨 ${itemName} expires today`;
           message = `${itemName} in "${fridgeName}" expires today. Consume soon!`;
         } else {
           // Milestone 1: Use soon (1-3 days left)
           milestone = 'use_soon';
           const dayWord = daysLeft === 1 ? 'tomorrow' : `in ${daysLeft} days`;
-          title = `${itemName} expires ${dayWord}`;
+          title = `⏰ ${itemName} expires ${dayWord}`;
           message = `${itemName} in "${fridgeName}" expires ${dayWord} (${expiryDate}). Plan your meal!`;
         }
 
@@ -466,7 +466,7 @@ class NotificationService {
           const pushNotificationService = require('./pushNotificationService');
           for (const item of generated) {
             pushNotificationService.sendPushToUser(userId, {
-              title: `⏰ ${item.payload.title || 'Expiry Alert'}`,
+              title: item.payload.title || '⏰ Expiry Alert',
               body: item.payload.message || '',
               data: {
                 type: 'expiry',

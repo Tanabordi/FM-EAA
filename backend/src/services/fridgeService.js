@@ -558,7 +558,7 @@ class FridgeService {
 
       // 6. Insert notification for target user
       const notifPayload = JSON.stringify({
-        title: 'Fridge Invitation',
+        title: '✉️ Fridge Invitation',
         message: `${inviterUsername} invited you to join '${fridgeName}'`,
         fridge_id: fridgeId,
         fridge_name: fridgeName,
@@ -736,7 +736,7 @@ class FridgeService {
           const fridgeRes = await conn.execute(`SELECT name FROM fridges WHERE id = :fridgeId`, [fridgeId]);
           const fridgeName = (fridgeRes.rows && fridgeRes.rows[0]) ? fridgeRes.rows[0][0] : 'Fridge';
 
-          const notifTitle = 'New Member Joined';
+          const notifTitle = '👥 New Member Joined';
           const notifMessage = `${joinedUsername} joined "${fridgeName}" (invited by ${inviterUsername})`;
 
           await notificationService.notifyFridgeMembers(conn, fridgeId, currentUserId, {
