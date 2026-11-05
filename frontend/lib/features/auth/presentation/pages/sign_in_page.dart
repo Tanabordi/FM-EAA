@@ -1,20 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../providers/auth_provider.dart';
 
-// TODO(screen #2 Sign In): โลโก้แอป, "Welcome To Fridge Management & Expiry Alert App", ช่อง Username or Email, Password (ซ่อน/แสดงได้), ลิงก์ Forgot password?, ปุ่ม Sign In, "Or", ปุ่ม Sign in with Google, "Don't have an account? Sign up"
-class SignInPage extends StatefulWidget {
+/// Screen #2: Sign In matching Figma node 8:39 exactly
+class SignInPage extends ConsumerStatefulWidget {
   const SignInPage({super.key});
 
   @override
-  State<SignInPage> createState() => _SignInPageState();
+  ConsumerState<SignInPage> createState() => _SignInPageState();
 }
 
-class _SignInPageState extends State<SignInPage> {
+class _SignInPageState extends ConsumerState<SignInPage> {
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  String? _identifierError;
+  String? _passwordError;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      final auth = ref.read(authProvider);
+      if (auth.isAuthenticated && auth.user != null) {
+        if (mounted) context.go('/fridges');
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -23,92 +43,283 @@ class _SignInPageState extends State<SignInPage> {
     super.dispose();
   }
 
+  Future<void> _handleSignIn() async {
+    final identifier = _identifierController.text.trim();
+    final password = _passwordController.text;
+    final isTh = ref.read(localeProvider).languageCode == 'th';
+
+    setState(() {
+      _identifierError = identifier.isEmpty ? (isTh ? 'กรุณากรอกชื่อผู้ใช้หรืออีเมล' : 'Please enter username or email') : null;
+      _passwordError = password.isEmpty ? (isTh ? 'กรุณากรอกรหัสผ่าน' : 'Please enter password') : null;
+    });
+
+    if (identifier.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isTh ? 'กรุณากรอกทั้งชื่อผู้ใช้/อีเมล และรหัสผ่าน' : 'Please fill in both username/email and password')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Connect to authProvider
+      await ref.read(authProvider.notifier).signIn(identifier, password);
+
+      final hasOsPermission = await NotificationService().areNotificationsEnabled();
+      final prefs = await SharedPreferences.getInstance();
+      final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
+
+      if (!mounted) return;
+
+      if (!hasEnabled || !hasOsPermission) {
+        context.go('/onboarding');
+      } else {
+        context.go('/fridges');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final errorMsg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await ref.read(authProvider.notifier).signInWithGoogle();
+
+      if (!mounted) return;
+
+      if (result.isNewUser) {
+        // User not in DB -> Navigate to Create an Account with locked Google email (Image 2)
+        final email = result.email ?? '';
+        context.push('/create-account?email=$email');
+        return;
+      }
+
+      final hasOsPermission = await NotificationService().areNotificationsEnabled();
+      final prefs = await SharedPreferences.getInstance();
+      final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
+
+      if (!mounted) return;
+
+      if (!hasEnabled || !hasOsPermission) {
+        context.go('/onboarding');
+      } else {
+        context.go('/fridges');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final errorMsg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      if (errorMsg != 'Google sign-in was cancelled') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.isAuthenticated && next.user != null) {
+        context.go('/fridges');
+      }
+    });
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 32),
-              const Center(child: Text('🧊', style: TextStyle(fontSize: 64))),
-              const SizedBox(height: 16),
-              const Text(
-                'Welcome To Fridge Management & Expiry Alert App',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              // App Logo matching Figma
+              Center(
+                child: Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 76,
+                      height: 76,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              // Title matching Figma
+              Text(
+                isTh
+                    ? 'ยินดีต้อนรับสู่\nแอปจัดการตู้เย็น &\nแจ้งเตือนวันหมดอายุ'
+                    : 'Welcome To\nFridge Management &\nExpiry Alert App',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                  height: 1.25,
+                ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 10),
+              // Subtitle
+              Text(
+                isTh ? 'เข้าสู่ระบบเพื่อดำเนินการต่อ' : 'Sign in to your account to continue.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 36),
+              // Username or Email
               AppTextField(
                 controller: _identifierController,
-                labelText: 'Username or Email',
-                hintText: 'Enter your username or email',
-                prefixIcon: const Icon(Icons.person_outline),
+                labelText: isTh ? 'ชื่อผู้ใช้หรืออีเมล' : 'Username or Email',
+                hintText: '',
+                errorText: _identifierError,
+                onChanged: (_) {
+                  if (_identifierError != null) setState(() => _identifierError = null);
+                },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              // Password
               AppTextField(
                 controller: _passwordController,
-                labelText: 'Password',
-                hintText: 'Enter your password',
+                labelText: isTh ? 'รหัสผ่าน' : 'Password',
+                hintText: '',
+                errorText: _passwordError,
+                onChanged: (_) {
+                  if (_passwordError != null) setState(() => _passwordError = null);
+                },
                 obscureText: _obscurePassword,
-                prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: colorScheme.onSurfaceVariant,
+                    size: 22,
+                  ),
                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
+              const SizedBox(height: 12),
+              // Forgot password?
               Align(
                 alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => context.push('/reset-password'),
-                  child: const Text('Forgot password?'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              PrimaryButton(
-                label: 'Sign In',
-                onPressed: () {
-                  // TODO(auth sign_in): Call authRepository.signInWithPassword
-                  context.go('/fridges');
-                },
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text('Or', style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+                child: InkWell(
+                  onTap: () => context.push('/reset-password'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Text(
+                      isTh ? 'ลืมรหัสผ่าน?' : 'Forgot password?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
                   ),
-                  const Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                  shape: const StadiumBorder(),
                 ),
-                icon: const Icon(Icons.g_mobiledata, size: 28),
-                label: const Text('Sign in with Google'),
-                onPressed: () {
-                  // TODO(auth google): Call authRepository.signInWithGoogle
-                  context.go('/fridges');
-                },
+              ),
+              const SizedBox(height: 28),
+              // Sign In Button
+              PrimaryButton(
+                label: isTh ? 'เข้าสู่ระบบ' : 'Sign In',
+                isLoading: _isLoading,
+                onPressed: _handleSignIn,
               ),
               const SizedBox(height: 24),
+              // "Or" Divider
+              Row(
+                children: [
+                  Expanded(
+                    child: Divider(
+                      color: colorScheme.outline.withValues(alpha: 0.3),
+                      thickness: 1,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      isTh ? 'หรือ' : 'Or',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider(
+                      color: colorScheme.outline.withValues(alpha: 0.3),
+                      thickness: 1,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              // Google Sign-In Button
+              GoogleSignInButton(
+                label: isTh ? 'เข้าสู่ระบบด้วย Google' : 'Sign in with Google',
+                onPressed: _handleGoogleSignIn,
+              ),
+              const SizedBox(height: 36),
+              // Don't have an account? Sign up
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Don't have an account?"),
-                  TextButton(
-                    onPressed: () => context.push('/create-account'),
-                    child: const Text('Sign up'),
+                  Text(
+                    isTh ? 'ยังไม่มีบัญชีใช่หรือไม่? ' : "Don’t have an account? ",
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => context.push('/create-account'),
+                    child: Text(
+                      isTh ? 'สมัครสมาชิก' : 'Sign up',
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -116,4 +327,3 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 }
-

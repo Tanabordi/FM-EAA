@@ -1,40 +1,197 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
+const multer = require('multer');
+const itemService = require('../services/itemService');
+const authenticateToken = require('../middleware/auth');
+const db = require('../config/db');
 
-// TODO(route items): GET /api/fridges/:id/items - List all items in a fridge (with zone and category filter)
-router.get('/', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: `GET /api/fridges/${req.params.id}/items` });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, WEBP, and HEIC are supported.'));
+    }
+  },
 });
 
-// TODO(route items): POST /api/fridges/:id/items - Add a new item
-router.post('/', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: `POST /api/fridges/${req.params.id}/items` });
+const handleItemImageUpload = (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'File size exceeded (Max: 10MB)' });
+      }
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+};
+
+// Apply auth middleware to all item routes
+router.use(authenticateToken);
+
+// POST /api/items/upload-image or POST /api/fridges/:id/items/upload-image - Upload food photo to OCI Object Storage
+router.post('/upload-image', handleItemImageUpload, async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Image file is required (field: image)' });
+    }
+    const storageService = require('../services/storageService');
+    const imageUrl = await storageService.uploadItemImage(
+      req.file.buffer,
+      req.file.mimetype,
+      req.file.originalname || 'item.jpg'
+    );
+    res.status(200).json({ imageUrl });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// TODO(route items): GET /api/fridges/:id/items/:itemId - Get item details
-router.get('/:itemId', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: `GET /api/fridges/${req.params.id}/items/${req.params.itemId}` });
+/**
+ * Helper to resolve fridgeId if route is mounted at /api/items/:itemId/...
+ */
+async function resolveFridgeId(req) {
+  if (req.params.id) {
+    return req.params.id;
+  }
+  if (req.params.itemId) {
+    let conn;
+    try {
+      conn = await db.getDbConnection();
+      const res = await conn.execute(
+        `SELECT fridge_id FROM items WHERE id = :itemId`,
+        [req.params.itemId]
+      );
+      if (res.rows && res.rows.length > 0) {
+        return res.rows[0][0];
+      }
+    } finally {
+      if (conn) {
+        try { await conn.close(); } catch (_) {}
+      }
+    }
+  }
+  const histId = req.params.historyId || req.body?.historyId;
+  if (histId) {
+    let conn;
+    try {
+      conn = await db.getDbConnection();
+      const res = await conn.execute(
+        `SELECT fridge_id FROM item_history WHERE id = :histId`,
+        [histId]
+      );
+      if (res.rows && res.rows.length > 0) {
+        return res.rows[0][0];
+      }
+    } finally {
+      if (conn) {
+        try { await conn.close(); } catch (_) {}
+      }
+    }
+  }
+  const err = new Error('Fridge ID not found or specified');
+  err.statusCode = 400;
+  throw err;
+}
+
+// GET /api/fridges/:id/items - List all items in a fridge (with zone, category, and search filter)
+router.get('/', async (req, res, next) => {
+  try {
+    const fridgeId = await resolveFridgeId(req);
+    const items = await itemService.getItemsByFridge(fridgeId, req.user.id, {
+      zone: req.query.zone,
+      category: req.query.category,
+      search: req.query.search,
+    });
+    res.status(200).json({ items });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// TODO(route items): PATCH /api/fridges/:id/items/:itemId - Update item details
-router.patch('/:itemId', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: `PATCH /api/fridges/${req.params.id}/items/${req.params.itemId}` });
+// POST /api/fridges/:id/items - Add a new item
+router.post('/', async (req, res, next) => {
+  try {
+    const fridgeId = await resolveFridgeId(req);
+    const item = await itemService.createItem(fridgeId, req.user.id, req.body);
+    res.status(201).json({ success: true, item });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// TODO(route items): DELETE /api/fridges/:id/items/:itemId - Delete an item
-router.delete('/:itemId', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: `DELETE /api/fridges/${req.params.id}/items/${req.params.itemId}` });
+// GET /api/fridges/:id/items/:itemId or GET /api/items/:itemId - Get item details
+router.get('/:itemId', async (req, res, next) => {
+  try {
+    const fridgeId = await resolveFridgeId(req);
+    const item = await itemService.getItemById(fridgeId, req.params.itemId, req.user.id);
+    res.status(200).json({ item });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// TODO(route items): POST /api/items/:id/consume - Consume item (partial amount or finished all)
-router.post('/:itemId/consume', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: `POST /api/items/${req.params.itemId}/consume` });
+// PATCH /api/fridges/:id/items/:itemId or PATCH /api/items/:itemId - Update item details
+router.patch('/:itemId', async (req, res, next) => {
+  try {
+    const fridgeId = await resolveFridgeId(req);
+    const item = await itemService.updateItem(fridgeId, req.params.itemId, req.user.id, req.body);
+    res.status(200).json({ success: true, item });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// TODO(route items): POST /api/items/:itemId/consume/undo - Undo consumption
-router.post('/:itemId/consume/undo', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', route: `POST /api/items/${req.params.itemId}/consume/undo` });
+// DELETE /api/fridges/:id/items/:itemId or DELETE /api/items/:itemId - Delete an item
+router.delete('/:itemId', async (req, res, next) => {
+  try {
+    const fridgeId = await resolveFridgeId(req);
+    const result = await itemService.deleteItem(fridgeId, req.params.itemId, req.user.id);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/fridges/:id/items/:itemId/consume or POST /api/items/:itemId/consume
+router.post('/:itemId/consume', async (req, res, next) => {
+  try {
+    const fridgeId = await resolveFridgeId(req);
+    const result = await itemService.consumeItem(fridgeId, req.params.itemId, req.user.id, req.body);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/items/history/:historyId/undo
+router.post('/history/:historyId/undo', async (req, res, next) => {
+  try {
+    const fridgeId = await resolveFridgeId(req);
+    const result = await itemService.undoConsume(fridgeId, req.params.historyId, req.user.id);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/fridges/:id/items/:itemId/consume/undo or POST /api/items/:itemId/consume/undo
+router.post('/:itemId/consume/undo', async (req, res, next) => {
+  try {
+    const fridgeId = await resolveFridgeId(req);
+    const historyId = req.body.historyId || req.query.historyId;
+    if (!historyId) {
+      return res.status(400).json({ error: 'historyId is required to undo consumption' });
+    }
+    const result = await itemService.undoConsume(fridgeId, historyId, req.user.id);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;
-

@@ -1,16 +1,33 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/freshness_colors.dart';
 import '../../../data/models/item_model.dart';
+import '../../../data/repositories/item_repository.dart';
+import '../../../shared/utils/environment.dart';
+import '../../fridges/providers/fridges_provider.dart';
 
 class FridgeFilterState {
-  final String category; // 'All', 'Proteins', etc.
+  final String category; // 'All', 'Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'
   final String zone; // 'fridge' | 'freezer'
+  final String searchQuery;
 
-  const FridgeFilterState({this.category = 'All', this.zone = 'fridge'});
+  const FridgeFilterState({
+    this.category = 'All',
+    this.zone = 'fridge',
+    this.searchQuery = '',
+  });
 
-  FridgeFilterState copyWith({String? category, String? zone}) {
+  FridgeFilterState copyWith({
+    String? category,
+    String? zone,
+    String? searchQuery,
+  }) {
     return FridgeFilterState(
       category: category ?? this.category,
       zone: zone ?? this.zone,
+      searchQuery: searchQuery ?? this.searchQuery,
     );
   }
 }
@@ -25,56 +42,817 @@ class FridgeFilterNotifier extends StateNotifier<FridgeFilterState> {
   void setZone(String zone) {
     state = state.copyWith(zone: zone);
   }
+
+  void setSearchQuery(String query) {
+    state = state.copyWith(searchQuery: query);
+  }
 }
 
-final fridgeDetailFilterProvider = StateNotifierProvider<FridgeFilterNotifier, FridgeFilterState>((ref) {
+final fridgeDetailFilterProvider =
+    StateNotifierProvider<FridgeFilterNotifier, FridgeFilterState>((ref) {
   return FridgeFilterNotifier();
 });
 
-final fridgeItemsProvider = Provider.family<List<ItemModel>, String>((ref, fridgeId) {
-  final filter = ref.watch(fridgeDetailFilterProvider);
+class FridgeItemsNotifier extends StateNotifier<List<ItemModel>> {
+  final String fridgeId;
+  final ItemRepository? _repository;
+  final Ref? _ref;
+  final Set<String> _consumedIds = {};
+  final Set<String> _migratingIds = {};
+  Timer? _pollingTimer;
 
-  // Mock list for skeleton
-  final allItems = [
+  FridgeItemsNotifier(this.fridgeId, [this._repository, this._ref])
+      : super(getInitialFridgeItems(fridgeId)) {
+    _init();
+  }
+
+  void _syncFridgeItemCount() {
+    if (_ref != null) {
+      final totalCount = state
+          .where((it) => it.quantity > 0)
+          .length;
+      try {
+        _ref.read(fridgesProvider.notifier).updateItemCount(fridgeId, totalCount);
+      } catch (_) {}
+    }
+  }
+
+  void _init() {
+    if (_repository != null) {
+      _loadItemsFromApi();
+      try {
+        _repository.watchItems(fridgeId).listen((sqliteItems) {
+          final isMock = fridgeId == 'fridge_kitchen' ||
+              fridgeId == 'fridge_studio' ||
+              fridgeId == 'fridge_demo' ||
+              fridgeId == 'fridge_main' ||
+              fridgeId == 'fridge_1' ||
+              fridgeId == 'fridge_2';
+          if (sqliteItems.isNotEmpty) {
+            state = sqliteItems;
+          } else if (!isMock) {
+            if (state.isEmpty) {
+              state = sqliteItems;
+            }
+          } else {
+            final initial = getInitialFridgeItems(fridgeId);
+            final remainingInitial = initial.where(
+              (it) => !_consumedIds.contains(it.id),
+            );
+            state = remainingInitial.toList();
+          }
+          _syncFridgeItemCount();
+        }, onError: (_) {});
+      } catch (_) {}
+
+      // Periodic auto-refresh every 2 seconds while viewing fridge (skipped in flutter test)
+      if (!isTestEnvironment()) {
+        _pollingTimer?.cancel();
+        _pollingTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+          _loadItemsFromApi();
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadItemsFromApi() async {
+    try {
+      final items = await _repository?.getItems(fridgeId);
+      if (items != null) {
+        state = items;
+        _syncFridgeItemCount();
+        _autoSyncLocalImages(items);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _autoSyncLocalImages(List<ItemModel> items) async {
+    if (isTestEnvironment() || _repository == null) return;
+    for (final item in items) {
+      final path = item.imagePath;
+      if (path == null ||
+          path.isEmpty ||
+          path.startsWith('http://') ||
+          path.startsWith('https://') ||
+          path.startsWith('assets/')) {
+        continue;
+      }
+      if (_migratingIds.contains(item.id)) continue;
+
+      if (!kIsWeb) {
+        try {
+          final file = File(path);
+          if (file.existsSync()) {
+            _migratingIds.add(item.id);
+            final bytes = await file.readAsBytes();
+            final cloudUrl = await _repository.uploadItemImageBytes(
+              bytes,
+              filename: 'migrated_${item.id}.jpg',
+            );
+            if (cloudUrl != null) {
+              final updated = item.copyWith(imagePath: cloudUrl);
+              await updateItem(updated);
+            }
+          }
+        } catch (_) {}
+      }
+    }
+  }
+
+  Future<void> loadItems() async {
+    await _loadItemsFromApi();
+  }
+
+  ItemModel? _lastConsumedItem;
+  int? _lastConsumedIndex;
+  double? _lastConsumedAmount;
+  bool? _lastFinishedAll;
+
+  ItemModel? getItem(String id) {
+    try {
+      return state.firstWhere((item) => item.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ItemModel> addItem(ItemModel item) async {
+    state = [item, ...state];
+    _syncFridgeItemCount();
+    if (_repository != null) {
+      try {
+        final serverItem = await _repository.addItem(item);
+        state = [
+          for (final it in state)
+            if (it.id == item.id) serverItem else it,
+        ];
+        _syncFridgeItemCount();
+        return serverItem;
+      } catch (_) {}
+    }
+    return item;
+  }
+
+  Future<void> updateItem(ItemModel updated) async {
+    state = [
+      for (final item in state)
+        if (item.id == updated.id) updated else item,
+    ];
+    _syncFridgeItemCount();
+    if (_repository != null) {
+      try {
+        await _repository.updateItem(updated);
+      } catch (_) {}
+    }
+  }
+
+  Future<void> deleteItem(String id) async {
+    _consumedIds.add(id);
+    state = state.where((item) => item.id != id).toList();
+    _syncFridgeItemCount();
+    if (_repository != null) {
+      try {
+        await _repository.deleteItem(id);
+      } catch (_) {}
+    }
+  }
+
+  void removeExpiredItems() {
+    for (final item in state) {
+      if (item.status == FreshnessStatus.expired) {
+        _consumedIds.add(item.id);
+      }
+    }
+    state = state.where((item) => item.status != FreshnessStatus.expired).toList();
+    _syncFridgeItemCount();
+  }
+
+  Future<void> consumeItem(String id, double amount, bool finishedAll) async {
+    final index = state.indexWhere((item) => item.id == id);
+    if (index == -1) return;
+
+    final item = state[index];
+    _lastConsumedItem = item;
+    _lastConsumedIndex = index;
+    _lastConsumedAmount = amount;
+    _lastFinishedAll = finishedAll;
+
+    if (finishedAll || item.quantity <= amount) {
+      _consumedIds.add(id);
+      // Remove completely from list
+      state = [
+        for (int i = 0; i < state.length; i++)
+          if (i != index) state[i],
+      ];
+    } else {
+      // Decrement quantity
+      final newQuantity = item.quantity - amount;
+      state = [
+        for (int i = 0; i < state.length; i++)
+          if (i == index)
+            item.copyWith(quantity: newQuantity, updatedAt: DateTime.now())
+          else
+            state[i],
+      ];
+    }
+    _syncFridgeItemCount();
+
+    if (_repository != null) {
+      try {
+        await _repository.consumeItem(
+          id,
+          amount,
+          finishedAll: finishedAll,
+          imagePath: item.imagePath,
+        );
+      } catch (_) {}
+    }
+  }
+
+  Future<void> undoConsume() async {
+    if (_lastConsumedItem == null) return;
+    final itemToRestore = _lastConsumedItem!;
+    _consumedIds.remove(itemToRestore.id);
+
+    if (_lastFinishedAll == true ||
+        (_lastConsumedAmount != null &&
+            itemToRestore.quantity <= _lastConsumedAmount!)) {
+      final idx = (_lastConsumedIndex != null &&
+              _lastConsumedIndex! <= state.length)
+          ? _lastConsumedIndex!
+          : state.length;
+      final newList = List<ItemModel>.from(state);
+      newList.insert(idx, itemToRestore);
+      state = newList;
+    } else if (_lastConsumedAmount != null) {
+      final id = itemToRestore.id;
+      state = [
+        for (final item in state)
+          if (item.id == id) itemToRestore else item,
+      ];
+    }
+    _syncFridgeItemCount();
+
+    _lastConsumedItem = null;
+    _lastConsumedIndex = null;
+    _lastConsumedAmount = null;
+    _lastFinishedAll = null;
+
+    if (_repository != null) {
+      try {
+        await _repository.undoConsume(itemToRestore.id);
+      } catch (_) {}
+    }
+  }
+}
+
+/// Stream provider watching items in Drift SQLite
+final watchItemsInFridgeProvider =
+    StreamProvider.family<List<ItemModel>, String>((ref, fridgeId) {
+  final repository = ref.watch(itemRepositoryProvider);
+  return repository.watchItems(fridgeId);
+});
+
+/// StateNotifierProvider for items in a fridge, providing active list & mutation methods
+final fridgeItemsProvider =
+    StateNotifierProvider.family<FridgeItemsNotifier, List<ItemModel>, String>(
+        (ref, fridgeId) {
+  ItemRepository? repo;
+  try {
+    repo = ref.watch(itemRepositoryProvider);
+  } catch (_) {}
+  return FridgeItemsNotifier(fridgeId, repo, ref);
+});
+
+/// Legacy provider alias watching all fridge items
+final allFridgeItemsProvider =
+    Provider.family<List<ItemModel>, String>((ref, fridgeId) {
+  return ref.watch(fridgeItemsProvider(fridgeId));
+});
+
+/// Default initial mockup items computed dynamically against real-time
+List<ItemModel> getInitialFridgeItems(String fridgeId) {
+  final isMock = fridgeId == 'fridge_kitchen' ||
+      fridgeId == 'fridge_studio' ||
+      fridgeId == 'fridge_demo' ||
+      fridgeId == 'fridge_main' ||
+      fridgeId == 'fridge_1' ||
+      fridgeId == 'fridge_2';
+  if (!isMock) {
+    return const [];
+  }
+
+  final now = DateTime.now();
+
+  return [
+    // ------------------------------------------
+    // FRIDGE ZONE: Veggies
+    // ------------------------------------------
     ItemModel(
-      id: 'item_1',
+      id: 'item_spinach',
+      fridgeId: fridgeId,
+      name: 'Baby spinach',
+      category: 'veggies',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'bag · 150 g',
+      expiryDate: DateTime(now.year, now.month, now.day - 1), // Yesterday -> Expired
+      imagePath: 'assets/images/food_spinach.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'item_strawberries',
+      fridgeId: fridgeId,
+      name: 'Strawberries',
+      category: 'veggies',
+      zone: 'fridge',
+      quantity: 2,
+      unit: 'punnet · 250 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 2), // 2 days left -> Use soon
+      imagePath: 'assets/images/food_strawberries.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'item_avocados',
+      fridgeId: fridgeId,
+      name: 'Avocados',
+      category: 'veggies',
+      zone: 'fridge',
+      quantity: 2,
+      unit: 'pieces',
+      expiryDate: DateTime(now.year, now.month, now.day + 5), // 5 days left -> Fresh
+      imagePath: 'assets/images/food_avocados.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'veg_cherry_tomatoes',
+      fridgeId: fridgeId,
+      name: 'Cherry Tomatoes',
+      category: 'veggies',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'box · 250 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 4), // 4 days left -> Fresh
+      imagePath: 'assets/images/food_cherry_tomatoes.png',
+      updatedAt: now,
+    ),
+
+    // ------------------------------------------
+    // FRIDGE ZONE: Beverages
+    // ------------------------------------------
+    ItemModel(
+      id: 'item_milk',
+      fridgeId: fridgeId,
+      name: 'Whole milk',
+      category: 'beverages',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'bottle · 1 L',
+      expiryDate: DateTime(now.year, now.month, now.day + 7), // 7 days left -> Fresh
+      imagePath: 'assets/images/food_whole_milk.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'bev_orange_juice',
+      fridgeId: fridgeId,
+      name: 'Orange Juice',
+      category: 'beverages',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'carton · 1 L',
+      expiryDate: DateTime(now.year, now.month, now.day + 6),
+      imagePath: 'assets/images/food_orange_juice.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'bev_cold_brew',
+      fridgeId: fridgeId,
+      name: 'Cold Brew Coffee',
+      category: 'beverages',
+      zone: 'fridge',
+      quantity: 2,
+      unit: 'can · 250 ml',
+      expiryDate: DateTime(now.year, now.month, now.day + 14),
+      imagePath: 'assets/images/food_cold_brew.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'bev_kombucha',
+      fridgeId: fridgeId,
+      name: 'Kombucha',
+      category: 'beverages',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'bottle · 330 ml',
+      expiryDate: DateTime(now.year, now.month, now.day + 20),
+      imagePath: 'assets/images/food_kombucha.png',
+      updatedAt: now,
+    ),
+
+    // ------------------------------------------
+    // FRIDGE ZONE: Proteins
+    // ------------------------------------------
+    ItemModel(
+      id: 'prot_chicken',
+      fridgeId: fridgeId,
+      name: 'Chicken Breasts',
+      category: 'proteins',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'pack · 500 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 3),
+      imagePath: 'assets/images/food_chicken_breasts.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'prot_eggs',
+      fridgeId: fridgeId,
+      name: 'Eggs',
+      category: 'proteins',
+      zone: 'fridge',
+      quantity: 10,
+      unit: 'carton',
+      expiryDate: DateTime(now.year, now.month, now.day + 12),
+      imagePath: 'assets/images/food_eggs.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'prot_salmon',
+      fridgeId: fridgeId,
+      name: 'Salmon Fillets',
+      category: 'proteins',
+      zone: 'fridge',
+      quantity: 2,
+      unit: 'fillets · 300 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 2), // 2 days left -> Use soon
+      imagePath: 'assets/images/food_salmon_fillets.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'prot_tofu',
+      fridgeId: fridgeId,
+      name: 'Firm Tofu',
+      category: 'proteins',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'block · 350 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 8),
+      imagePath: 'assets/images/food_firm_tofu.png',
+      updatedAt: now,
+    ),
+
+    // ------------------------------------------
+    // FRIDGE ZONE: Meals
+    // ------------------------------------------
+    ItemModel(
+      id: 'meal_lasagna',
+      fridgeId: fridgeId,
+      name: 'Microwave Lasagna',
+      category: 'meals',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'tray · 400 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 9),
+      imagePath: 'assets/images/food_lasagna.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'meal_pizza',
+      fridgeId: fridgeId,
+      name: 'Frozen Pizza',
+      category: 'meals',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'box · 380 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 15),
+      imagePath: 'assets/images/food_pizza.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'meal_dumplings',
+      fridgeId: fridgeId,
+      name: 'Pork Dumplings',
+      category: 'meals',
+      zone: 'fridge',
+      quantity: 12,
+      unit: 'pack · 300 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 10),
+      imagePath: 'assets/images/food_dumplings.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'meal_nuggets',
+      fridgeId: fridgeId,
+      name: 'Chicken Nuggets',
+      category: 'meals',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'bag · 500 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 25),
+      imagePath: 'assets/images/food_nuggets.png',
+      updatedAt: now,
+    ),
+
+    // ------------------------------------------
+    // FRIDGE ZONE: Sauces
+    // ------------------------------------------
+    ItemModel(
+      id: 'sauce_soy',
+      fridgeId: fridgeId,
+      name: 'Soy Sauce',
+      category: 'sauces',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'bottle · 500 ml',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
+      imagePath: 'assets/images/food_soy_sauce.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'sauce_mayo',
+      fridgeId: fridgeId,
+      name: 'Mayonnaise',
+      category: 'sauces',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'squeeze · 400 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 45),
+      imagePath: 'assets/images/food_mayo.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'sauce_sriracha',
+      fridgeId: fridgeId,
+      name: 'Sriracha Sauce',
+      category: 'sauces',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'bottle · 450 ml',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
+      imagePath: 'assets/images/food_sriracha.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'sauce_olive_oil',
+      fridgeId: fridgeId,
+      name: 'Olive Oil',
+      category: 'sauces',
+      zone: 'fridge',
+      quantity: 1,
+      unit: 'bottle · 750 ml',
+      expiryDate: DateTime(now.year, now.month, now.day + 120),
+      imagePath: 'assets/images/food_olive_oil.png',
+      updatedAt: now,
+    ),
+
+    // ------------------------------------------
+    // FREEZER ZONE
+    // ------------------------------------------
+    ItemModel(
+      id: 'fz_pork',
       fridgeId: fridgeId,
       name: 'Pork Tenderloin',
       category: 'proteins',
       zone: 'freezer',
       quantity: 1,
-      unit: 'bag · 500 g',
-      expiryDate: DateTime.now().add(const Duration(days: 15)),
-      updatedAt: DateTime.now(),
+      unit: 'pack · 500 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
+      imagePath: 'assets/images/food_chicken_breasts.png',
+      updatedAt: now,
     ),
     ItemModel(
-      id: 'item_2',
+      id: 'fz_salmon',
       fridgeId: fridgeId,
-      name: 'Fresh Milk',
-      category: 'beverages',
-      zone: 'fridge',
+      name: 'Salmon Fillet',
+      category: 'proteins',
+      zone: 'freezer',
       quantity: 2,
-      unit: 'bottles',
-      expiryDate: DateTime.now().add(const Duration(days: 2)),
-      updatedAt: DateTime.now(),
+      unit: 'steaks · 400 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 45),
+      imagePath: 'assets/images/food_salmon_fillets.png',
+      updatedAt: now,
     ),
     ItemModel(
-      id: 'item_3',
+      id: 'fz_beef',
       fridgeId: fridgeId,
-      name: 'Cabbage',
-      category: 'veggies',
-      zone: 'fridge',
+      name: 'Beef Ribeye Steak',
+      category: 'proteins',
+      zone: 'freezer',
       quantity: 1,
-      unit: 'head',
-      expiryDate: DateTime.now().add(const Duration(days: 5)),
-      updatedAt: DateTime.now(),
+      unit: 'cut · 300 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
+      imagePath: 'assets/images/food_chicken_breasts.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_thighs',
+      fridgeId: fridgeId,
+      name: 'Chicken Thighs',
+      category: 'proteins',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'pack · 600 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 30),
+      imagePath: 'assets/images/food_chicken_breasts.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_peas',
+      fridgeId: fridgeId,
+      name: 'Green Peas',
+      category: 'veggies',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'bag · 450 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
+      imagePath: 'assets/images/food_spinach.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_corn',
+      fridgeId: fridgeId,
+      name: 'Sweet Corn',
+      category: 'veggies',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'bag · 400 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
+      imagePath: 'assets/images/food_spinach.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_berries',
+      fridgeId: fridgeId,
+      name: 'Frozen Mixed Berries',
+      category: 'veggies',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'bag · 500 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 75),
+      imagePath: 'assets/images/food_strawberries.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_spinach',
+      fridgeId: fridgeId,
+      name: 'Chopped Spinach',
+      category: 'veggies',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'box · 300 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 80),
+      imagePath: 'assets/images/food_spinach.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_coffee',
+      fridgeId: fridgeId,
+      name: 'Coffee Ice Cubes',
+      category: 'beverages',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'tray',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
+      imagePath: 'assets/images/food_cold_brew.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_smoothie',
+      fridgeId: fridgeId,
+      name: 'Berry Smoothie Mix',
+      category: 'beverages',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'pack',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
+      imagePath: 'assets/images/food_strawberries.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_lemon',
+      fridgeId: fridgeId,
+      name: 'Lemon Juice Concentrate',
+      category: 'beverages',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'bottle',
+      expiryDate: DateTime(now.year, now.month, now.day + 120),
+      imagePath: 'assets/images/food_orange_juice.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_popsicles',
+      fridgeId: fridgeId,
+      name: 'Popsicles',
+      category: 'beverages',
+      zone: 'freezer',
+      quantity: 4,
+      unit: 'bars',
+      expiryDate: DateTime(now.year, now.month, now.day + 45),
+      imagePath: 'assets/images/food_orange_juice.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_pizza',
+      fridgeId: fridgeId,
+      name: 'Frozen Pizza',
+      category: 'meals',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'box · 400 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
+      imagePath: 'assets/images/food_pizza.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_dumplings',
+      fridgeId: fridgeId,
+      name: 'Pork Dumplings',
+      category: 'meals',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'bag · 500 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
+      imagePath: 'assets/images/food_dumplings.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_lasagna',
+      fridgeId: fridgeId,
+      name: 'Microwave Lasagna',
+      category: 'meals',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'tray · 400 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 75),
+      imagePath: 'assets/images/food_lasagna.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_icecream',
+      fridgeId: fridgeId,
+      name: 'Vanilla Ice Cream',
+      category: 'meals',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'tub · 500 ml',
+      expiryDate: DateTime(now.year, now.month, now.day + 30),
+      imagePath: 'assets/images/food_milk.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_pesto',
+      fridgeId: fridgeId,
+      name: 'Frozen Pesto Cubes',
+      category: 'sauces',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'tray',
+      expiryDate: DateTime(now.year, now.month, now.day + 90),
+      imagePath: 'assets/images/food_olive_oil.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_broth',
+      fridgeId: fridgeId,
+      name: 'Beef Bone Broth Cubes',
+      category: 'sauces',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'tray',
+      expiryDate: DateTime(now.year, now.month, now.day + 120),
+      imagePath: 'assets/images/food_soy_sauce.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_butter',
+      fridgeId: fridgeId,
+      name: 'Herb Garlic Butter',
+      category: 'sauces',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'roll · 150 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 60),
+      imagePath: 'assets/images/food_mayo.png',
+      updatedAt: now,
+    ),
+    ItemModel(
+      id: 'fz_paste',
+      fridgeId: fridgeId,
+      name: 'Chili Paste',
+      category: 'sauces',
+      zone: 'freezer',
+      quantity: 1,
+      unit: 'jar · 200 g',
+      expiryDate: DateTime(now.year, now.month, now.day + 75),
+      imagePath: 'assets/images/food_sriracha.png',
+      updatedAt: now,
     ),
   ];
-
-  return allItems.where((item) {
-    final matchesZone = item.zone == filter.zone;
-    final matchesCategory = filter.category == 'All' || item.category.toLowerCase() == filter.category.toLowerCase();
-    return matchesZone && matchesCategory;
-  }).toList();
-});
-
+}

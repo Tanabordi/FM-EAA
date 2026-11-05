@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 
-// TODO(screen #15 Finish All): กลับหน้ารายการ ของชิ้นนั้นหายไป มี snackbar "<ชื่อ> marked as consumed" + ปุ่ม Undo
+/// Screen #16 SnackBar confirming consumption.
+/// Standard full-width bottom SnackBar matching app pattern (e.g. Added "..." successfully).
 class FinishAllSnackbar {
-  static void show(BuildContext context, {required String itemName, required VoidCallback onUndo}) {
-    ScaffoldMessenger.of(context).showSnackBar(
+  static void show(
+    BuildContext context, {
+    required String itemName,
+    VoidCallback? onUndo,
+  }) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+
+    final isTh = Localizations.localeOf(context).languageCode == 'th';
+
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
-        content: Text('$itemName marked as consumed'),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: onUndo,
+        content: Text(
+          isTh
+              ? 'บันทึกการบริโภค "$itemName" เรียบร้อยแล้ว'
+              : 'Consumed "$itemName" successfully',
         ),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 }
-

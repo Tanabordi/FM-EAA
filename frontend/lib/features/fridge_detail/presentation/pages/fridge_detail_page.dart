@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../data/models/item_model.dart';
+import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/category_chips.dart';
 import '../../../../shared/widgets/item_card.dart';
+import '../../../../shared/widgets/offline_banner.dart';
+import '../../../item/presentation/widgets/finish_all_snackbar.dart';
+import '../../../item/presentation/widgets/mark_consumed_sheet.dart';
 import '../../providers/fridge_detail_provider.dart';
+import '../../../search/providers/search_provider.dart';
+import '../../../fridges/providers/fridges_provider.dart';
+import '../../../notifications/providers/notifications_provider.dart';
 
-// TODO(screen #9 Fridge Detail): แถบหัว: ย้อนกลับ, ชื่อตู้, ไอคอน 4 ตัว = Family, History, Notifications, Settings; ช่องค้นหา "Search for items"; chips หมวดแบบวงกลม All / Proteins / Veggies / Beverages / Meals / Sauces; แท็บ Fridge | Freezer; หัวข้อ "Your food" + "N items"; การ์ดวัตถุดิบ: รูป, ชื่อ, ปริมาณ+หน่วย (เช่น "1 bag · 150 g", "2 pieces"), ป้ายสถานะ + ข้อความ (Yesterday / 2 days left / 5 days left); FAB เพิ่มของ. เฟรมของแต่ละหมวด x โซนอีก 10 เฟรม (Protein, Veggies, Beverages, Meals, Sauces) เป็นแค่ state กรองของหน้านี้ ไม่ใช่หน้าใหม่
 class FridgeDetailPage extends ConsumerStatefulWidget {
   final String fridgeId;
 
@@ -15,7 +23,8 @@ class FridgeDetailPage extends ConsumerStatefulWidget {
   ConsumerState<FridgeDetailPage> createState() => _FridgeDetailPageState();
 }
 
-class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage> with SingleTickerProviderStateMixin {
+class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -23,11 +32,16 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage> with Single
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        ref.read(fridgeDetailFilterProvider.notifier).setZone(
-              _tabController.index == 0 ? 'fridge' : 'freezer',
-            );
+      final newZone = _tabController.index == 0 ? 'fridge' : 'freezer';
+      if (ref.read(fridgeDetailFilterProvider).zone != newZone) {
+        ref.read(fridgeDetailFilterProvider.notifier).setZone(newZone);
       }
+    });
+    Future.microtask(() {
+      ref.read(fridgeDetailFilterProvider.notifier).setCategory('All');
+      ref.read(fridgeDetailFilterProvider.notifier).setZone('fridge');
+      ref.read(fridgeDetailFilterProvider.notifier).setSearchQuery('');
+      ref.read(fridgeItemsProvider(widget.fridgeId).notifier).loadItems();
     });
   }
 
@@ -37,124 +51,301 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage> with Single
     super.dispose();
   }
 
+  void _showMarkConsumedSheet(BuildContext context, ItemModel item) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => MarkConsumedSheet(
+        itemName: item.name,
+        availablePieces: item.quantity,
+        unit: item.unit.contains('punnet')
+            ? 'pieces'
+            : (item.unit.contains('bag')
+                ? 'bag'
+                : (item.unit.contains('bottle') ? 'bottle' : 'pieces')),
+        onRecommendRecipe: () {
+          Navigator.pop(sheetContext);
+          context.push('/fridges/${widget.fridgeId}/recipes?ingredient=${Uri.encodeComponent(item.name)}&category=${Uri.encodeComponent(item.category)}');
+        },
+        onConsumed: (amount, finishedAll) {
+          Navigator.pop(sheetContext);
+          ref.read(fridgeItemsProvider(widget.fridgeId).notifier).consumeItem(item.id, amount, finishedAll);
+          if (context.mounted) {
+            FinishAllSnackbar.show(context, itemName: item.name);
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filter = ref.watch(fridgeDetailFilterProvider);
-    final items = ref.watch(fridgeItemsProvider(widget.fridgeId));
+    final allItems = ref.watch(fridgeItemsProvider(widget.fridgeId));
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
+
+    final items = allItems.where((item) {
+      final matchesZone = item.zone.toLowerCase() == filter.zone.toLowerCase();
+      final matchesCategory = filter.category.toLowerCase() == 'all' ||
+          item.category.toLowerCase() == filter.category.toLowerCase();
+      return matchesZone && matchesCategory;
+    }).toList();
+
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: const BackButton(),
-        title: const Text('Kitchen', style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.people_outline),
-            tooltip: 'Family',
-            onPressed: () => context.push('/fridges/${widget.fridgeId}/family'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.history_outlined),
-            tooltip: 'History',
-            onPressed: () => context.push('/fridges/${widget.fridgeId}/history'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            tooltip: 'Notifications',
-            onPressed: () => context.push('/notifications'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
-            onPressed: () => context.push('/settings'),
-          ),
-        ],
-      ),
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
-            // Search Input trigger
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(28),
-                onTap: () => context.push('/fridges/${widget.fridgeId}/search'),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, color: theme.colorScheme.onSurfaceVariant),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Search for items',
-                        style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Circular Category Chips
+            const OfflineBanner(),
+            // Top App Bar
+            _buildAppBar(context),
+            // Floating Pill Search Bar with Shadow
+            _buildSearchBar(context, isTh),
+            const SizedBox(height: 3),
+            // Circular Category Chips (All, Proteins, Veggies, Beverages, Meals, Sauces)
             CategoryChips(
               selectedCategory: filter.category,
               onSelected: (cat) {
                 ref.read(fridgeDetailFilterProvider.notifier).setCategory(cat);
               },
             ),
-            // Tabs: Fridge | Freezer
-            TabBar(
-              controller: _tabController,
-              indicatorColor: theme.colorScheme.primary,
-              labelColor: theme.colorScheme.primary,
-              unselectedLabelColor: theme.colorScheme.outline,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-              tabs: const [
-                Tab(text: 'Fridge'),
-                Tab(text: 'Freezer'),
-              ],
-            ),
-            // Food Items Section
+            const SizedBox(height: 4),
+            // Fridge | Freezer Tabs
+            _buildTabs(context, isTh),
+            // Food Items Section Header ("Your food" & "N items")
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Your food', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   Text(
-                    '${items.length} items',
-                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 14),
+                    isTh ? 'รายการอาหารของคุณ' : 'Your food',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: theme.colorScheme.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  Text(
+                    isTh ? '${items.length} รายการ' : '${items.length} items',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
             ),
+            // Items List
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  return ItemCard(
-                    name: item.name,
-                    quantityText: '${item.quantity.toInt()} ${item.unit}',
-                    status: item.status,
-                    statusText: item.statusText,
-                    onTap: () => context.push('/fridges/${widget.fridgeId}/items/${item.id}'),
-                  );
-                },
-              ),
+              child: items.isEmpty
+                  ? _buildEmptyState(isTh)
+                  : ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(bottom: 74, top: 2),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+
+                        return ItemCard(
+                          name: item.name,
+                          category: item.category,
+                          quantityText: item.formattedQuantityLocalized(isTh),
+                          status: item.status,
+                          statusText: item.localizedStatusText(isTh),
+                          imagePath: item.imagePath,
+                          onTap: () async {
+                            final result = await context.push<ItemModel?>(
+                              '/fridges/${widget.fridgeId}/items/${item.id}',
+                            );
+                            if (result != null && context.mounted) {
+                              FinishAllSnackbar.show(context, itemName: result.name);
+                            }
+                          },
+                          onLongPress: () => _showMarkConsumedSheet(context, item),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        onPressed: () => context.push('/fridges/${widget.fridgeId}/items/add'),
-        child: const Icon(Icons.add),
+      floatingActionButton: Container(
+        width: 56,
+        height: 56,
+        margin: const EdgeInsets.only(bottom: 16, right: 16),
+        child: FloatingActionButton(
+          elevation: 4,
+          backgroundColor: const Color(0xFF2E6A44), // Figma exact dark green
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          onPressed: () async {
+            await context.push('/fridges/${widget.fridgeId}/items/add');
+            if (context.mounted) {
+              ref.read(fridgeItemsProvider(widget.fridgeId).notifier).loadItems();
+            }
+          },
+          child: const Icon(Icons.add, size: 28),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBar(BuildContext context) {
+    final fridges = ref.watch(fridgesProvider);
+    final match = fridges.where((f) => f.id == widget.fridgeId);
+    final fridgeTitle = match.isNotEmpty ? match.first.name : 'Kitchen';
+    final unreadFridgeNotifs = ref.watch(fridgeUnreadNotificationCountProvider(widget.fridgeId));
+
+    return AppTopBar(
+      title: fridgeTitle,
+      actions: [
+        AppTopBarAction(
+          icon: Icons.people_outline_rounded,
+          onTap: () => context.push('/fridges/${widget.fridgeId}/family?name=${Uri.encodeComponent(fridgeTitle)}'),
+        ),
+        AppTopBarAction(
+          icon: Icons.history_rounded,
+          onTap: () => context.push('/fridges/${widget.fridgeId}/history'),
+        ),
+        AppTopBarAction(
+          icon: Icons.notifications_none_rounded,
+          badgeCount: unreadFridgeNotifs,
+          onTap: () => context.push('/fridges/${widget.fridgeId}/notifications?fridgeName=${Uri.encodeComponent(fridgeTitle)}'),
+        ),
+        AppTopBarAction(
+          icon: Icons.settings_outlined,
+          onTap: () => context.push('/settings'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchBar(BuildContext context, [bool isTh = false]) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: isDark
+              ? null
+              : const [
+                  BoxShadow(
+                    color: Color(0x45000000), // Prominent deep drop shadow matching Image 2
+                    blurRadius: 18,
+                    offset: Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: Color(0x12000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: () {
+              ref.read(searchQueryProvider.notifier).state = '';
+              context.push('/fridges/${widget.fridgeId}/search');
+            },
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 18, right: 12),
+                  child: Icon(Icons.search, color: theme.colorScheme.onSurfaceVariant, size: 22),
+                ),
+                Expanded(
+                  child: Text(
+                    isTh ? 'ค้นหารายการอาหาร' : 'Search for items',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 22),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabs(BuildContext context, bool isTh) {
+    final theme = Theme.of(context);
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        // Thin baseline border across tabs
+        Container(
+          height: 1.2,
+          color: theme.colorScheme.outlineVariant,
+        ),
+        TabBar(
+          controller: _tabController,
+          onTap: (index) {
+            ref.read(fridgeDetailFilterProvider.notifier).setZone(
+                  index == 0 ? 'fridge' : 'freezer',
+                );
+          },
+          indicatorColor: theme.colorScheme.primary,
+          indicatorWeight: 3.5,
+          indicatorSize: TabBarIndicatorSize.label,
+          labelColor: theme.colorScheme.onSurface,
+          unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+          labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          unselectedLabelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          dividerColor: Colors.transparent,
+          tabs: [
+            Tab(text: isTh ? 'ช่องแช่เย็น' : 'Fridge'),
+            Tab(text: isTh ? 'ช่องแช่แข็ง' : 'Freezer'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState(bool isTh) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.inventory_2_outlined, size: 48, color: Color(0xFF94A3B8)),
+            const SizedBox(height: 12),
+            Text(
+              isTh ? 'ไม่พบรายการอาหาร' : 'No items found',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF475569),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isTh
+                  ? 'ลองเปลี่ยนตัวกรอง หรือเพิ่มวัตถุดิบใหม่'
+                  : 'Try changing filters or add a new food item',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+            ),
+          ],
+        ),
       ),
     );
   }

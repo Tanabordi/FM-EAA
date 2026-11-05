@@ -19,6 +19,7 @@ void main() {
 
       expect(item.status, FreshnessStatus.fresh);
       expect(item.statusText, '5 days left');
+      expect(item.detailStatusLabel, 'Fresh in 5 Days');
     });
 
     test('Calculates Use soon status when expiry date is <= 2 days away', () {
@@ -36,6 +37,12 @@ void main() {
 
       expect(item.status, FreshnessStatus.useSoon);
       expect(item.statusText, '2 days left');
+      expect(item.detailStatusLabel, 'Use soon in 2 Days');
+
+      final item1Day = item.copyWith(expiryDate: DateTime.now().add(const Duration(days: 1)));
+      expect(item1Day.status, FreshnessStatus.useSoon);
+      expect(item1Day.statusText, '1 day left');
+      expect(item1Day.detailStatusLabel, 'Use soon in 1 Day');
     });
 
     test('Calculates Expired status when expiry date is in the past', () {
@@ -53,7 +60,7 @@ void main() {
 
       expect(item.status, FreshnessStatus.expired);
       expect(item.statusText, 'Yesterday');
+      expect(item.detailStatusLabel, 'Expired yesterday');
     });
   });
 }
-

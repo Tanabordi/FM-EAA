@@ -1,9 +1,12 @@
+import '../../../../shared/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../shared/widgets/item_card.dart';
 import '../../providers/search_provider.dart';
 
-// TODO(screen #10 Search): ช่องค้นหา (มีปุ่มล้าง ✕), "Results for "<คำค้น>"", การ์ดผลลัพธ์ (เช่น "Avocados (Veggies)", จำนวน, ป้ายสถานะ, จำนวนวันที่เหลือ). เฟรมซ้ำเป็นแค่ state (ค้นจากแท็บ Fridge / Freezer, ไม่พบ ฯลฯ)
+/// Screen #10: Search page matching Figma node 376:543, 383:77 & uploaded screenshot
 class SearchPage extends ConsumerStatefulWidget {
   final String fridgeId;
 
@@ -16,89 +19,233 @@ class SearchPage extends ConsumerStatefulWidget {
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _searchController = TextEditingController();
 
+  void _onQueryChanged(String val) {
+    ref.read(searchQueryProvider.notifier).state = val;
+  }
+
+  void _onClearQuery() {
+    _searchController.clear();
+    ref.read(searchQueryProvider.notifier).state = '';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize controller with current search query ('Avocados' by default matching Figma mockup)
+    _searchController.text = ref.read(searchQueryProvider);
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  String _getCategoryLabel(String category, bool isTh) {
+    if (!isTh) return category.capitalize();
+    switch (category.toLowerCase()) {
+      case 'proteins':
+        return 'โปรตีน';
+      case 'veggies':
+        return 'ผักผลไม้';
+      case 'beverages':
+        return 'เครื่องดื่ม';
+      case 'meals':
+        return 'อาหาร';
+      case 'sauces':
+        return 'ซอส';
+      default:
+        return category;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final query = ref.watch(searchQueryProvider);
     final results = ref.watch(searchResultsProvider(widget.fridgeId));
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        leading: const BackButton(),
-        title: TextField(
-          controller: _searchController,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: 'Search for items...',
-            border: InputBorder.none,
-            filled: false,
-            suffixIcon: _searchController.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      _searchController.clear();
-                      ref.read(searchQueryProvider.notifier).state = '';
-                    },
-                  )
-                : null,
-          ),
-          onChanged: (val) {
-            ref.read(searchQueryProvider.notifier).state = val;
-          },
-        ),
-      ),
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (query.isNotEmpty) ...[
-                Text(
-                  'Results for "$query"',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top App Bar: AppTopBar
+            AppTopBar(
+              title: isTh ? 'ค้นหา' : 'Search',
+              onBackPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/fridges/${widget.fridgeId}');
+                }
+              },
+            ),
+            // Floating Pill Search Bar with Shadow matching uploaded image
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: isDark
+                      ? null
+                      : const [
+                          BoxShadow(
+                            color: Color(0x45000000), // Prominent deep drop shadow matching image
+                            blurRadius: 18,
+                            offset: Offset(0, 6),
+                          ),
+                          BoxShadow(
+                            color: Color(0x12000000),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                 ),
-                const SizedBox(height: 12),
-              ],
-              if (results.isEmpty && query.isNotEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 48.0),
-                    child: Text(
-                      'No items found',
-                      style: TextStyle(color: theme.colorScheme.outline, fontSize: 16),
+                child: Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18, right: 12),
+                      child: Icon(Icons.search, color: theme.colorScheme.onSurfaceVariant, size: 22),
                     ),
-                  ),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: results.length,
-                    itemBuilder: (context, index) {
-                      final item = results[index];
-                      return ItemCard(
-                        name: '${item.name} (${item.category})',
-                        quantityText: '${item.quantity.toInt()} ${item.unit}',
-                        status: item.status,
-                        statusText: item.statusText,
-                      );
-                    },
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        autofocus: false,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: isTh ? 'ค้นหารายการอาหาร' : 'Search for items',
+                          hintStyle: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
+                        ),
+                        onChanged: _onQueryChanged,
+                      ),
+                    ),
+                    if (_searchController.text.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 14.0, left: 8.0),
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _onClearQuery,
+                          child: Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 15,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 22),
+                  ],
+                ),
+              ),
+            ),
+            // "Results for ..." Section Header matching exact typography and spacing
+            if (query.trim().isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                child: Text(
+                  isTh ? 'ผลการค้นหา "$query"' : 'Results for "$query"',
+                  style: TextStyle(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.onSurface,
+                    letterSpacing: -0.2,
                   ),
                 ),
+              ),
             ],
-          ),
+            // Results list or Empty state
+            Expanded(
+              child: query.trim().isEmpty
+                  ? const SizedBox.shrink()
+                  : results.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 60.0),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.search_off_rounded, size: 48, color: Color(0xFF94A3B8)),
+                                const SizedBox(height: 12),
+                                Text(
+                                  isTh ? 'ไม่พบรายการอาหาร' : 'No items found',
+                                  style: const TextStyle(
+                                    color: Color(0xFF5C665F),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  isTh ? 'ลองค้นหาด้วยคำอื่น' : 'Try searching with a different keyword',
+                                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.only(bottom: 24, top: 0),
+                          itemCount: results.length,
+                          itemBuilder: (context, index) {
+                            final item = results[index];
+
+                            return ItemCard(
+                              name: '${item.name} (${_getCategoryLabel(item.category, isTh)})',
+                              category: item.category,
+                              quantityText: item.formattedQuantityLocalized(isTh),
+                              status: item.status,
+                              statusText: item.localizedStatusText(isTh),
+                              imagePath: item.imagePath,
+                              onTap: () => context.push('/fridges/${widget.fridgeId}/items/${item.id}'),
+                            );
+                          },
+                        ),
+            ),
+          ],
         ),
       ),
     );
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return '${this[0].toUpperCase()}${substring(1)}';
   }
 }

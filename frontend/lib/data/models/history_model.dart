@@ -1,3 +1,5 @@
+import '../local/app_database.dart';
+
 class HistoryModel {
   final String id;
   final String fridgeId;
@@ -26,20 +28,51 @@ class HistoryModel {
   });
 
   bool get isConsumed => kind == 'consumed';
+  bool get isExpired => kind == 'expired';
+
+  factory HistoryModel.fromEntry(ItemHistoryData entry, {String? username}) {
+    final cleanUsername = username ??
+        (entry.byUserId.startsWith('@')
+            ? entry.byUserId.substring(1)
+            : entry.byUserId);
+    return HistoryModel(
+      id: entry.id,
+      fridgeId: entry.fridgeId,
+      itemId: entry.itemId,
+      itemName: entry.itemName,
+      imagePath: entry.imagePath,
+      kind: entry.kind,
+      quantityChanged: entry.quantityChanged,
+      quantityLeft: entry.quantityLeft,
+      unit: entry.unit,
+      byUsername: cleanUsername.isEmpty ? 'user' : cleanUsername,
+      createdAt: entry.createdAt,
+    );
+  }
 
   factory HistoryModel.fromJson(Map<String, dynamic> json) {
+    DateTime parsedDate;
+    final rawDate = json['created_at'] ?? json['createdAt'];
+    if (rawDate is DateTime) {
+      parsedDate = rawDate;
+    } else if (rawDate != null) {
+      parsedDate = DateTime.tryParse(rawDate.toString()) ?? DateTime.now();
+    } else {
+      parsedDate = DateTime.now();
+    }
+
     return HistoryModel(
-      id: json['id'] as String,
-      fridgeId: json['fridge_id'] as String,
-      itemId: json['item_id'] as String?,
-      itemName: json['item_name'] as String,
-      imagePath: json['image_path'] as String?,
-      kind: json['kind'] as String,
-      quantityChanged: (json['quantity_changed'] as num).toDouble(),
-      quantityLeft: (json['quantity_left'] as num).toDouble(),
-      unit: json['unit'] as String,
-      byUsername: json['by_username'] as String? ?? 'user',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      id: (json['id'] ?? '').toString(),
+      fridgeId: (json['fridgeId'] ?? json['fridge_id'] ?? '').toString(),
+      itemId: json['itemId']?.toString() ?? json['item_id']?.toString(),
+      itemName: (json['itemName'] ?? json['item_name'] ?? '').toString(),
+      imagePath: (json['imagePath'] ?? json['image_path'])?.toString(),
+      kind: (json['kind'] ?? 'consumed').toString(),
+      quantityChanged: ((json['quantityChanged'] ?? json['quantity_changed'] ?? 1) as num).toDouble(),
+      quantityLeft: ((json['quantityLeft'] ?? json['quantity_left'] ?? 0) as num).toDouble(),
+      unit: (json['unit'] ?? 'pieces').toString(),
+      byUsername: (json['byUsername'] ?? json['by_username'] ?? 'user').toString(),
+      createdAt: parsedDate,
     );
   }
 

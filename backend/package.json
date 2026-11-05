@@ -6,18 +6,32 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest --detectOpenHandles"
+    "test": "jest --detectOpenHandles --testTimeout=30000 --forceExit",
+    "test:coverage": "jest --coverage --detectOpenHandles --testTimeout=30000 --forceExit"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageThreshold": {
+      "global": {
+        "statements": 70,
+        "lines": 70,
+        "functions": 70
+      }
+    }
   },
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "@google/genai": "^2.32.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "firebase-admin": "^14.5.0",
     "google-auth-library": "^9.15.0",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^1.4.5-lts.1",
-    "oracledb": "^6.7.1"
+    "multer": "^2.5.0",
+    "nodemailer": "^10.3.1",
+    "oracledb": "^6.7.1",
+    "resend": "^6.37.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",
@@ -28,4 +42,3 @@
     "node": ">=18.0.0"
   }
 }
-

@@ -1,0 +1,441 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:fm_eaa/data/repositories/ai_repository.dart';
+import 'package:fm_eaa/features/fridge_detail/providers/fridge_detail_provider.dart';
+import 'package:fm_eaa/features/item/presentation/pages/add_item_page.dart';
+import 'package:fm_eaa/features/item/presentation/pages/edit_item_page.dart';
+import 'package:fm_eaa/features/item/presentation/pages/item_details_page.dart';
+import 'package:fm_eaa/features/item/presentation/widgets/delete_item_dialog.dart';
+import 'package:fm_eaa/features/item/presentation/widgets/finish_all_snackbar.dart';
+import 'package:fm_eaa/features/item/presentation/widgets/mark_consumed_sheet.dart';
+import 'package:fm_eaa/shared/widgets/app_back_button.dart';
+
+void main() {
+  group('Screens #11-16: Ingredient Form and Consumption Flow Tests', () {
+    testWidgets('Screen #11: AddItemPage renders all form elements and separate AI Scan card and button', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddItemPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+
+      // Verify Header
+      expect(find.text('Add items'), findsOneWidget);
+
+      // Verify Photo / AI scan card & manual options
+      expect(find.text('Add Photo or Scan Label'), findsOneWidget);
+      expect(find.text('Scan Label with AI'), findsOneWidget);
+      expect(find.text("Scan label to autofill details, or take/upload a photo"), findsOneWidget);
+      expect(find.text('Take Photo'), findsOneWidget);
+      expect(find.text('Gallery'), findsOneWidget);
+      expect(find.text('ให้ Gemini AI Vision Engine วิเคราะห์'), findsNothing);
+
+      // Verify Form inputs
+      expect(find.text('Food Name'), findsOneWidget);
+      expect(find.text('Category'), findsOneWidget);
+      expect(find.text('Quantity'), findsOneWidget);
+      expect(find.text('Unit'), findsOneWidget);
+      expect(find.text('Storage Location'), findsOneWidget);
+      expect(find.textContaining('Expiration Date'), findsOneWidget);
+      expect(find.textContaining('Use-by or best-before date'), findsOneWidget);
+      expect(find.text('Save'), findsOneWidget);
+    });
+
+    testWidgets('Screen #11: Tapping Save without entering food name shows validation error', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddItemPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+
+      // Tapping Save before inputting food name does NOT save
+      await tester.ensureVisible(find.text('Save'));
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      expect(find.text('Add items'), findsOneWidget); // still on Add items page, does not pop
+      expect(find.text('Please enter a food name before saving'), findsOneWidget);
+    });
+
+    testWidgets('Screen #11: Back button with unsaved changes shows Discard changes dialog', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddItemPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+
+      // Type some text in Food Name
+      await tester.enterText(find.widgetWithText(TextFormField, 'Food Name'), 'Avocado');
+      await tester.pump();
+
+      // Tap back button
+      await tester.tap(find.byType(AppBackButton));
+      await tester.pumpAndSettle();
+
+      // Verify ConfirmDialog appears with Discard and Keep editing
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.text('You have unsaved changes. Are you sure you want to discard them?'), findsOneWidget);
+      expect(find.text('Keep editing'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+
+      // Tap Keep editing -> dialog closes, stays on page
+      await tester.tap(find.text('Keep editing'));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.text('Add items'), findsOneWidget);
+    });
+
+    testWidgets('Screen #11: Tapping ✕ on photo shows action sheet with Remove photo only and Clear all options', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AddItemPage(
+            fridgeId: 'fridge_kitchen',
+            initialScanResult: AiScanResult(
+              isDetected: true,
+              foodName: 'Avocado',
+              category: 'Veggies',
+              unit: 'pieces',
+              storage: 'Fridge',
+              expiryDate: DateTime(2026, 11, 10),
+              imagePath: 'assets/images/food_avocados.png',
+            ),
+          ),
+        ),
+      );
+
+      // Verify photo and form are populated
+      expect(find.text('Avocado'), findsWidgets);
+      expect(find.byKey(const Key('add_item_remove_photo_btn')), findsOneWidget);
+
+      // Tap ✕ on photo
+      await tester.tap(find.byKey(const Key('add_item_remove_photo_btn')));
+      await tester.pumpAndSettle();
+
+      // Action sheet appears
+      expect(find.text('Remove Photo or Reset Form?'), findsOneWidget);
+      expect(find.text('Remove photo only'), findsOneWidget);
+      expect(find.text('Clear all and reset form'), findsOneWidget);
+
+      // Tap Remove photo only
+      await tester.tap(find.text('Remove photo only'));
+      await tester.pumpAndSettle();
+
+      // Form data is preserved!
+      expect(find.text('Avocado'), findsOneWidget);
+    });
+
+    testWidgets('Screen #11: Tapping Scan Label with AI card opens ScanLabelPage directly and supports saving item', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddItemPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+
+      // Verify Scan Label with AI card is visible and tappable
+      expect(find.text('Scan Label with AI'), findsOneWidget);
+      await tester.tap(find.text('Scan Label with AI'));
+      await tester.pumpAndSettle();
+
+      // Directly opens ScanLabelPage with camera and gallery controls
+      expect(find.text('AI Label Scanner'), findsOneWidget);
+      expect(find.byKey(const Key('scan_label_camera_btn')), findsOneWidget);
+      expect(find.byKey(const Key('scan_label_gallery_btn')), findsOneWidget);
+
+      // Tap back button in ScanLabelPage to return to AddItemPage
+      await tester.tap(find.byType(IconButton).first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add items'), findsOneWidget);
+
+      // Enter food name and save
+      await tester.enterText(find.widgetWithText(TextFormField, 'Food Name'), 'Fresh Avocados');
+      await tester.pumpAndSettle();
+
+      // Now tap Save to add the item to the fridge
+      await tester.ensureVisible(find.text('Save'));
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('Screen #12: ItemDetailsPage renders title, badge, tags, and action buttons', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: ItemDetailsPage(fridgeId: 'fridge_kitchen', itemId: 'item_strawberries'),
+          ),
+        ),
+      );
+
+      // Verify Title & Header
+      expect(find.text('item details'), findsOneWidget);
+      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+
+      // Verify Item info
+      expect(find.text('Strawberries'), findsOneWidget);
+      expect(find.text('Veggies'), findsOneWidget);
+      expect(find.text('Fridge'), findsOneWidget);
+
+      // Verify Action buttons
+      expect(find.text('Mark as Consumed'), findsOneWidget);
+      expect(find.text('Delete Item'), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+    });
+
+    testWidgets('Screen #13: EditItemPage renders pre-filled form with camera button and Save', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: EditItemPage(fridgeId: 'fridge_kitchen', itemId: 'item_strawberries'),
+          ),
+        ),
+      );
+
+      expect(find.text('Edit Item details'), findsOneWidget);
+      expect(find.byIcon(Icons.camera_alt_outlined), findsOneWidget);
+      expect(find.text('Strawberries'), findsOneWidget);
+      expect(find.text('Veggies'), findsOneWidget);
+      expect(find.text('Fridge'), findsOneWidget);
+      expect(find.text('Save'), findsOneWidget);
+
+      // Tap camera button to open change photo bottom sheet
+      await tester.tap(find.byIcon(Icons.camera_alt_outlined));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Change Item Photo'), findsOneWidget);
+      expect(find.text('Take Photo with Camera'), findsOneWidget);
+      expect(find.text('Choose from Gallery'), findsOneWidget);
+
+      // Tap Choose from Gallery in sheet
+      await tester.tap(find.text('Choose from Gallery'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      // Tap Save
+      await tester.ensureVisible(find.text('Save'));
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('Screens #14 & #15: MarkConsumedSheet renders stepper, Confirm, and Finished all buttons', (tester) async {
+      double? consumedAmount;
+      bool? isFinishedAll;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MarkConsumedSheet(
+              itemName: 'Avocados',
+              availablePieces: 2,
+              unit: 'pieces',
+              onConsumed: (amount, finishedAll) {
+                consumedAmount = amount;
+                isFinishedAll = finishedAll;
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('How much did you consume?'), findsOneWidget);
+      expect(find.text('Avocados · 2 pieces in fridge'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
+      expect(find.text('of 2 pieces'), findsOneWidget);
+      expect(find.text('Ask Gemini AI for recipe ideas'), findsOneWidget);
+
+      // Test Stepper [+]
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pump();
+      expect(find.text('2'), findsOneWidget);
+
+      // Test Confirm Button
+      await tester.tap(find.text('Confirm'));
+      expect(consumedAmount, 2.0);
+      expect(isFinishedAll, false);
+
+      // Test Finished all Button
+      await tester.tap(find.text('Finished all'));
+      expect(consumedAmount, 2.0);
+      expect(isFinishedAll, true);
+    });
+
+    testWidgets('Screen #16: DeleteItemDialog renders matching title, subtitle, Cancel and red Delete button', (tester) async {
+      bool deleteConfirmed = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => DeleteItemDialog(
+                      itemId: 'item_strawberries',
+                      itemName: 'Strawberries',
+                      onConfirm: () {
+                        deleteConfirmed = true;
+                      },
+                    ),
+                  );
+                },
+                child: const Text('Show Dialog'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Dialog'));
+      await tester.pumpAndSettle();
+
+      // Verify exact text from mockup image
+      expect(find.text('Delete Strawberries?'), findsOneWidget);
+      expect(find.text('This action cannot be undone'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
+
+      // Tap Delete
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(deleteConfirmed, true);
+    });
+
+    testWidgets('Screen #16: FinishAllSnackbar displays consumed confirmation', (tester) async {
+      final container = ProviderContainer();
+      final notifier = container.read(fridgeItemsProvider('fridge_kitchen').notifier);
+
+      final initialCount = container.read(fridgeItemsProvider('fridge_kitchen')).length;
+
+      // Consume 'Whole milk' completely
+      notifier.consumeItem('item_milk', 1, true);
+
+      final countAfterConsume = container.read(fridgeItemsProvider('fridge_kitchen')).length;
+      expect(countAfterConsume, initialCount - 1);
+      expect(container.read(fridgeItemsProvider('fridge_kitchen')).any((it) => it.id == 'item_milk'), false);
+
+      // Render SnackBar
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  FinishAllSnackbar.show(
+                    context,
+                    itemName: 'Whole milk',
+                  );
+                },
+                child: const Text('Show SnackBar'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show SnackBar'));
+      await tester.pumpAndSettle();
+
+      // Verify SnackBar content
+      expect(find.text('Consumed "Whole milk" successfully'), findsOneWidget);
+    });
+
+    testWidgets('Screen #13: EditItemPage shows inline validation error on Save with empty name and discard dialog on back with unsaved edits', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: EditItemPage(fridgeId: 'fridge_kitchen', itemId: 'item_strawberries'),
+          ),
+        ),
+      );
+
+      expect(find.text('Edit Item details'), findsOneWidget);
+
+      // Clear food name and tap Save
+      await tester.enterText(find.byType(TextField).first, '');
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Save'));
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      // Verify validation error
+      expect(find.text('Food name is required'), findsOneWidget);
+
+      // Modify food name and tap back
+      await tester.enterText(find.byType(TextField).first, 'Fresh Strawberries');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+
+      // Verify Discard changes dialog matching Image 1
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.text('You have unsaved changes. Are you sure you want to discard them?'), findsOneWidget);
+      expect(find.text('Keep editing'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+
+      // Tap Keep editing
+      await tester.tap(find.text('Keep editing'));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.text('Edit Item details'), findsOneWidget);
+
+      // Tap back and Discard
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('Screen #11: AddItemPage allows typing expiration date manually with keyboard and auto-inserts slashes', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AddItemPage(fridgeId: 'fridge_kitchen'),
+          ),
+        ),
+      );
+
+      final dateFinder = find.byKey(const Key('add_item_expiration_date'));
+      expect(dateFinder, findsOneWidget);
+
+      // User types raw digits without typing '/' manually
+      await tester.enterText(dateFinder, '12252026');
+      await tester.pumpAndSettle();
+
+      expect(find.text('12/25/2026'), findsOneWidget);
+    });
+
+    testWidgets('Screen #13: EditItemPage allows editing expiration date manually with keyboard and auto-inserts slashes', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: EditItemPage(fridgeId: 'fridge_kitchen', itemId: 'item_strawberries'),
+          ),
+        ),
+      );
+
+      // Find the date field which initially has pre-filled date
+      final dateFinder = find.byKey(const Key('edit_item_expiration_date'));
+      expect(dateFinder, findsOneWidget);
+
+      // User types a new date using raw digits
+      await tester.enterText(dateFinder, '11302026');
+      await tester.pumpAndSettle();
+
+      expect(find.text('11/30/2026'), findsOneWidget);
+    });
+  });
+}
+

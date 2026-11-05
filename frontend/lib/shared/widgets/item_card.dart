@@ -1,71 +1,203 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/freshness_colors.dart';
+import '../utils/food_asset_helper.dart';
 import 'status_badge.dart';
 
-/// ItemCard displaying an ingredient inside a fridge zone.
+/// ItemCard displaying an ingredient inside a fridge zone matching Figma node 11:178 & 275:17
 class ItemCard extends StatelessWidget {
   final String name;
+  final String? category;
   final String quantityText;
   final FreshnessStatus status;
   final String statusText;
   final String? imagePath;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const ItemCard({
     super.key,
     required this.name,
+    this.category,
     required this.quantityText,
     required this.status,
     required this.statusText,
     this.imagePath,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainer,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.fastfood, color: Colors.grey),
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4.5),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                // Food Image Thumbnail
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    width: 68,
+                    height: 68,
+                    color: theme.colorScheme.surfaceContainerHigh,
+                    child: _buildFoodImage(),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      quantityText,
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
-                    ),
-                  ],
+                const SizedBox(width: 14),
+                // Food Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16.5,
+                          color: theme.colorScheme.onSurface,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        quantityText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Row(
+                        children: [
+                          StatusBadge(status: status),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              statusText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              StatusBadge(status: status, customLabel: statusText),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
 
+  Widget _buildFoodImage() {
+    if (imagePath != null && imagePath!.isNotEmpty) {
+      if (imagePath!.startsWith('http://') || imagePath!.startsWith('https://')) {
+        return Image.network(
+          imagePath!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return Container(
+              color: const Color(0xFFDDE4DC),
+              child: const Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2E6A44)),
+                ),
+              ),
+            );
+          },
+        );
+      } else if (imagePath!.startsWith('assets/')) {
+        return Image.asset(
+          imagePath!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+        );
+      } else if (!kIsWeb) {
+        try {
+          final file = File(imagePath!);
+          if (file.existsSync()) {
+            return Image.file(
+              file,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+            );
+          }
+        } catch (_) {}
+      }
+    }
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
+    final assetFallback = getFoodAssetFallback(name, category: category);
+    return Image.asset(
+      assetFallback,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        final lower = name.toLowerCase();
+        IconData iconData = Icons.restaurant_rounded;
+        Color iconColor = const Color(0xFF2E6A44);
+        Color bgColor = const Color(0xFFDDE4DC);
+
+        if (lower.contains('spinach') || lower.contains('cabbage') || lower.contains('veggie')) {
+          iconData = Icons.eco_rounded;
+          bgColor = const Color(0xFFD5E4D4);
+          iconColor = const Color(0xFF2E7D32);
+        } else if (lower.contains('strawberr') || lower.contains('apple') || lower.contains('berry')) {
+          iconData = Icons.favorite_rounded;
+          bgColor = const Color(0xFFFFEBEE);
+          iconColor = const Color(0xFFE53935);
+        } else if (lower.contains('avocado')) {
+          iconData = Icons.spa_rounded;
+          bgColor = const Color(0xFFE8F5E9);
+          iconColor = const Color(0xFF388E3C);
+        } else if (lower.contains('milk') || lower.contains('drink') || lower.contains('juice') || lower.contains('beverage')) {
+          iconData = Icons.local_drink_rounded;
+          bgColor = const Color(0xFFE3F2FD);
+          iconColor = const Color(0xFF1E88E5);
+        } else if (lower.contains('pork') || lower.contains('beef') || lower.contains('chicken') || lower.contains('steak')) {
+          iconData = Icons.lunch_dining_rounded;
+          bgColor = const Color(0xFFFBE9E7);
+          iconColor = const Color(0xFFD84315);
+        }
+
+        return Container(
+          color: bgColor,
+          alignment: Alignment.center,
+          child: Icon(iconData, color: iconColor, size: 30),
+        );
+      },
+    );
+  }
+}

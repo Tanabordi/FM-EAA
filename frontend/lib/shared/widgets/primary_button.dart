@@ -7,6 +7,7 @@ class PrimaryButton extends StatelessWidget {
   final Widget? icon;
   final bool isLoading;
   final Color? backgroundColor;
+  final Color? foregroundColor;
 
   const PrimaryButton({
     super.key,
@@ -15,31 +16,44 @@ class PrimaryButton extends StatelessWidget {
     this.icon,
     this.isLoading = false,
     this.backgroundColor,
+    this.foregroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bg = backgroundColor ?? theme.colorScheme.primary;
+    final fg = foregroundColor ?? (backgroundColor != null ? Colors.white : theme.colorScheme.onPrimary);
+
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.primary,
+          backgroundColor: bg,
+          foregroundColor: fg,
           shape: const StadiumBorder(),
           elevation: 0,
         ),
         onPressed: isLoading ? null : onPressed,
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 24,
                 height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(strokeWidth: 2, color: fg),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[icon!, const SizedBox(width: 8)],
-                  Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: fg,
+                    ),
+                  ),
                 ],
               ),
       ),

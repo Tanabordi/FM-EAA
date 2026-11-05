@@ -1,108 +1,425 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/freshness_colors.dart';
-import '../../../../shared/widgets/primary_button.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/user_avatar.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../domain/models/family_member.dart';
+
+import '../../providers/family_provider.dart';
 import '../widgets/remove_member_dialog.dart';
+import '../../../fridges/presentation/widgets/leave_fridge_dialog.dart';
+import '../../../fridges/providers/fridges_provider.dart';
 
-// TODO(screen #18 Family Share): การ์ดชื่อตู้ ("Kitchen fridge"), "Family members" + "N Member", แถวสมาชิก: รูปโปรไฟล์, ชื่อ ("Mimi (ME)"), role Owner/Member, ปุ่มลบสมาชิก (เฉพาะที่ไม่ใช่ owner), ข้อความอธิบาย, ปุ่ม "Invite Member"
-class FamilySharePage extends StatelessWidget {
+/// Screen #18: Family Share matching Figma node 11:49 exactly
+class FamilySharePage extends ConsumerStatefulWidget {
   final String fridgeId;
+  final String fridgeName;
 
-  const FamilySharePage({super.key, required this.fridgeId});
+  const FamilySharePage({
+    super.key,
+    required this.fridgeId,
+    this.fridgeName = 'Kitchen',
+  });
+
+  @override
+  ConsumerState<FamilySharePage> createState() => _FamilySharePageState();
+}
+
+class _FamilySharePageState extends ConsumerState<FamilySharePage> {
+  bool _isRemoving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() async {
+      if (ref.read(authProvider).user == null) {
+        await ref.read(authProvider.notifier).restoreSession();
+      }
+      ref
+          .read(familyMembersProvider(widget.fridgeId).notifier)
+          .loadMembers();
+    });
+  }
+
+  void _showRemoveDialog(FamilyMemberItem member) {
+    showDialog(
+      context: context,
+      builder: (context) => RemoveMemberDialog(
+        memberName: member.name,
+        onConfirm: () => _handleRemoveMember(member),
+      ),
+    );
+  }
+
+  void _showLeaveDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => LeaveFridgeDialog(
+        fridgeId: widget.fridgeId,
+        fridgeName: widget.fridgeName,
+        onConfirm: () => _handleLeaveFridge(),
+      ),
+    );
+  }
+
+  Future<void> _handleLeaveFridge() async {
+    setState(() => _isRemoving = true);
+    final currentUserId = ref.read(authProvider).user?.id ?? '';
+    try {
+      if (currentUserId.isNotEmpty) {
+        await ref
+            .read(familyMembersProvider(widget.fridgeId).notifier)
+            .removeMember(currentUserId);
+      }
+      await ref.read(fridgesProvider.notifier).leaveFridge(widget.fridgeId, currentUserId);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You have left "${widget.fridgeName}"'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      context.go('/fridges');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to leave fridge: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isRemoving = false);
+    }
+  }
+
+  Future<void> _handleRemoveMember(FamilyMemberItem member) async {
+    setState(() => _isRemoving = true);
+    try {
+      await ref
+          .read(familyMembersProvider(widget.fridgeId).notifier)
+          .removeMember(member.id);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${member.name} has been removed')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to remove member: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isRemoving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
+    final familyState = ref.watch(familyMembersProvider(widget.fridgeId));
+    final currentUser = ref.watch(authProvider).user;
+    final currentUserId = currentUser?.id ?? '';
+    final currentUsername = currentUser?.username ?? '';
+    final members = familyState.members;
 
-    // Mock members list
-    final members = [
-      {'name': 'Mimi (ME)', 'role': 'Owner', 'isOwner': true},
-      {'name': 'Sarah', 'role': 'Member', 'isOwner': false},
-      {'name': 'John', 'role': 'Member', 'isOwner': false},
-    ];
+    final fridges = ref.watch(fridgesProvider);
+    final currentFridge = fridges.where((f) => f.id == widget.fridgeId).firstOrNull;
+
+    bool checkIsMe(FamilyMemberItem m) {
+      if (currentUserId.isNotEmpty && m.id.isNotEmpty && m.id.toLowerCase() == currentUserId.toLowerCase()) {
+        return true;
+      }
+      final cleanName = m.name.replaceAll(RegExp(r'\s*\(me\)$', caseSensitive: false), '').trim();
+      if (currentUsername.isNotEmpty && cleanName.isNotEmpty && cleanName.toLowerCase() == currentUsername.toLowerCase()) {
+        return true;
+      }
+      return false;
+    }
+
+
+    final bool isCurrentUserOwner;
+    if (currentFridge != null && currentFridge.role.toLowerCase() == 'member') {
+      isCurrentUserOwner = false;
+    } else if (currentFridge != null && currentUserId.isNotEmpty) {
+      isCurrentUserOwner = currentFridge.isUserOwner(currentUserId);
+    } else {
+      isCurrentUserOwner = members.any((m) => checkIsMe(m) && m.isOwner);
+    }
 
     return Scaffold(
-      appBar: AppBar(
-        leading: const BackButton(),
-        title: const Text('Family Share', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Fridge Name Header Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Row(
+        child: RefreshIndicator(
+          onRefresh: () => ref
+              .read(familyMembersProvider(widget.fridgeId).notifier)
+              .loadMembers(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Top Bar with back button
+                Row(
                   children: [
-                    Text('🧊', style: TextStyle(fontSize: 28)),
-                    SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Kitchen fridge', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        Text('Shared with your household', style: TextStyle(fontSize: 12)),
-                      ],
+                    const FigmaBackButton(),
+                    const SizedBox(width: 16),
+                    Text(
+                      isTh ? 'แชร์ในครอบครัว' : 'Family Share',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                        fontSize: 22,
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Family members (${members.length} Members)',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: members.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final member = members[index];
-                    final isOwner = member['isOwner'] as bool;
+                const SizedBox(height: 24),
 
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: UserAvatar(name: member['name'] as String, radius: 20),
-                      title: Text(member['name'] as String, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text(member['role'] as String),
-                      trailing: !isOwner
-                          ? IconButton(
-                              icon: const Icon(Icons.remove_circle_outline, color: FreshnessColors.danger),
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => RemoveMemberDialog(memberName: member['name'] as String),
-                                );
-                              },
-                            )
-                          : null,
-                    );
-                  },
+                // Dynamic Fridge Card (Figma node 11:49)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.kitchen_outlined,
+                        size: 32,
+                        color: colorScheme.onSurface,
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Text(
+                          widget.fridgeName,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: colorScheme.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Text(
-                'Members can view, add, consume, and edit items in this fridge.',
-                style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
-              ),
-              const SizedBox(height: 16),
-              PrimaryButton(
-                label: 'Invite Member',
-                onPressed: () => context.push('/fridges/$fridgeId/family/invite'),
-              ),
-            ],
+                const SizedBox(height: 28),
+
+                // Section Title with count
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isTh ? 'สมาชิกในครอบครัว' : 'Family members',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    Text(
+                      isTh ? '${members.length} สมาชิก' : '${members.length} ${members.length == 1 ? "Member" : "Members"}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Members Container Card
+                if (familyState.isLoading && members.isEmpty)
+                  Container(
+                    height: 140,
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Center(
+                      child: CircularProgressIndicator(color: colorScheme.primary),
+                    ),
+                  )
+                else if (members.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Center(
+                      child: Text(
+                        isTh
+                            ? 'ยังไม่มีสมาชิก เชิญเพื่อนหรือคนในครอบครัวด้านล่างนี้ได้เลย!'
+                            : 'No members yet. Invite someone below!',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      children: members.map((member) {
+                        final isMe = checkIsMe(member);
+                        final displayName = isMe && !member.name.contains('(ME)')
+                            ? (isTh ? '${member.name} (ฉัน)' : '${member.name} (ME)')
+                            : member.name;
+
+                        // Only owner can delete other members (never themselves)
+                        final canDelete = isCurrentUserOwner && !member.isOwner && !isMe;
+                        // Non-owner member viewing themselves can leave
+                        final isMeAndCanLeave = isMe && !isCurrentUserOwner;
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Row(
+                            children: [
+                              UserAvatar(
+                                name: member.name,
+                                avatarUrl: member.avatarUrl,
+                                radius: 24,
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  displayName,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                isTh ? (member.role.toLowerCase() == 'owner' ? 'เจ้าของ' : 'สมาชิก') : member.role,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              if (canDelete)
+                                IconButton(
+                                  onPressed: _isRemoving ? null : () => _showRemoveDialog(member),
+                                  tooltip: 'Remove ${member.name}',
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Color(0xFFB91C1C),
+                                    size: 24,
+                                  ),
+                                )
+                              else if (isMeAndCanLeave)
+                                IconButton(
+                                  onPressed: _isRemoving ? null : _showLeaveDialog,
+                                  tooltip: 'Leave Fridge',
+                                  icon: const Icon(
+                                    Icons.exit_to_app_rounded,
+                                    color: Color(0xFFB91C1C),
+                                    size: 24,
+                                  ),
+                                )
+                              else
+                                const SizedBox(width: 48),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+
+                const SizedBox(height: 20),
+
+                // Explanatory Note with Fridge icon
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.kitchen_outlined,
+                        size: 20,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        isTh
+                            ? 'ทุกคนสามารถแชร์ตู้เย็น จัดการรายการซื้อของ และช่วยลดขยะอาหารด้วยกันได้'
+                            : 'Everyone can share a refrigerator, manage a shopping list, and further reduce food waste.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colorScheme.onSurfaceVariant,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+
+                // Action Button at bottom
+                if (isCurrentUserOwner) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E6A44),
+                        foregroundColor: Colors.white,
+                        shape: const StadiumBorder(),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.person_add_alt, size: 20),
+                      label: Text(
+                        isTh ? 'เชิญสมาชิก' : 'Invite Member',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: () {
+                        context.push('/fridges/${widget.fridgeId}/family/invite');
+                      },
+                    ),
+                  ),
+                ],
+                if (!isCurrentUserOwner) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: OutlinedButton.icon(
+                      key: const Key('leave_fridge_bottom_button'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFBA1A1A),
+                        side: const BorderSide(color: Color(0xFFBA1A1A), width: 1.5),
+                        shape: const StadiumBorder(),
+                      ),
+                      icon: const Icon(Icons.exit_to_app_rounded, size: 20),
+                      label: Text(
+                        isTh ? 'ออกจากตู้เย็น' : 'Leave Fridge',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: _isRemoving ? null : _showLeaveDialog,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-
