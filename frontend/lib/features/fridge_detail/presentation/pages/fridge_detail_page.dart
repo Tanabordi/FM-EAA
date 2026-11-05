@@ -50,20 +50,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     super.dispose();
   }
 
-  bool get _isTh {
-    try {
-      return ref.read(localeProvider).languageCode == 'th';
-    } catch (_) {
-      try {
-        return Localizations.localeOf(context).languageCode == 'th';
-      } catch (_) {
-        return false;
-      }
-    }
-  }
-
   void _showMarkConsumedSheet(BuildContext context, ItemModel item) {
-    final isTh = _isTh;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
