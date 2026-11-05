@@ -124,7 +124,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
       body: SafeArea(
         child: Column(
           children: [
-            _buildNotificationWarningBanner(context),
+            _buildNotificationWarningBanner(context, isTh),
             Expanded(
               child: notificationsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -209,11 +209,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                   if (notif.isInvite) {
                     return _buildInviteCard(context, notif, isTh);
                   } else if (notif.isMemberJoined) {
-                    return _buildMemberJoinedCard(context, notif);
+                    return _buildMemberJoinedCard(context, notif, isTh);
                   } else if (notif.isItemAction) {
-                    return _buildItemActionCard(context, notif);
+                    return _buildItemActionCard(context, notif, isTh);
                   } else {
-                    return _buildExpiryCard(context, notif);
+                    return _buildExpiryCard(context, notif, isTh);
                   }
                 },
               ),
@@ -227,7 +227,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
 );
 }
 
-  Widget _buildNotificationWarningBanner(BuildContext context) {
+  Widget _buildNotificationWarningBanner(BuildContext context, [bool isTh = false]) {
     if (_notificationsEnabled) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -241,17 +241,17 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
         children: [
           const Icon(Icons.notifications_off_rounded, color: Color(0xFF856404), size: 22),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'การแจ้งเตือนถูกปิดอยู่ในการตั้งค่า',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF856404)),
+                  isTh ? 'การแจ้งเตือนถูกปิดอยู่ในการตั้งค่า' : 'Notifications disabled in settings',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF856404)),
                 ),
                 Text(
-                  'เปิดการแจ้งเตือนเพื่อรับการอัปเดตแบบเรียลไทม์',
-                  style: TextStyle(fontSize: 11.5, color: Color(0xFF856404)),
+                  isTh ? 'เปิดการแจ้งเตือนเพื่อรับการอัปเดตแบบเรียลไทม์' : 'Enable notifications for real-time updates',
+                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF856404)),
                 ),
               ],
             ),
@@ -266,10 +266,13 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
-              await NotificationService().requestPermissionsWithFallback(context);
+              await NotificationService().requestPermissionsWithFallback(context, isTh);
               _checkNotificationPermission();
             },
-            child: const Text('เปิดสิทธิ์', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text(
+              isTh ? 'เปิดสิทธิ์' : 'Enable',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -396,7 +399,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
     );
   }
 
-  Widget _buildExpiryCard(BuildContext context, NotificationModel notif) {
+  Widget _buildExpiryCard(BuildContext context, NotificationModel notif, [bool isTh = false]) {
     final theme = Theme.of(context);
     final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
 
@@ -448,7 +451,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                       children: [
                         Expanded(
                           child: Text(
-                            notif.title.isNotEmpty ? notif.title : notif.message,
+                            notif.localizedTitle(isTh).isNotEmpty ? notif.localizedTitle(isTh) : notif.localizedMessage(isTh),
                             style: TextStyle(
                               fontWeight: notif.isRead ? FontWeight.w600 : FontWeight.bold,
                               fontSize: 15,
@@ -469,7 +472,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      notif.message.isNotEmpty ? notif.message : 'Remember to consume before expiry.',
+                      notif.localizedMessage(isTh).isNotEmpty
+                          ? notif.localizedMessage(isTh)
+                          : (isTh ? 'อย่าลืมรับประทานก่อนอาหารหมดอายุ' : 'Remember to consume before expiry.'),
                       style: TextStyle(
                         fontSize: 12,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -489,7 +494,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
               IconButton(
                 icon: const Icon(Icons.close, size: 18),
                 color: theme.colorScheme.onSurfaceVariant,
-                tooltip: 'Dismiss',
+                tooltip: isTh ? 'ปิด' : 'Dismiss',
                 onPressed: () => _handleDismiss(notif),
               ),
             ],
@@ -499,7 +504,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
     );
   }
 
-  Widget _buildMemberJoinedCard(BuildContext context, NotificationModel notif) {
+  Widget _buildMemberJoinedCard(BuildContext context, NotificationModel notif, [bool isTh = false]) {
     final theme = Theme.of(context);
     final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
 
@@ -546,7 +551,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                       children: [
                         Expanded(
                           child: Text(
-                            notif.title.isNotEmpty ? notif.title : 'New Member Joined',
+                            notif.localizedTitle(isTh).isNotEmpty
+                                ? notif.localizedTitle(isTh)
+                                : (isTh ? '👥 สมาชิกใหม่เข้าร่วม' : 'New Member Joined'),
                             style: TextStyle(
                               fontWeight: notif.isRead ? FontWeight.w600 : FontWeight.bold,
                               fontSize: 15,
@@ -567,7 +574,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      notif.message.isNotEmpty ? notif.message : 'A new member has joined the fridge.',
+                      notif.localizedMessage(isTh).isNotEmpty
+                          ? notif.localizedMessage(isTh)
+                          : (isTh ? 'มีสมาชิกใหม่เข้าร่วมตู้เย็นแล้ว' : 'A new member has joined the fridge.'),
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -587,7 +596,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
               IconButton(
                 icon: const Icon(Icons.close, size: 18),
                 color: theme.colorScheme.onSurfaceVariant,
-                tooltip: 'Dismiss',
+                tooltip: isTh ? 'ปิด' : 'Dismiss',
                 onPressed: () => _handleDismiss(notif),
               ),
             ],
@@ -597,7 +606,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
     );
   }
 
-  Widget _buildItemActionCard(BuildContext context, NotificationModel notif) {
+  Widget _buildItemActionCard(BuildContext context, NotificationModel notif, [bool isTh = false]) {
     final theme = Theme.of(context);
     final timeStr = DateFormat('d MMM · hh:mm a').format(notif.createdAt.toLocal());
 
@@ -669,7 +678,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                       children: [
                         Expanded(
                           child: Text(
-                            notif.title.isNotEmpty ? notif.title : notif.message,
+                            notif.localizedTitle(isTh).isNotEmpty
+                                ? notif.localizedTitle(isTh)
+                                : notif.localizedMessage(isTh),
                             style: TextStyle(
                               fontWeight: notif.isRead ? FontWeight.w600 : FontWeight.bold,
                               fontSize: 15,
@@ -690,7 +701,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      notif.message.isNotEmpty ? notif.message : 'Food item activity in your fridge.',
+                      notif.localizedMessage(isTh).isNotEmpty
+                          ? notif.localizedMessage(isTh)
+                          : (isTh ? 'มีการอัปเดตรายการอาหารในตู้เย็น' : 'Food item activity in your fridge.'),
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -710,7 +723,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
               IconButton(
                 icon: const Icon(Icons.close, size: 18),
                 color: theme.colorScheme.onSurfaceVariant,
-                tooltip: 'Dismiss',
+                tooltip: isTh ? 'ปิด' : 'Dismiss',
                 onPressed: () => _handleDismiss(notif),
               ),
             ],

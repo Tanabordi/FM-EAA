@@ -737,13 +737,17 @@ class FridgeService {
           const fridgeName = (fridgeRes.rows && fridgeRes.rows[0]) ? fridgeRes.rows[0][0] : 'Fridge';
 
           const notifTitle = '👥 New Member Joined';
+          const notifTitleTh = '👥 สมาชิกใหม่เข้าร่วม';
           const notifMessage = `${joinedUsername} joined "${fridgeName}" (invited by ${inviterUsername})`;
+          const notifMessageTh = `${joinedUsername} เข้าร่วมตู้ "${fridgeName}" (ได้รับคำเชิญจาก ${inviterUsername})`;
 
           await notificationService.notifyFridgeMembers(conn, fridgeId, currentUserId, {
             type: 'member_joined',
             subType: 'member_joined',
             title: notifTitle,
+            title_th: notifTitleTh,
             message: notifMessage,
+            message_th: notifMessageTh,
             fridge_name: fridgeName,
             joined_user_id: currentUserId,
             joined_username: joinedUsername,

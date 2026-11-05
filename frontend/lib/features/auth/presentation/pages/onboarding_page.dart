@@ -75,7 +75,7 @@ class OnboardingPage extends StatelessWidget {
                       PrimaryButton(
                         label: isTh ? 'เปิดการแจ้งเตือน' : 'Enable Notifications',
                         onPressed: () async {
-                          final isGranted = await NotificationService().requestPermissionsWithFallback(context);
+                          final isGranted = await NotificationService().requestPermissionsWithFallback(context, isTh);
                           if (isGranted) {
                             try {
                               final prefs = await SharedPreferences.getInstance();

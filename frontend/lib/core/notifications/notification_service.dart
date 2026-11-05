@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../data/models/notification_model.dart';
 import '../../data/remote/api_client.dart';
 
 /// Service managing offline local notifications for item expiry alerts.
@@ -45,15 +47,24 @@ class NotificationService {
         await androidPlugin.createNotificationChannel(channel);
       }
 
-      // Handle real-time foreground FCM notifications
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      // Handle real-time foreground FCM notifications with automatic bilingual localization
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
         final notification = message.notification;
         final data = message.data;
         if (notification != null) {
+          bool isTh = false;
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            isTh = prefs.getString('app_language') == 'th';
+          } catch (_) {}
+
+          final rawTitle = notification.title ?? 'FM-EAA';
+          final rawBody = notification.body ?? '';
+
           showExpiryAlert(
             id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-            title: notification.title ?? 'FM-EAA',
-            body: notification.body ?? '',
+            title: NotificationModel.localizeTitleStatic(rawTitle, isTh),
+            body: NotificationModel.localizeMessageStatic(rawBody, isTh),
             payload: data['itemId'] ?? data['fridgeId'],
           );
         }
@@ -69,11 +80,14 @@ class NotificationService {
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null && token.isNotEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        final lang = prefs.getString('app_language') ?? 'th';
         final apiClient = ApiClient();
         await apiClient.dio.post('/users/fcm-token', data: {
           'fcmToken': token,
+          'language': lang,
         });
-        debugPrint('[NotificationService] FCM Token registered with backend: $token');
+        debugPrint('[NotificationService] FCM Token registered with backend ($lang): $token');
       }
     } catch (e) {
       debugPrint('[NotificationService] Failed to sync FCM token: $e');
@@ -137,7 +151,7 @@ class NotificationService {
   /// Request notification permission with automatic in-app fallback dialog.
   /// If notifications are disabled in OS settings, presents an explanatory dialog
   /// with a direct button to jump into the system Settings page.
-  Future<bool> requestPermissionsWithFallback(BuildContext context) async {
+  Future<bool> requestPermissionsWithFallback(BuildContext context, [bool isTh = false]) async {
     if (kIsWeb) return true;
 
     // Check actual OS status first
@@ -171,26 +185,31 @@ class NotificationService {
               backgroundColor: theme.colorScheme.errorContainer,
               child: Icon(Icons.notifications_off_rounded, color: theme.colorScheme.error, size: 30),
             ),
-            title: const Text(
-              'เปิดการแจ้งเตือน',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            title: Text(
+              isTh ? 'เปิดการแจ้งเตือน' : 'Enable Notifications',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               textAlign: TextAlign.center,
             ),
-            content: const Text(
-              'การแจ้งเตือนถูกปิดอยู่ในการตั้งค่าเครื่องของคุณ เพื่อให้คุณไม่พลาดของใกล้หมดอายุและการแจ้งเตือนจากตู้เย็น กรุณาเปิดการแจ้งเตือนในการตั้งค่า',
+            content: Text(
+              isTh
+                  ? 'การแจ้งเตือนถูกปิดอยู่ในการตั้งค่าเครื่องของคุณ เพื่อให้คุณไม่พลาดของใกล้หมดอายุและการแจ้งเตือนจากตู้เย็น กรุณาเปิดการแจ้งเตือนในการตั้งค่า'
+                  : 'Notifications are turned off in your device settings. To avoid missing expiring food and fridge alerts, please turn on notifications in Settings.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, height: 1.4),
+              style: const TextStyle(fontSize: 14, height: 1.4),
             ),
             actionsAlignment: MainAxisAlignment.spaceEvenly,
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text('ข้ามไปก่อน', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+                child: Text(
+                  isTh ? 'ข้ามไปก่อน' : 'Not now',
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                ),
               ),
               FilledButton.icon(
                 onPressed: () => Navigator.of(ctx).pop(true),
                 icon: const Icon(Icons.settings, size: 18),
-                label: const Text('ไปที่การตั้งค่า'),
+                label: Text(isTh ? 'ไปที่การตั้งค่า' : 'Open Settings'),
               ),
             ],
           );
