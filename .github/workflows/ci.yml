@@ -14,30 +14,29 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - name: Checkout Repository
+      - name: 'Checkout Repository'
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: 'Set up Node.js'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
-      - name: Install Dependencies
+      - name: 'Install Dependencies'
         run: npm ci
 
-      - name: Run Backend Tests with Code Coverage
+      - name: 'Run Backend Tests with Code Coverage'
         env:
           PORT: ${{ secrets.PORT }}
           NODE_ENV: test
-          # ส่งครอบคลุมทั้ง 2 รูปแบบชื่อตัวแปร
           ORACLE_USER: ${{ secrets.ORACLE_DB_USER }}
           ORACLE_PASSWORD: ${{ secrets.ORACLE_DB_PASSWORD }}
           ORACLE_CONNECT_STRING: ${{ secrets.ORACLE_DB_CONNECT_STRING }}
           ORACLE_DB_USER: ${{ secrets.ORACLE_DB_USER }}
           ORACLE_DB_PASSWORD: ${{ secrets.ORACLE_DB_PASSWORD }}
-          ORACLE_CONNECT_STRING: ${{ secrets.ORACLE_DB_CONNECT_STRING }}
+          ORACLE_DB_CONNECT_STRING: ${{ secrets.ORACLE_DB_CONNECT_STRING }}
           ORACLE_DB_SCHEMA: ${{ secrets.ORACLE_DB_SCHEMA }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
@@ -54,55 +53,37 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - name: Checkout Repository
+      - name: 'Checkout Repository'
         uses: actions/checkout@v4
 
-      - name: Set up Java for Android Build
+      - name: 'Set up Java for Android Build'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter
+      - name: 'Set up Flutter'
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: Install System Dependencies for SQLite
+      - name: 'Install System Dependencies for SQLite'
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
 
-      - name: Install Dependencies
+      - name: 'Install Dependencies'
         run: flutter pub get
 
-      - name: Run Static Analysis
+      - name: 'Run Static Analysis'
         run: flutter analyze
 
-      - name: Run Tests with Coverage (Automated Testing)
+      - name: 'Run Tests with Coverage (Automated Testing)'
         run: flutter test --coverage
 
-      - name: Coverage ≥ 70%
-        run: |
-          node -e "
-            const fs = require('fs');
-            const content = fs.readFileSync('coverage/lcov.info', 'utf8');
-            let totalLF = 0, totalLH = 0, skip = false;
-            for (const line of content.split('\n')) {
-              if (line.startsWith('SF:')) skip = line.endsWith('.g.dart');
-              if (!skip) {
-                if (line.startsWith('LF:')) totalLF += parseInt(line.slice(3).trim());
-                if (line.startsWith('LH:')) totalLH += parseInt(line.slice(3).trim());
-              }
-            }
-            const pct = (totalLH / totalLF) * 100;
-            console.log('Frontend Code Coverage: ' + pct.toFixed(2) + '% (Required >= 70.0%)');
-            if (pct < 70.0) {
-              console.error('::error::Code coverage (' + pct.toFixed(2) + '%) is below the required 70% threshold.');
-              process.exit(1);
-            }
-          "
+      - name: 'Verify Code Coverage >= 70%'
+        run: node ../scripts/check_coverage.js
 
-      - name: Setup google-services.json for CI Build
+      - name: 'Setup google-services.json for CI Build'
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
@@ -139,7 +120,7 @@ jobs:
           EOF
           fi
 
-      - name: Build Android APK (Automated Build)
+      - name: 'Build Android APK (Automated Build)'
         run: |
           flutter build apk --debug || ( \
             echo "::warning::Initial build encountered a transient error. Retrying build..." && \
