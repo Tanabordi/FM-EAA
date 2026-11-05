@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/utils/date_input_formatter.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 
 /// Screen #13: Edit Item details
@@ -66,15 +67,42 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
         _imagePath != _initialImagePath;
   }
 
+  bool get _isTh {
+    try {
+      return ref.watch(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  bool _isThRead() {
+    try {
+      return ref.read(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
   void _handleBack() {
+    final isTh = _isThRead();
     if (_hasUnsavedChanges) {
       showDialog(
         context: context,
         builder: (dialogContext) => ConfirmDialog(
-          title: 'Discard changes?',
-          message: 'You have unsaved changes. Are you sure you want to discard them?',
-          confirmLabel: 'Discard',
-          cancelLabel: 'Keep editing',
+          title: isTh ? 'ยกเลิกการเปลี่ยนแปลง?' : 'Discard changes?',
+          message: isTh
+              ? 'คุณมีข้อมูลที่ยังไม่ได้บันทึก ต้องการยกเลิกใช่หรือไม่?'
+              : 'You have unsaved changes. Are you sure you want to discard them?',
+          confirmLabel: isTh ? 'ยกเลิก' : 'Discard',
+          cancelLabel: isTh ? 'แก้ไขต่อ' : 'Keep editing',
           isDestructive: true,
           onConfirm: () {
             setState(() => _forceExit = true);
@@ -102,6 +130,62 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
   final _categories = ['Proteins', 'Veggies', 'Beverages', 'Meals', 'Sauces'];
   final _units = ['g', 'kg', 'pieces', 'bag', 'punnet', 'bottle', 'box', 'can', 'pack'];
   final _storages = ['Fridge', 'Freezer'];
+
+  String _getCategoryDisplay(String c, bool isTh) {
+    if (!isTh) return c;
+    switch (c) {
+      case 'Proteins':
+        return 'โปรตีน';
+      case 'Veggies':
+        return 'ผักและผลไม้';
+      case 'Beverages':
+        return 'เครื่องดื่ม';
+      case 'Meals':
+        return 'อาหารปรุงสำเร็จ';
+      case 'Sauces':
+        return 'เครื่องปรุงและซอส';
+      default:
+        return c;
+    }
+  }
+
+  String _getUnitDisplay(String u, bool isTh) {
+    if (!isTh) return u;
+    switch (u) {
+      case 'pieces':
+        return 'ชิ้น';
+      case 'bag':
+        return 'ถุง';
+      case 'punnet':
+        return 'ตะกร้า';
+      case 'bottle':
+        return 'ขวด';
+      case 'box':
+        return 'กล่อง';
+      case 'can':
+        return 'กระป๋อง';
+      case 'pack':
+        return 'แพ็ค';
+      case 'g':
+        return 'กรัม (g)';
+      case 'kg':
+        return 'กิโลกรัม (kg)';
+      default:
+        return u;
+    }
+  }
+
+  String _getStorageDisplay(String s, bool isTh) {
+    if (!isTh) return s;
+    switch (s) {
+      case 'Fridge':
+        return 'ช่องแช่เย็น (Fridge)';
+      case 'Freezer':
+        return 'ช่องแช่แข็ง (Freezer)';
+      default:
+        return s;
+    }
+  }
 
   String _normalizeCategory(String cat) {
     for (final c in _categories) {
@@ -267,6 +351,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
   }
 
   Future<void> _showPhotoSourceSheet() async {
+    final isTh = _isThRead();
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -293,15 +378,15 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Row(
                     children: [
-                      Icon(Icons.camera_alt_outlined, color: Color(0xFF2E6A44), size: 22),
-                      SizedBox(width: 8),
+                      const Icon(Icons.camera_alt_outlined, color: Color(0xFF2E6A44), size: 22),
+                      const SizedBox(width: 8),
                       Text(
-                        'Change Item Photo',
-                        style: TextStyle(
+                        isTh ? 'เปลี่ยนรูปภาพวัตถุดิบ' : 'Change Item Photo',
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF181D17),
@@ -310,11 +395,13 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                     ],
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(8, 4, 8, 14),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 14),
                   child: Text(
-                    'Capture or select a new photo for this food item.',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF717971)),
+                    isTh
+                        ? 'ถ่ายภาพหรือเลือกรูปภาพใหม่สำหรับวัตถุดิบนี้'
+                        : 'Capture or select a new photo for this food item.',
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF717971)),
                   ),
                 ),
                 ListTile(
@@ -322,11 +409,15 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                     backgroundColor: Color(0xFFEAEFE8),
                     child: Icon(Icons.photo_camera_outlined, color: Color(0xFF2E6A44)),
                   ),
-                  title: const Text(
-                    'Take Photo with Camera',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  title: Text(
+                    isTh ? 'ถ่ายภาพด้วยกล้อง' : 'Take Photo with Camera',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                   ),
-                  subtitle: const Text('Capture photo directly using camera'),
+                  subtitle: Text(
+                    isTh
+                        ? 'ถ่ายภาพโดยตรงจากกล้องของคุณ'
+                        : 'Capture photo directly using camera',
+                  ),
                   onTap: () {
                     Navigator.of(bottomSheetContext).pop();
                     _pickImage(ImageSource.camera);
@@ -337,11 +428,15 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                     backgroundColor: Color(0xFFEAEFE8),
                     child: Icon(Icons.photo_library_outlined, color: Color(0xFF2E6A44)),
                   ),
-                  title: const Text(
-                    'Choose from Gallery',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  title: Text(
+                    isTh ? 'เลือกจากคลังภาพ' : 'Choose from Gallery',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                   ),
-                  subtitle: const Text('Select a photo from device gallery'),
+                  subtitle: Text(
+                    isTh
+                        ? 'เลือกรูปภาพจากคลังภาพของคุณ'
+                        : 'Select a photo from device gallery',
+                  ),
                   onTap: () {
                     Navigator.of(bottomSheetContext).pop();
                     _pickImage(ImageSource.gallery);
@@ -514,15 +609,20 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
   }
 
   Future<void> _onSave() async {
+    final isTh = _isThRead();
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       setState(() {
-        _nameError = 'Food name is required';
+        _nameError = isTh ? 'กรุณากรอกชื่ออาหาร' : 'Food name is required';
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a food name before saving'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(
+            isTh
+                ? 'กรุณากรอกชื่ออาหารก่อนบันทึก'
+                : 'Please enter a food name before saving',
+          ),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -533,9 +633,13 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       _expirationDate = dateParsed;
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid expiration date (e.g. MM/DD/YYYY)'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(
+            isTh
+                ? 'กรุณากรอกวันหมดอายุที่ถูกต้อง (เช่น วว/ดด/ปปปป)'
+                : 'Please enter a valid expiration date (e.g. MM/DD/YYYY)',
+          ),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -585,7 +689,11 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Changes saved for "${updated.name}"'),
+        content: Text(
+          isTh
+              ? 'บันทึกการเปลี่ยนแปลงสำหรับ "${updated.name}" เรียบร้อยแล้ว'
+              : 'Changes saved for "${updated.name}"',
+        ),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -609,6 +717,8 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       );
     }
 
+    final isTh = _isTh;
+
     return PopScope(
       canPop: !_hasUnsavedChanges,
       onPopInvokedWithResult: (didPop, _) {
@@ -627,9 +737,9 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                   children: [
                     AppBackButton(onPressed: _handleBack),
                     const SizedBox(width: 14),
-                    const Text(
-                      'Edit Item details',
-                      style: TextStyle(
+                    Text(
+                      isTh ? 'แก้ไขรายละเอียดวัตถุดิบ' : 'Edit Item details',
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181D17),
@@ -704,7 +814,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                         fontWeight: FontWeight.w400,
                       ),
                       decoration: _inputDecoration(
-                        hintText: 'Food Name',
+                        hintText: isTh ? 'ชื่ออาหาร' : 'Food Name',
                         errorText: _nameError,
                       ),
                       onChanged: (val) {
@@ -729,7 +839,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                           .map((c) => DropdownMenuItem(
                                 value: c,
                                 child: Text(
-                                  c,
+                                  _getCategoryDisplay(c, isTh),
                                   style: const TextStyle(
                                     fontSize: 15,
                                     color: Color(0xFF181D17),
@@ -756,7 +866,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                               color: Color(0xFF181D17),
                               fontWeight: FontWeight.w400,
                             ),
-                            decoration: _inputDecoration(hintText: 'Quantity'),
+                            decoration: _inputDecoration(hintText: isTh ? 'จำนวน' : 'Quantity'),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -776,7 +886,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                                 .map((u) => DropdownMenuItem(
                                       value: u,
                                       child: Text(
-                                        u,
+                                        _getUnitDisplay(u, isTh),
                                         style: const TextStyle(
                                           fontSize: 15,
                                           color: Color(0xFF181D17),
@@ -808,7 +918,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                           .map((s) => DropdownMenuItem(
                                 value: s,
                                 child: Text(
-                                  s,
+                                  _getStorageDisplay(s, isTh),
                                   style: const TextStyle(
                                     fontSize: 15,
                                     color: Color(0xFF181D17),
@@ -837,7 +947,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                         fontWeight: FontWeight.w400,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Expiration Date (MM/DD/YYYY)',
+                        hintText: isTh ? 'วันหมดอายุ (วว/ดด/ปปปป)' : 'Expiration Date (MM/DD/YYYY)',
                         hintStyle: const TextStyle(
                           color: Color(0xFF717971),
                           fontSize: 15,
@@ -871,7 +981,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                             size: 22,
                             color: Color(0xFF414941),
                           ),
-                          tooltip: 'Choose date',
+                          tooltip: isTh ? 'เลือกวันที่' : 'Choose date',
                           onPressed: () async {
                             final initial = _tryParseDate(_expirationDateController.text) ?? _expirationDate;
                             final picked = await showDatePicker(
@@ -913,11 +1023,13 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                       },
                     ),
                     const SizedBox(height: 6),
-                    const Padding(
-                      padding: EdgeInsets.only(left: 12.0),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 12.0),
                       child: Text(
-                        'Use-by or best-before date (MM/DD/YYYY)',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF414941)),
+                        isTh
+                            ? 'วันหมดอายุหรือควรบริโภคก่อน (วว/ดด/ปปปป)'
+                            : 'Use-by or best-before date (MM/DD/YYYY)',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF414941)),
                       ),
                     ),
                     const SizedBox(height: 28),
@@ -935,7 +1047,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                           ),
                         ),
                         onPressed: _onSave,
-                        child: const Text('Save'),
+                        child: Text(isTh ? 'บันทึก' : 'Save'),
                       ),
                     ),
                   ],

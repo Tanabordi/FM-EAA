@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../shared/utils/food_asset_helper.dart';
 import '../../../../shared/widgets/app_back_button.dart';
@@ -32,8 +33,42 @@ class ItemDetailsPage extends ConsumerWidget {
     return s[0].toUpperCase() + s.substring(1);
   }
 
+  String _getThaiCategoryLabel(String category) {
+    switch (category.toLowerCase()) {
+      case 'proteins':
+        return 'โปรตีน';
+      case 'veggies':
+      case 'vegetables':
+        return 'ผักและผลไม้';
+      case 'beverages':
+      case 'drinks':
+        return 'เครื่องดื่ม';
+      case 'meals':
+        return 'อาหารปรุงสำเร็จ';
+      case 'sauces':
+      case 'condiments':
+      case 'spices':
+        return 'เครื่องปรุงและซอส';
+      case 'dairy':
+        return 'นมและเนย';
+      case 'fruits':
+        return 'ผลไม้';
+      case 'meat':
+        return 'เนื้อสัตว์';
+      case 'seafood':
+        return 'อาหารทะเล';
+      case 'bakery':
+        return 'เบเกอรี่';
+      case 'snacks':
+        return 'ของว่าง';
+      default:
+        return category;
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
     final items = ref.watch(fridgeItemsProvider(fridgeId));
     final item = items.firstWhere(
       (it) => it.id == itemId,
@@ -63,10 +98,10 @@ class ItemDetailsPage extends ConsumerWidget {
                 children: [
                   const AppBackButton(),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'item details',
-                      style: TextStyle(
+                      isTh ? 'รายละเอียดวัตถุดิบ' : 'item details',
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181D17),
@@ -118,7 +153,7 @@ class ItemDetailsPage extends ConsumerWidget {
                     const SizedBox(height: 4),
                     // Quantity and Unit Subtitle
                     Text(
-                      '${item.quantity.toInt()} ${item.unit}',
+                      item.formattedQuantityLocalized(isTh),
                       style: const TextStyle(
                         fontSize: 16,
                         color: Color(0xFF414941),
@@ -130,7 +165,7 @@ class ItemDetailsPage extends ConsumerWidget {
                       alignment: Alignment.centerLeft,
                       child: StatusBadge(
                         status: item.status,
-                        customLabel: item.detailStatusLabel,
+                        customLabel: isTh ? item.localizedDetailStatusLabel(true) : item.detailStatusLabel,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -154,7 +189,7 @@ class ItemDetailsPage extends ConsumerWidget {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                _capitalize(item.category),
+                                isTh ? _getThaiCategoryLabel(item.category) : _capitalize(item.category),
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -171,7 +206,9 @@ class ItemDetailsPage extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            _capitalize(item.zone),
+                            isTh
+                                ? (item.zone.toLowerCase() == 'freezer' ? 'ช่องแช่แข็ง' : 'ช่องแช่เย็น')
+                                : _capitalize(item.zone),
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -198,7 +235,7 @@ class ItemDetailsPage extends ConsumerWidget {
                         onPressed: () {
                           _showMarkConsumedSheet(context, ref, item);
                         },
-                        child: const Text('Mark as Consumed'),
+                        child: Text(isTh ? 'บันทึกว่าบริโภคแล้ว' : 'Mark as Consumed'),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -216,7 +253,7 @@ class ItemDetailsPage extends ConsumerWidget {
                           ),
                         ),
                         icon: const Icon(Icons.delete_outline, size: 20),
-                        label: const Text('Delete Item'),
+                        label: Text(isTh ? 'ลบรายการ' : 'Delete Item'),
                         onPressed: () {
                           _confirmDelete(context, ref, item);
                         },

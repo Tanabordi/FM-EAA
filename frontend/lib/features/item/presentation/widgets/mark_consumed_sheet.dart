@@ -47,10 +47,28 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
     }
   }
 
+  String _getLocalizedUnit(String unit, bool isTh) {
+    if (!isTh) return unit;
+    final u = unit.toLowerCase();
+    if (u.contains('bottle')) return 'ขวด';
+    if (u.contains('piece') || u == 'pc' || u == 'pcs') return 'ชิ้น';
+    if (u.contains('bag')) return 'ถุง';
+    if (u.contains('box')) return 'กล่อง';
+    if (u.contains('can')) return 'กระป๋อง';
+    if (u.contains('pack') || u.contains('pkt')) return 'แพ็ค';
+    if (u.contains('punnet')) return 'ตะกร้า';
+    if (u.contains('portion')) return 'ส่วน';
+    if (u == 'g' || u.contains('gram')) return 'g';
+    if (u == 'kg' || u.contains('kilo')) return 'kg';
+    return unit;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isTh = Localizations.localeOf(context).languageCode == 'th';
     final canDecrement = _consumeAmount > 1;
     final canIncrement = _consumeAmount < widget.availablePieces;
+    final localizedUnit = _getLocalizedUnit(widget.unit, isTh);
 
     return Container(
       decoration: const BoxDecoration(
@@ -78,9 +96,9 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
               ),
               const SizedBox(height: 20),
               // Title
-              const Text(
-                'How much did you consume?',
-                style: TextStyle(
+              Text(
+                isTh ? 'บริโภคไปปริมาณเท่าไหร่?' : 'How much did you consume?',
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF181D17),
@@ -89,7 +107,9 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
               const SizedBox(height: 6),
               // Subtitle
               Text(
-                '${widget.itemName} · ${widget.availablePieces.toInt()} ${widget.unit} in fridge',
+                isTh
+                    ? '${widget.itemName} · ${widget.availablePieces.toInt()} $localizedUnit ในตู้เย็น'
+                    : '${widget.itemName} · ${widget.availablePieces.toInt()} ${widget.unit} in fridge',
                 style: const TextStyle(
                   fontSize: 14,
                   color: Color(0xFF414941),
@@ -141,7 +161,9 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                           ),
                         ),
                         Text(
-                          'of ${widget.availablePieces.toInt()} ${widget.unit}',
+                          isTh
+                              ? 'จากทั้งหมด ${widget.availablePieces.toInt()} $localizedUnit'
+                              : 'of ${widget.availablePieces.toInt()} ${widget.unit}',
                           style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF414941),
@@ -228,9 +250,11 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const Text(
-                          'Ask Gemini AI for recipe ideas',
-                          style: TextStyle(
+                        Text(
+                          isTh
+                              ? 'ขอไอเดียเมนูอาหารจาก Gemini AI'
+                              : 'Ask Gemini AI for recipe ideas',
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF181D17),
@@ -256,7 +280,7 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                     ),
                   ),
                   onPressed: () => widget.onConsumed(_consumeAmount, false),
-                  child: const Text('Confirm'),
+                  child: Text(isTh ? 'ยืนยัน' : 'Confirm'),
                 ),
               ),
               const SizedBox(height: 12),
@@ -275,7 +299,7 @@ class _MarkConsumedSheetState extends State<MarkConsumedSheet> {
                     ),
                   ),
                   onPressed: () => widget.onConsumed(widget.availablePieces, true),
-                  child: const Text('Finished all'),
+                  child: Text(isTh ? 'บริโภคหมดแล้ว' : 'Finished all'),
                 ),
               ),
             ],

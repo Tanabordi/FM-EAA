@@ -11,10 +11,16 @@ class FinishAllSnackbar {
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
 
+    final isTh = Localizations.localeOf(context).languageCode == 'th';
+
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
-        content: Text('Consumed "$itemName" successfully'),
+        content: Text(
+          isTh
+              ? 'บันทึกการบริโภค "$itemName" เรียบร้อยแล้ว'
+              : 'Consumed "$itemName" successfully',
+        ),
         duration: const Duration(seconds: 2),
       ),
     );

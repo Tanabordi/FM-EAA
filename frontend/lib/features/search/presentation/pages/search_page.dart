@@ -2,6 +2,7 @@ import '../../../../shared/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../shared/widgets/item_card.dart';
 import '../../providers/search_provider.dart';
 
@@ -46,10 +47,29 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     super.dispose();
   }
 
+  String _getCategoryLabel(String category, bool isTh) {
+    if (!isTh) return category.capitalize();
+    switch (category.toLowerCase()) {
+      case 'proteins':
+        return 'โปรตีน';
+      case 'veggies':
+        return 'ผักผลไม้';
+      case 'beverages':
+        return 'เครื่องดื่ม';
+      case 'meals':
+        return 'อาหาร';
+      case 'sauces':
+        return 'ซอส';
+      default:
+        return category;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final query = ref.watch(searchQueryProvider);
     final results = ref.watch(searchResultsProvider(widget.fridgeId));
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6FBF3), // Figma exact background #F6FBF3
@@ -59,7 +79,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           children: [
             // Top App Bar: AppTopBar
             AppTopBar(
-              title: 'Search',
+              title: isTh ? 'ค้นหา' : 'Search',
               onBackPressed: () {
                 if (Navigator.of(context).canPop()) {
                   context.pop();
@@ -104,9 +124,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           color: Color(0xFF1A201C),
                           fontWeight: FontWeight.w500,
                         ),
-                        decoration: const InputDecoration(
-                          hintText: 'Search for items',
-                          hintStyle: TextStyle(
+                        decoration: InputDecoration(
+                          hintText: isTh ? 'ค้นหารายการอาหาร' : 'Search for items',
+                          hintStyle: const TextStyle(
                             color: Color(0xFF4A5A4E),
                             fontSize: 15,
                             fontWeight: FontWeight.w400,
@@ -153,7 +173,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                 child: Text(
-                  'Results for "$query"',
+                  isTh ? 'ผลการค้นหา "$query"' : 'Results for "$query"',
                   style: const TextStyle(
                     fontSize: 16.5,
                     fontWeight: FontWeight.w800,
@@ -168,25 +188,25 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               child: query.trim().isEmpty
                   ? const SizedBox.shrink()
                   : results.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Padding(
-                            padding: EdgeInsets.only(top: 60.0),
+                            padding: const EdgeInsets.only(top: 60.0),
                             child: Column(
                               children: [
-                                Icon(Icons.search_off_rounded, size: 48, color: Color(0xFF94A3B8)),
-                                SizedBox(height: 12),
+                                const Icon(Icons.search_off_rounded, size: 48, color: Color(0xFF94A3B8)),
+                                const SizedBox(height: 12),
                                 Text(
-                                  'No items found',
-                                  style: TextStyle(
+                                  isTh ? 'ไม่พบรายการอาหาร' : 'No items found',
+                                  style: const TextStyle(
                                     color: Color(0xFF5C665F),
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
-                                  'Try searching with a different keyword',
-                                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                                  isTh ? 'ลองค้นหาด้วยคำอื่น' : 'Try searching with a different keyword',
+                                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
                                 ),
                               ],
                             ),
@@ -200,11 +220,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             final item = results[index];
 
                             return ItemCard(
-                              name: '${item.name} (${item.category.capitalize()})',
+                              name: '${item.name} (${_getCategoryLabel(item.category, isTh)})',
                               category: item.category,
-                              quantityText: item.formattedQuantity,
+                              quantityText: item.formattedQuantityLocalized(isTh),
                               status: item.status,
-                              statusText: item.statusText,
+                              statusText: item.localizedStatusText(isTh),
                               imagePath: item.imagePath,
                               onTap: () => context.push('/fridges/${widget.fridgeId}/items/${item.id}'),
                             );
