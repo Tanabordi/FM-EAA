@@ -116,4 +116,10 @@ jobs:
           fi
 
       - name: Build Android APK (Automated Build)
-        run: flutter build apk --debug
+        run: |
+          flutter build apk --debug || ( \
+            echo "::warning::Initial build encountered a transient error. Retrying build..." && \
+            rm -rf .dart_tool/hooks_runner && \
+            sleep 5 && \
+            flutter build apk --debug \
+          )
