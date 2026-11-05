@@ -130,6 +130,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ],
               ),
               GoRoute(
+                path: 'notifications',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  final fridgeName = state.uri.queryParameters['fridgeName'];
+                  return NotificationsPage(fridgeId: id, fridgeName: fridgeName);
+                },
+              ),
+              GoRoute(
                 path: 'recipes',
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
@@ -204,7 +212,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/notifications',
-        builder: (context, state) => const NotificationsPage(),
+        builder: (context, state) {
+          final fridgeId = state.uri.queryParameters['fridgeId'];
+          final fridgeName = state.uri.queryParameters['fridgeName'];
+          return NotificationsPage(fridgeId: fridgeId, fridgeName: fridgeName);
+        },
       ),
       GoRoute(
         path: '/settings',

@@ -8,6 +8,7 @@ class NotificationModel {
   final String title;
   final String message;
   final String? fridgeId;
+  final String? fridgeName;
   final String? inviteId;
   final String? itemId;
   final bool isRead;
@@ -20,6 +21,7 @@ class NotificationModel {
     required this.title,
     required this.message,
     this.fridgeId,
+    this.fridgeName,
     this.inviteId,
     this.itemId,
     this.isRead = false,
@@ -163,24 +165,69 @@ class NotificationModel {
 
   String localizedMessage([bool isTh = false]) => localizeMessageStatic(message, isTh);
 
+  /// Extracts fridge name mentioned in message if available
+  String? get extractedFridgeName {
+    if (fridgeName != null && fridgeName!.trim().isNotEmpty) {
+      return fridgeName!.trim();
+    }
+    final raw = message;
+    if (raw.isEmpty) return null;
+
+    final p1 = RegExp(r'^.+?\s+added\s+"[^"]+"\s*\([^)]+\)\s+to\s+"([^"]+)"$', caseSensitive: false).firstMatch(raw);
+    if (p1 != null) return p1.group(1);
+
+    final p2 = RegExp(r'^.+?\s+ate\s+\d+(?:\.\d+)?\s*.+?\s+of\s+"[^"]+"\s+in\s+"([^"]+)"', caseSensitive: false).firstMatch(raw);
+    if (p2 != null) return p2.group(1);
+
+    final p3 = RegExp(r'^.+?\s+finished\s+all\s+"[^"]+"\s+in\s+"([^"]+)"$', caseSensitive: false).firstMatch(raw);
+    if (p3 != null) return p3.group(1);
+
+    final p4 = RegExp(r'^.+?\s+removed\s+"[^"]+"\s+from\s+"([^"]+)"$', caseSensitive: false).firstMatch(raw);
+    if (p4 != null) return p4.group(1);
+
+    final p5 = RegExp(r'^.+?\s+joined\s+"([^"]+)"', caseSensitive: false).firstMatch(raw);
+    if (p5 != null) return p5.group(1);
+
+    final p6 = RegExp(r'^.+?\s+invited\s+you\s+to\s+join\s+["\x27]([^"\x27]+)["\x27]$', caseSensitive: false).firstMatch(raw);
+    if (p6 != null) return p6.group(1);
+
+    final p7 = RegExp(r'^"[^"]+"\s+in\s+"([^"]+)"\s+expires', caseSensitive: false).firstMatch(raw);
+    if (p7 != null) return p7.group(1);
+
+    final thIn = RegExp(r'ในตู้\s+"([^"]+)"').firstMatch(raw);
+    if (thIn != null) return thIn.group(1);
+
+    final thOut = RegExp(r'ออกจากตู้\s+"([^"]+)"').firstMatch(raw);
+    if (thOut != null) return thOut.group(1);
+
+    final thJoin = RegExp(r'เข้าร่วมตู้\s+"([^"]+)"').firstMatch(raw);
+    if (thJoin != null) return thJoin.group(1);
+
+    return null;
+  }
+
   factory NotificationModel.fromEntry(dynamic entry) {
     String title = '';
     String message = '';
     String? fridgeId;
+    String? fridgeName;
     String? inviteId;
     String? itemId;
     String effectiveType = entry.type as String;
 
     if (entry.payloadJson != null && entry.payloadJson.toString().isNotEmpty) {
       try {
-        final decoded = jsonDecode(entry.payloadJson.toString()) as Map<String, dynamic>;
-        title = decoded['title'] as String? ?? '';
-        message = decoded['message'] as String? ?? '';
-        fridgeId = decoded['fridge_id'] as String? ?? decoded['fridgeId'] as String?;
-        inviteId = decoded['invite_id'] as String? ?? decoded['inviteId'] as String?;
-        itemId = decoded['item_id'] as String? ?? decoded['itemId'] as String?;
-        if (decoded['sub_type'] != null && decoded['sub_type'].toString().isNotEmpty) {
-          effectiveType = decoded['sub_type'].toString();
+        final decoded = jsonDecode(entry.payloadJson.toString());
+        if (decoded is Map) {
+          title = decoded['title']?.toString() ?? '';
+          message = decoded['message']?.toString() ?? '';
+          fridgeId = decoded['fridge_id']?.toString() ?? decoded['fridgeId']?.toString();
+          fridgeName = decoded['fridge_name']?.toString() ?? decoded['fridgeName']?.toString();
+          inviteId = decoded['invite_id']?.toString() ?? decoded['inviteId']?.toString();
+          itemId = decoded['item_id']?.toString() ?? decoded['itemId']?.toString();
+          if (decoded['sub_type'] != null && decoded['sub_type'].toString().isNotEmpty) {
+            effectiveType = decoded['sub_type'].toString();
+          }
         }
       } catch (_) {
         message = entry.payloadJson.toString();
@@ -220,6 +267,7 @@ class NotificationModel {
       title: title,
       message: message,
       fridgeId: fridgeId,
+      fridgeName: fridgeName,
       inviteId: inviteId,
       itemId: itemId,
       isRead: entry.isRead as bool,
@@ -231,32 +279,36 @@ class NotificationModel {
     String title = json['title'] as String? ?? '';
     String message = json['message'] as String? ?? '';
     String? fridgeId = json['fridge_id'] as String? ?? json['fridgeId'] as String?;
+    String? fridgeName = json['fridge_name'] as String? ?? json['fridgeName'] as String?;
     String? inviteId = json['invite_id'] as String? ?? json['inviteId'] as String?;
     String? itemId = json['item_id'] as String? ?? json['itemId'] as String?;
     String effectiveType = (json['type'] ?? 'expiry').toString();
 
-    if (json['payload'] != null && json['payload'] is Map<String, dynamic>) {
-      final p = json['payload'] as Map<String, dynamic>;
-      if (title.isEmpty) title = p['title'] as String? ?? '';
-      if (message.isEmpty) message = p['message'] as String? ?? '';
-      fridgeId ??= p['fridge_id'] as String? ?? p['fridgeId'] as String?;
-      inviteId ??= p['invite_id'] as String? ?? p['inviteId'] as String?;
-      itemId ??= p['item_id'] as String? ?? p['itemId'] as String?;
-      if (p['sub_type'] != null && p['sub_type'].toString().isNotEmpty) {
-        effectiveType = p['sub_type'].toString();
-      }
+    Map<dynamic, dynamic>? payloadMap;
+    if (json['payload'] is Map) {
+      payloadMap = json['payload'] as Map;
+    } else if (json['payload'] is String && (json['payload'] as String).isNotEmpty) {
+      try {
+        final decoded = jsonDecode(json['payload'] as String);
+        if (decoded is Map) payloadMap = decoded;
+      } catch (_) {}
     } else if (json['payload_json'] != null && json['payload_json'].toString().isNotEmpty) {
       try {
-        final decoded = jsonDecode(json['payload_json'].toString()) as Map<String, dynamic>;
-        if (title.isEmpty) title = decoded['title'] as String? ?? '';
-        if (message.isEmpty) message = decoded['message'] as String? ?? '';
-        fridgeId ??= decoded['fridge_id'] as String? ?? decoded['fridgeId'] as String?;
-        inviteId ??= decoded['invite_id'] as String? ?? decoded['inviteId'] as String?;
-        itemId ??= decoded['item_id'] as String? ?? decoded['itemId'] as String?;
-        if (decoded['sub_type'] != null && decoded['sub_type'].toString().isNotEmpty) {
-          effectiveType = decoded['sub_type'].toString();
-        }
+        final decoded = jsonDecode(json['payload_json'].toString());
+        if (decoded is Map) payloadMap = decoded;
       } catch (_) {}
+    }
+
+    if (payloadMap != null) {
+      if (title.isEmpty) title = payloadMap['title']?.toString() ?? '';
+      if (message.isEmpty) message = payloadMap['message']?.toString() ?? '';
+      fridgeId ??= payloadMap['fridge_id']?.toString() ?? payloadMap['fridgeId']?.toString();
+      fridgeName ??= payloadMap['fridge_name']?.toString() ?? payloadMap['fridgeName']?.toString();
+      inviteId ??= payloadMap['invite_id']?.toString() ?? payloadMap['inviteId']?.toString();
+      itemId ??= payloadMap['item_id']?.toString() ?? payloadMap['itemId']?.toString();
+      if (payloadMap['sub_type'] != null && payloadMap['sub_type'].toString().isNotEmpty) {
+        effectiveType = payloadMap['sub_type'].toString();
+      }
     }
 
     if (title.isEmpty) {
@@ -305,6 +357,7 @@ class NotificationModel {
       title: title,
       message: message,
       fridgeId: fridgeId,
+      fridgeName: fridgeName,
       inviteId: inviteId,
       itemId: itemId,
       isRead: isRead,
@@ -320,6 +373,7 @@ class NotificationModel {
       'title': title,
       'message': message,
       'fridge_id': fridgeId,
+      'fridge_name': fridgeName,
       'invite_id': inviteId,
       'item_id': itemId,
       'is_read': isRead ? 1 : 0,

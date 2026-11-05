@@ -12,6 +12,7 @@ import '../../../item/presentation/widgets/mark_consumed_sheet.dart';
 import '../../providers/fridge_detail_provider.dart';
 import '../../../search/providers/search_provider.dart';
 import '../../../fridges/providers/fridges_provider.dart';
+import '../../../notifications/providers/notifications_provider.dart';
 
 class FridgeDetailPage extends ConsumerStatefulWidget {
   final String fridgeId;
@@ -199,6 +200,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     final fridges = ref.watch(fridgesProvider);
     final match = fridges.where((f) => f.id == widget.fridgeId);
     final fridgeTitle = match.isNotEmpty ? match.first.name : 'Kitchen';
+    final unreadFridgeNotifs = ref.watch(fridgeUnreadNotificationCountProvider(widget.fridgeId));
 
     return AppTopBar(
       title: fridgeTitle,
@@ -213,7 +215,8 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
         ),
         AppTopBarAction(
           icon: Icons.notifications_none_rounded,
-          onTap: () => context.push('/notifications'),
+          badgeCount: unreadFridgeNotifs,
+          onTap: () => context.push('/fridges/${widget.fridgeId}/notifications?fridgeName=${Uri.encodeComponent(fridgeTitle)}'),
         ),
         AppTopBarAction(
           icon: Icons.settings_outlined,
