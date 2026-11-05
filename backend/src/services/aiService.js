@@ -201,9 +201,12 @@ function getScanLabelPrompt(language = 'en') {
 Rules:
 - is_food: MUST be true ONLY if the image depicts food, groceries, edible ingredients, fresh produce, snacks, beverages, or a food product packaging label. MUST be false if the image is a person's face, selfie, human body, animal, general non-food object, furniture, electronics, or scenery.
 - confidence: Confidence score between 0.0 and 1.0. If the image is blurry, occluded by hand, far away, or not clear, set confidence lower than 0.6. If it is clearly not food, set 0.0.
-- foodName: The clear product name or ingredient in concise natural English (e.g. "Smoked Cocktail Sausage", "Minced Pork", "Fresh Milk", "Eggs").
+- foodName: The clear product name or ingredient as identified directly from the packaging, label, or food item.
   CRITICAL: If is_food is false, foodName MUST be null.
-  Even if the packaging, brand, or text on the label is in Thai or another non-English language (such as "ค็อกเทลรมควัน", "หมูบด", "นมสด", "ไข่ไก่"), you MUST translate it accurately and write foodName ONLY in English. Do NOT return Thai script in foodName.
+  LANGUAGE FOR FOOD NAME:
+  * If the packaging, brand, or label text is primarily in Thai (such as "ดัชมิลล์ โยเกิร์ต", "ค็อกเทลรมควัน", "หมูบด", "นมสด", "ไข่ไก่"), output foodName in natural Thai as written on the packaging.
+  * If the packaging, brand, or label text is in English (such as "Baby Cocktail Sausage", "Beef Steak", "Chang Beer", "Ice Cubes"), output foodName in natural English.
+  * Do NOT forcefully translate Thai product names to English, and do NOT forcefully translate English product names to Thai. Always preserve the natural language of the detected food/label.
 - expiryDate: Expiry date ONLY (EXP, BBD, Best Before, ควรบริโภคก่อน, หมดอายุ). NEVER use manufacturing date (MFD, MFG). Convert Buddhist Era (BE/พ.ศ.) to CE (AD/ค.ศ.) in YYYY-MM-DD format (subtract 543 if year is > 2400). If not clearly found on this image (e.g. stamped on cap or bottom out of view), return null. Do NOT guess.
 - category: Analyze food category:
   * "Proteins": Meat, pork, chicken, beef, fish, seafood, eggs, sausages, ham, bacon, tofu, plant-based proteins, meatballs
@@ -227,7 +230,10 @@ Rules:
 }
 - is_food: ต้องเป็น true เฉพาะเมื่อในรูปเป็นอาหาร วัตถุดิบ ของกิน เครื่องดื่ม หรือฉลากบรรจุภัณฑ์อาหารเท่านั้น หากเป็นรูปใบหน้าคน เซลฟี่ สัตว์ สิ่งของที่ไม่ใช่อาหาร เครื่องใช้ หรือวิว ให้ตอบ false
 - confidence: ค่าความมั่นใจระหว่าง 0.0 ถึง 1.0 ถ้าภาพเบลอ มีมือบัง หรือไม่ชัด ให้ระบุต่ำกว่า 0.6 หากไม่ใช่อาหารให้เป็น 0.0
-- foodName: ชื่อสินค้าหรือชนิดวัตถุดิบ (ถ้า is_food เป็น false ให้ใส่ null) ห้ามเดาหากไม่ชัดเจน
+- foodName: ชื่อสินค้าหรือชนิดวัตถุดิบที่ตรวจพบจากฉลากหรือบรรจุภัณฑ์ (ถ้า is_food เป็น false ให้ใส่ null) ห้ามเดาหากไม่ชัดเจน
+  * หากฉลาก บรรจุภัณฑ์ หรือยี่ห้อเป็นภาษาไทย (เช่น "ดัชมิลล์ โยเกิร์ต", "ไส้กรอกค็อกเทล", "หมูบด", "นมสด") ให้ระบุ foodName เป็นภาษาไทยตามที่ปรากฏบนฉลาก
+  * หากฉลาก บรรจุภัณฑ์ หรือยี่ห้อเป็นภาษาอังกฤษ (เช่น "Baby Cocktail Sausage", "Beef Steak", "Chang Beer", "Ice Cubes") ให้ระบุ foodName เป็นภาษาอังกฤษตามที่ปรากฏบนฉลาก
+  * ห้ามแปลภาษาชื่อสินค้าข้ามไปมา ให้ใช้ภาษาตามชื่อจริงของสินค้านั้นๆ
 - expiryDate: วันหมดอายุเท่านั้น (EXP, BBD, Best Before, ควรบริโภคก่อน, หมดอายุ) ห้ามใช้วันผลิต (MFD, MFG). แปลงเป็น ค.ศ. รูปแบบ YYYY-MM-DD หากไม่พบตัวเลขวันหมดอายุในรูปให้ใส่ null ห้ามเดา
 - category: วิเคราะห์จากประเภทอาหาร (5 หมวด):
   * "Proteins": เนื้อสัตว์, หมู, ไก่, วัว, ปลา, กุ้ง, ไข่, ไส้กรอก, แฮม, เบคอน, เต้าหู้, ลูกชิ้น
@@ -1403,12 +1409,7 @@ async function scanLabel(buffer, mimeType, language = 'en', mode = 'full') {
     if (typeof parsed.confidence !== 'number') {
       parsed.confidence = parsed.is_food ? 0.9 : 0.0;
     }
-    if (language === 'en' && parsed.foodName && /[\u0E00-\u0E7F]/.test(parsed.foodName)) {
-      parsed.foodName = translateThaiIngredientToEn(parsed.foodName);
-    }
-    if (language === 'th' && parsed.foodName && !/[\u0E00-\u0E7F]/.test(parsed.foodName)) {
-      parsed.foodName = translateEnIngredientToThai(parsed.foodName);
-    }
+    // Preserve authentic foodName from AI detection (whether Thai or English as on packaging)
     return parsed;
   } catch (err) {
     throw new Error('Failed to parse AI response into valid JSON');

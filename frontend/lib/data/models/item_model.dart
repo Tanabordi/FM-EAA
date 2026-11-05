@@ -267,10 +267,10 @@ class ItemModel {
     }
   }
 
-  /// Returns localized food name based on current language
-  String localizedName(bool isTh) {
-    if (!isTh) return name;
-    return getThaiFoodName(name);
+  /// Food names are user or AI-generated inventory data and should remain unchanged
+  /// regardless of the current app language setting (preserves Thai or English as-is).
+  String localizedName([bool isTh = false]) {
+    return name;
   }
 
   /// Helper to localize units to Thai when active (e.g. pieces -> ชิ้น, bottle -> ขวด)

@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/utils/environment.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../shared/widgets/app_back_button.dart';
@@ -1006,7 +1005,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       );
     }
 
-    final name = isTh ? ItemModel.getThaiFoodName(res.foodName!) : res.foodName!;
+    final name = res.foodName ?? '';
     final dateStr = res.expiryDate != null
         ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}${res.isAiEstimated ? (isTh ? ' (AI ประเมิน)' : ' (AI Estimated)') : ''}'
         : (isTh ? 'ไม่ได้ระบุ (ไม่พบในรูปภาพ)' : 'Not specified (Not found on image)');

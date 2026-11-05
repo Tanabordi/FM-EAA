@@ -321,7 +321,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       return;
     }
 
-    final effectiveName = _isThRead() ? ItemModel.getThaiFoodName(result.foodName!) : result.foodName!;
+    final effectiveName = result.foodName!;
     _foodNameController.text = effectiveName;
     _foodNameError = null;
     if (result.imagePath != null && result.imagePath!.isNotEmpty) {

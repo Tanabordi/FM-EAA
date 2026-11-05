@@ -225,7 +225,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             final item = results[index];
 
                             return ItemCard(
-                              name: '${item.localizedName(isTh)} (${_getCategoryLabel(item.category, isTh)})',
+                              name: '${item.name} (${_getCategoryLabel(item.category, isTh)})',
                               category: item.category,
                               quantityText: item.formattedQuantityLocalized(isTh),
                               status: item.status,

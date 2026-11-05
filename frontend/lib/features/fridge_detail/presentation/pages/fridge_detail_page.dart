@@ -50,26 +50,13 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     super.dispose();
   }
 
-  bool get _isTh {
-    try {
-      return ref.read(localeProvider).languageCode == 'th';
-    } catch (_) {
-      try {
-        return Localizations.localeOf(context).languageCode == 'th';
-      } catch (_) {
-        return false;
-      }
-    }
-  }
-
   void _showMarkConsumedSheet(BuildContext context, ItemModel item) {
-    final isTh = _isTh;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => MarkConsumedSheet(
-        itemName: item.localizedName(isTh),
+        itemName: item.name,
         availablePieces: item.quantity,
         unit: item.unit.contains('punnet')
             ? 'pieces'
@@ -78,13 +65,13 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                 : (item.unit.contains('bottle') ? 'bottle' : 'pieces')),
         onRecommendRecipe: () {
           Navigator.pop(sheetContext);
-          context.push('/fridges/${widget.fridgeId}/recipes?ingredient=${Uri.encodeComponent(item.localizedName(isTh))}&category=${Uri.encodeComponent(item.category)}');
+          context.push('/fridges/${widget.fridgeId}/recipes?ingredient=${Uri.encodeComponent(item.name)}&category=${Uri.encodeComponent(item.category)}');
         },
         onConsumed: (amount, finishedAll) {
           Navigator.pop(sheetContext);
           ref.read(fridgeItemsProvider(widget.fridgeId).notifier).consumeItem(item.id, amount, finishedAll);
           if (context.mounted) {
-            FinishAllSnackbar.show(context, itemName: item.localizedName(isTh));
+            FinishAllSnackbar.show(context, itemName: item.name);
           }
         },
       ),
@@ -165,7 +152,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                         final item = items[index];
 
                         return ItemCard(
-                          name: item.localizedName(isTh),
+                          name: item.name,
                           category: item.category,
                           quantityText: item.formattedQuantityLocalized(isTh),
                           status: item.status,
@@ -176,7 +163,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                               '/fridges/${widget.fridgeId}/items/${item.id}',
                             );
                             if (result != null && context.mounted) {
-                              FinishAllSnackbar.show(context, itemName: result.localizedName(isTh));
+                              FinishAllSnackbar.show(context, itemName: result.name);
                             }
                           },
                           onLongPress: () => _showMarkConsumedSheet(context, item),

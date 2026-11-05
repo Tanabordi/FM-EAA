@@ -56,7 +56,7 @@ class NotificationModel {
     final addMatch = RegExp(r'^(.+?)\s+added\s+"([^"]+)"\s*\(([^)]+)\)\s+to\s+"([^"]+)"$', caseSensitive: false).firstMatch(rawMessage);
     if (addMatch != null) {
       final user = addMatch.group(1) ?? '';
-      final item = ItemModel.getThaiFoodName(addMatch.group(2) ?? '');
+      final item = addMatch.group(2) ?? '';
       final rawQtyUnit = addMatch.group(3) ?? '';
       final fridge = addMatch.group(4) ?? '';
 
@@ -79,7 +79,7 @@ class NotificationModel {
       final user = ateMatch.group(1) ?? '';
       final amount = ateMatch.group(2) ?? '';
       final unit1 = ItemModel.localizeUnit(ateMatch.group(3) ?? '', true);
-      final item = ItemModel.getThaiFoodName(ateMatch.group(4) ?? '');
+      final item = ateMatch.group(4) ?? '';
       final fridge = ateMatch.group(5) ?? '';
       final rawLeft = ateMatch.group(6) ?? '';
 
@@ -100,7 +100,7 @@ class NotificationModel {
     final finishedMatch = RegExp(r'^(.+?)\s+finished\s+all\s+"([^"]+)"\s+in\s+"([^"]+)"$', caseSensitive: false).firstMatch(rawMessage);
     if (finishedMatch != null) {
       final user = finishedMatch.group(1) ?? '';
-      final item = ItemModel.getThaiFoodName(finishedMatch.group(2) ?? '');
+      final item = finishedMatch.group(2) ?? '';
       final fridge = finishedMatch.group(3) ?? '';
       return '$user รับประทาน "$item" ทั้งหมด ในตู้ "$fridge"';
     }
@@ -110,7 +110,7 @@ class NotificationModel {
     final removedMatch = RegExp(r'^(.+?)\s+removed\s+"([^"]+)"\s+from\s+"([^"]+)"$', caseSensitive: false).firstMatch(rawMessage);
     if (removedMatch != null) {
       final user = removedMatch.group(1) ?? '';
-      final item = ItemModel.getThaiFoodName(removedMatch.group(2) ?? '');
+      final item = removedMatch.group(2) ?? '';
       final fridge = removedMatch.group(3) ?? '';
       return '$user นำ "$item" ออกจากตู้ "$fridge"';
     }
@@ -135,24 +135,20 @@ class NotificationModel {
     // Pattern 7: "Item" in "Fridge" expires in N days / expires today
     final expiresMatch = RegExp(r'^"([^"]+)"\s+in\s+"([^"]+)"\s+expires\s+in\s+(\d+)\s+days?$', caseSensitive: false).firstMatch(rawMessage);
     if (expiresMatch != null) {
-      final item = ItemModel.getThaiFoodName(expiresMatch.group(1) ?? '');
+      final item = expiresMatch.group(1) ?? '';
       final fridge = expiresMatch.group(2) ?? '';
       final days = expiresMatch.group(3) ?? '';
       return '"$item" ในตู้ "$fridge" จะหมดอายุใน $days วัน';
     }
     final expiresTodayMatch = RegExp(r'^"([^"]+)"\s+in\s+"([^"]+)"\s+expires\s+today$', caseSensitive: false).firstMatch(rawMessage);
     if (expiresTodayMatch != null) {
-      final item = ItemModel.getThaiFoodName(expiresTodayMatch.group(1) ?? '');
+      final item = expiresTodayMatch.group(1) ?? '';
       final fridge = expiresTodayMatch.group(2) ?? '';
       return '"$item" ในตู้ "$fridge" จะหมดอายุวันนี้';
     }
 
-    // Fallback translation for food names inside quotes and common unit keywords
+    // Fallback translation for common unit keywords (food names inside quotes preserved as-is)
     var msg = rawMessage;
-    msg = msg.replaceAllMapped(RegExp(r'"([^"]+)"'), (m) {
-      final inner = m.group(1) ?? '';
-      return '"${ItemModel.getThaiFoodName(inner)}"';
-    });
     msg = msg.replaceAll(RegExp(r'\bpunnets?\b', caseSensitive: false), 'ตะกร้า');
     msg = msg.replaceAll(RegExp(r'\bpieces?\b', caseSensitive: false), 'ชิ้น');
     msg = msg.replaceAll(RegExp(r'\bboxt?s?\b', caseSensitive: false), 'กล่อง');
