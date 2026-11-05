@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/user_avatar.dart';
 import '../../domain/models/family_member.dart';
@@ -23,6 +24,30 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
   bool _isSearching = false;
   bool _isInviting = false;
   String? _searchMessage;
+
+  bool get _isTh {
+    try {
+      return ref.watch(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  bool _isThRead() {
+    try {
+      return ref.read(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -65,14 +90,16 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
         _userStatuses = {for (var u in results) u.username: u.status};
         _isSearching = false;
         if (results.isEmpty) {
-          _searchMessage = 'No users found matching "$query"';
+          final isTh = _isThRead();
+          _searchMessage = isTh ? 'ไม่พบผู้ใช้ที่ตรงกับ "$query"' : 'No users found matching "$query"';
         }
       });
     } catch (e) {
       if (!mounted) return;
+      final isTh = _isThRead();
       setState(() {
         _isSearching = false;
-        _searchMessage = 'Failed to search users. Please try again.';
+        _searchMessage = isTh ? 'ค้นหาผู้ใช้ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' : 'Failed to search users. Please try again.';
       });
     }
   }
@@ -94,13 +121,15 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
       setState(() => _userStatuses[username] = 'pending');
       // Trigger update on fridge members provider
       ref.read(familyMembersProvider(widget.fridgeId).notifier).loadMembers();
+      final isTh = _isThRead();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invitation sent to $username')),
+        SnackBar(content: Text(isTh ? 'ส่งคำเชิญไปยัง $username เรียบร้อยแล้ว' : 'Invitation sent to $username')),
       );
     } catch (e) {
       if (!mounted) return;
+      final isTh = _isThRead();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send invitation: ${e.toString()}')),
+        SnackBar(content: Text(isTh ? 'ส่งคำเชิญไม่สำเร็จ: ${e.toString()}' : 'Failed to send invitation: ${e.toString()}')),
       );
     } finally {
       if (mounted) setState(() => _isInviting = false);
@@ -110,6 +139,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
 
   Widget _buildUserTile(UserSearchResult user) {
     final currentStatus = _userStatuses[user.username] ?? user.status;
+    final isTh = _isTh;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
@@ -131,9 +161,9 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
             ),
           ),
           if (currentStatus == 'already')
-            const Text(
-              'Already in family',
-              style: TextStyle(fontSize: 13, color: Color(0xFF414942)),
+            Text(
+              isTh ? 'อยู่ในครอบครัวแล้ว' : 'Already in family',
+              style: const TextStyle(fontSize: 13, color: Color(0xFF414942)),
             )
           else if (currentStatus == 'pending')
             Container(
@@ -142,9 +172,9 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFF717971)),
               ),
-              child: const Text(
-                'Pending',
-                style: TextStyle(
+              child: Text(
+                isTh ? 'รอการตอบรับ' : 'Pending',
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF181D18),
@@ -162,9 +192,9 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                 elevation: 0,
               ),
               onPressed: _isInviting ? null : () => _handleInvite(user.username),
-              child: const Text(
-                'Invite',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              child: Text(
+                isTh ? 'เชิญ' : 'Invite',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ),
         ],
@@ -176,6 +206,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isTh = _isTh;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -196,7 +227,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                       const FigmaBackButton(),
                       const SizedBox(width: 16),
                       Text(
-                        'Invite to Family',
+                        isTh ? 'เชิญเข้าร่วมครอบครัว' : 'Invite to Family',
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: colorScheme.onSurface,
@@ -235,9 +266,9 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                             textInputAction: TextInputAction.search,
                             onSubmitted: (_) => _doSearch(),
                             style: const TextStyle(fontSize: 16, color: Color(0xFF181D18)),
-                            decoration: const InputDecoration(
-                              hintText: 'Search Username',
-                              hintStyle: TextStyle(
+                            decoration: InputDecoration(
+                              hintText: isTh ? 'ค้นหาชื่อผู้ใช้' : 'Search Username',
+                              hintStyle: const TextStyle(
                                 color: Color(0xFF414942),
                                 fontSize: 16,
                               ),
@@ -246,7 +277,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                               focusedBorder: InputBorder.none,
                               filled: false,
                               fillColor: Colors.transparent,
-                              contentPadding: EdgeInsets.symmetric(vertical: 14),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
                               isDense: true,
                             ),
                           ),
@@ -293,7 +324,7 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                     _searchMessage!,
                     style: const TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF414942),
+                      color: Color(0xFF414941),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -309,19 +340,21 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Search results',
-                          style: TextStyle(
+                        Text(
+                          isTh ? 'ผลการค้นหา' : 'Search results',
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF181D18),
                           ),
                         ),
                         Text(
-                          '${_searchResults.length} ${_searchResults.length == 1 ? "User" : "Users"}',
+                          isTh
+                              ? '${_searchResults.length} ผู้ใช้'
+                              : '${_searchResults.length} ${_searchResults.length == 1 ? "User" : "Users"}',
                           style: const TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF414942),
+                            color: Color(0xFF414941),
                           ),
                         ),
                       ],
@@ -339,9 +372,11 @@ class _InviteMemberPageState extends ConsumerState<InviteMemberPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'Friends will receive an invitation in their notifications and must accept it before they can join the family.',
-                      style: TextStyle(
+                    Text(
+                      isTh
+                          ? 'เพื่อนจะได้รับคำเชิญในการแจ้งเตือน และต้องกดยอมรับก่อนจึงจะเข้าร่วมครอบครัวได้'
+                          : 'Friends will receive an invitation in their notifications and must accept it before they can join the family.',
+                      style: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF414942),
                       ),

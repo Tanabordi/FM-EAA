@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/category_chips.dart';
@@ -80,6 +81,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
   Widget build(BuildContext context) {
     final filter = ref.watch(fridgeDetailFilterProvider);
     final allItems = ref.watch(fridgeItemsProvider(widget.fridgeId));
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
 
     final items = allItems.where((item) {
       final matchesZone = item.zone.toLowerCase() == filter.zone.toLowerCase();
@@ -96,7 +98,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             // Top App Bar
             _buildAppBar(context),
             // Floating Pill Search Bar with Shadow
-            _buildSearchBar(context),
+            _buildSearchBar(context, isTh),
             const SizedBox(height: 3),
             // Circular Category Chips (All, Proteins, Veggies, Beverages, Meals, Sauces)
             CategoryChips(
@@ -107,16 +109,16 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             ),
             const SizedBox(height: 4),
             // Fridge | Freezer Tabs
-            _buildTabs(),
+            _buildTabs(isTh),
             // Food Items Section Header ("Your food" & "N items")
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Your food',
-                    style: TextStyle(
+                  Text(
+                    isTh ? 'รายการอาหารของคุณ' : 'Your food',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF1A201C),
@@ -124,7 +126,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                     ),
                   ),
                   Text(
-                    '${items.length} items',
+                    isTh ? '${items.length} รายการ' : '${items.length} items',
                     style: const TextStyle(
                       color: Color(0xFF5C665F),
                       fontSize: 13,
@@ -137,7 +139,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
             // Items List
             Expanded(
               child: items.isEmpty
-                  ? _buildEmptyState()
+                  ? _buildEmptyState(isTh)
                   : ListView.builder(
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.only(bottom: 74, top: 2),
@@ -148,9 +150,9 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
                         return ItemCard(
                           name: item.name,
                           category: item.category,
-                          quantityText: item.formattedQuantity,
+                          quantityText: item.formattedQuantityLocalized(isTh),
                           status: item.status,
-                          statusText: item.statusText,
+                          statusText: item.localizedStatusText(isTh),
                           imagePath: item.imagePath,
                           onTap: () async {
                             final result = await context.push<ItemModel?>(
@@ -217,7 +219,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     );
   }
 
-  Widget _buildSearchBar(BuildContext context) {
+  Widget _buildSearchBar(BuildContext context, [bool isTh = false]) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
       child: Container(
@@ -247,23 +249,23 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
               ref.read(searchQueryProvider.notifier).state = '';
               context.push('/fridges/${widget.fridgeId}/search');
             },
-            child: const Row(
+            child: Row(
               children: [
-                Padding(
+                const Padding(
                   padding: EdgeInsets.only(left: 18, right: 12),
                   child: Icon(Icons.search, color: Color(0xFF3A4A3E), size: 22),
                 ),
                 Expanded(
                   child: Text(
-                    'Search for items',
-                    style: TextStyle(
+                    isTh ? 'ค้นหารายการอาหาร' : 'Search for items',
+                    style: const TextStyle(
                       color: Color(0xFF4A5A4E),
                       fontSize: 15,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),
-                SizedBox(width: 22),
+                const SizedBox(width: 22),
               ],
             ),
           ),
@@ -272,7 +274,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
     );
   }
 
-  Widget _buildTabs() {
+  Widget _buildTabs(bool isTh) {
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [
@@ -296,37 +298,39 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
           labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           unselectedLabelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           dividerColor: Colors.transparent,
-          tabs: const [
-            Tab(text: 'Fridge'),
-            Tab(text: 'Freezer'),
+          tabs: [
+            Tab(text: isTh ? 'ช่องแช่เย็น' : 'Fridge'),
+            Tab(text: isTh ? 'ช่องแช่แข็ง' : 'Freezer'),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildEmptyState() {
-    return const Center(
+  Widget _buildEmptyState(bool isTh) {
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(32.0),
+        padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inventory_2_outlined, size: 48, color: Color(0xFF94A3B8)),
-            SizedBox(height: 12),
+            const Icon(Icons.inventory_2_outlined, size: 48, color: Color(0xFF94A3B8)),
+            const SizedBox(height: 12),
             Text(
-              'No items found',
-              style: TextStyle(
+              isTh ? 'ไม่พบรายการอาหาร' : 'No items found',
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF475569),
               ),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
-              'Try changing filters or add a new food item',
+              isTh
+                  ? 'ลองเปลี่ยนตัวกรอง หรือเพิ่มวัตถุดิบใหม่'
+                  : 'Try changing filters or add a new food item',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
             ),
           ],
         ),
