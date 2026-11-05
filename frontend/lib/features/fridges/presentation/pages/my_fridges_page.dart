@@ -29,6 +29,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
         await ref.read(authProvider.notifier).restoreSession();
       }
       ref.read(fridgesProvider.notifier).loadFridges();
+      ref.read(notificationControllerProvider.notifier).sync();
     });
   }
 
@@ -37,6 +38,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> {
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.isAuthenticated && next.user != null) {
         ref.read(fridgesProvider.notifier).loadFridges();
+        ref.read(notificationControllerProvider.notifier).sync();
       } else if (!next.isAuthenticated) {
         try {
           ref.read(routerProvider).go('/sign-in');
