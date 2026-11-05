@@ -182,6 +182,17 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     }
   }
 
+  String _localizeRecipeText(String text, bool isTh) {
+    if (!isTh || text.isEmpty) return text;
+    var result = text;
+    for (final entry in ItemModel.foodEnToThai.entries) {
+      if (result.toLowerCase().contains(entry.key)) {
+        result = result.replaceAll(RegExp(RegExp.escape(entry.key), caseSensitive: false), entry.value);
+      }
+    }
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isTh = _isTh;
@@ -237,7 +248,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     const SizedBox(height: 16),
                     // Recipe Title
                     Text(
-                      recipe.title,
+                      _localizeRecipeText(recipe.title, isTh),
                       style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -260,7 +271,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            'Uses expiring: ${recipe.expiringIngredient}',
+                            isTh
+                                ? 'ใช้วัตถุดิบใกล้หมดอายุ: ${recipe.localizedExpiringIngredient(true)}'
+                                : 'Uses expiring: ${recipe.expiringIngredient}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12.5,
@@ -287,7 +300,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                recipe.cookingTime,
+                                recipe.localizedCookingTime(isTh),
                                 style: const TextStyle(
                                   fontSize: 12.5,
                                   color: Color(0xFF414942),
@@ -305,7 +318,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            recipe.difficulty,
+                            recipe.localizedDifficulty(isTh),
                             style: const TextStyle(
                               fontSize: 12.5,
                               color: Color(0xFF414942),
@@ -364,7 +377,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  ing,
+                                  _localizeRecipeText(ing, isTh),
                                   style: TextStyle(
                                     fontSize: 15,
                                     color: const Color(0xFF181D17),
@@ -422,7 +435,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                stepText,
+                                _localizeRecipeText(stepText, isTh),
                                 style: const TextStyle(
                                   fontSize: 14.5,
                                   height: 1.4,

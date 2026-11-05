@@ -123,6 +123,154 @@ class ItemModel {
     }
   }
 
+  /// Common English to Thai food names dictionary for seamless bilingual search & display
+  static const Map<String, String> foodEnToThai = {
+    'raw shrimp': 'กุ้งสด',
+    'shrimp': 'กุ้ง',
+    'prawn': 'กุ้ง',
+    'prawns': 'กุ้ง',
+    'beef steak': 'สเต็กเนื้อวัว',
+    'wagyu beef steak': 'สเต็กเนื้อวากิว',
+    'wagyu beef': 'เนื้อวัววากิว',
+    'beef': 'เนื้อวัว',
+    'minced beef': 'เนื้อวัวบด',
+    'pork': 'เนื้อหมู',
+    'minced pork': 'หมูบด',
+    'ground pork': 'หมูบด',
+    'pork chops': 'พอร์คชอป',
+    'pork slice': 'หมูสไลด์',
+    'pork belly': 'หมูสามชั้น',
+    'chicken': 'เนื้อไก่',
+    'chicken breast': 'อกไก่',
+    'chicken wing': 'ปีกไก่',
+    'chicken wings': 'ปีกไก่',
+    'chicken thigh': 'สะโพกไก่',
+    'smoked sausage': 'ไส้กรอกรมควัน',
+    'cocktail sausage': 'ไส้กรอกค็อกเทล',
+    'smoked cocktail sausage': 'ค็อกเทลรมควัน',
+    'sausage': 'ไส้กรอก',
+    'sausages': 'ไส้กรอก',
+    'bacon': 'เบคอน',
+    'ham': 'แฮม',
+    'salmon': 'แซลมอน',
+    'salmon fillet': 'เนื้อปลาแซลมอน',
+    'fish': 'ปลา',
+    'fish fillet': 'เนื้อปลา',
+    'tofu': 'เต้าหู้',
+    'egg': 'ไข่ไก่',
+    'eggs': 'ไข่ไก่',
+    'fresh milk': 'นมสด',
+    'milk': 'นมสด',
+    'cheese': 'ชีส',
+    'butter': 'เนย',
+    'yogurt': 'โยเกิร์ต',
+    'bread': 'ขนมปัง',
+    'rice': 'ข้าว',
+    'cooked rice': 'ข้าวสวย',
+    'noodles': 'บะหมี่',
+    'pasta': 'พาสต้า',
+    'spaghetti': 'สปาเก็ตตี้',
+    'carrot': 'แครอท',
+    'carrots': 'แครอท',
+    'broccoli': 'บรอกโคลี',
+    'tomato': 'มะเขือเทศ',
+    'tomatoes': 'มะเขือเทศ',
+    'potato': 'มันฝรั่ง',
+    'potatoes': 'มันฝรั่ง',
+    'onion': 'หอมใหญ่',
+    'onions': 'หอมใหญ่',
+    'spring onion': 'ต้นหอม',
+    'spring onions': 'ต้นหอม',
+    'scallion': 'ต้นหอม',
+    'garlic': 'กระเทียม',
+    'chili': 'พริก',
+    'lime': 'มะนาว',
+    'lemon': 'เลมอน',
+    'lettuce': 'ผักกาดหอม',
+    'cabbage': 'กะหล่ำปลี',
+    'spinach': 'ผักโขม',
+    'mushroom': 'เห็ด',
+    'mushrooms': 'เห็ด',
+    'cucumber': 'แตงกวา',
+    'cucumbers': 'แตงกวา',
+    'bell pepper': 'พริกหวาน',
+    'coriander': 'ผักชี',
+    'cilantro': 'ผักชี',
+    'strawberry': 'สตรอว์เบอร์รี',
+    'strawberries': 'สตรอว์เบอร์รี',
+    'avocado': 'อะโวคาโด',
+    'avocados': 'อะโวคาโด',
+    'apple': 'แอปเปิ้ล',
+    'apples': 'แอปเปิ้ล',
+    'banana': 'กล้วย',
+    'bananas': 'กล้วย',
+    'orange': 'ส้ม',
+    'oranges': 'ส้ม',
+    'watermelon': 'แตงโม',
+    'mango': 'มะม่วง',
+    'grape': 'องุ่น',
+    'grapes': 'องุ่น',
+    'orange juice': 'น้ำส้ม',
+    'apple juice': 'น้ำแอปเปิ้ล',
+    'drinking water': 'น้ำดื่ม',
+    'water': 'น้ำดื่ม',
+    'green tea': 'ชาเขียว',
+    'coffee': 'กาแฟ',
+    'spicy chili sauce': 'ซอสพริกเผ็ด',
+    'chili sauce': 'ซอสพริก',
+    'tomato sauce': 'ซอสมะเขือเทศ',
+    'ketchup': 'ซอสมะเขือเทศ',
+    'soy sauce': 'ซีอิ๊วขาว',
+    'fish sauce': 'น้ำปลา',
+    'oyster sauce': 'ซอสหอยนางรม',
+    'mayonnaise': 'มายองเนส',
+    'cooking oil': 'น้ำมันพืช',
+    'vegetable oil': 'น้ำมันพืช',
+    'olive oil': 'น้ำมันมะกอก',
+    'honey': 'น้ำผึ้ง',
+    'jam': 'แยม',
+    'strawberry jam': 'แยมสตรอว์เบอร์รี',
+  };
+
+  /// Translates food name to Thai if found in dictionary
+  static String getThaiFoodName(String name) {
+    if (name.trim().isEmpty) return name;
+    final lower = name.toLowerCase().trim();
+    if (foodEnToThai.containsKey(lower)) {
+      return foodEnToThai[lower]!;
+    }
+    for (final entry in foodEnToThai.entries) {
+      if (lower.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+    return name;
+  }
+
+  /// Translates category name to Thai
+  static String getThaiCategoryName(String category) {
+    switch (category.toLowerCase().trim()) {
+      case 'proteins':
+        return 'โปรตีน';
+      case 'veggies':
+        return 'ผักผลไม้';
+      case 'beverages':
+        return 'เครื่องดื่ม';
+      case 'meals':
+        return 'อาหาร';
+      case 'sauces':
+        return 'ซอส';
+      default:
+        return category;
+    }
+  }
+
+  /// Returns localized food name based on current language
+  String localizedName(bool isTh) {
+    if (!isTh) return name;
+    return getThaiFoodName(name);
+  }
+
   /// Helper to localize units to Thai when active (e.g. pieces -> ชิ้น, bottle -> ขวด)
   static String localizeUnit(String unit, bool isTh) {
     if (!isTh) return unit;

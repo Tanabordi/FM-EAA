@@ -143,7 +143,7 @@ class ItemDetailsPage extends ConsumerWidget {
                     const SizedBox(height: 20),
                     // Item Name
                     Text(
-                      item.name,
+                      item.localizedName(isTh),
                       style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -233,7 +233,7 @@ class ItemDetailsPage extends ConsumerWidget {
                           ),
                         ),
                         onPressed: () {
-                          _showMarkConsumedSheet(context, ref, item);
+                          _showMarkConsumedSheet(context, ref, item, isTh);
                         },
                         child: Text(isTh ? 'บันทึกว่าบริโภคแล้ว' : 'Mark as Consumed'),
                       ),
@@ -255,7 +255,7 @@ class ItemDetailsPage extends ConsumerWidget {
                         icon: const Icon(Icons.delete_outline, size: 20),
                         label: Text(isTh ? 'ลบรายการ' : 'Delete Item'),
                         onPressed: () {
-                          _confirmDelete(context, ref, item);
+                          _confirmDelete(context, ref, item, isTh);
                         },
                       ),
                     ),
@@ -269,13 +269,13 @@ class ItemDetailsPage extends ConsumerWidget {
     );
   }
 
-  void _showMarkConsumedSheet(BuildContext context, WidgetRef ref, ItemModel item) {
+  void _showMarkConsumedSheet(BuildContext context, WidgetRef ref, ItemModel item, bool isTh) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => MarkConsumedSheet(
-        itemName: item.name,
+        itemName: item.localizedName(isTh),
         availablePieces: item.quantity,
         unit: item.unit.contains('punnet')
             ? 'pieces'
@@ -284,7 +284,7 @@ class ItemDetailsPage extends ConsumerWidget {
                 : (item.unit.contains('bottle') ? 'bottle' : 'pieces')),
         onRecommendRecipe: () {
           Navigator.pop(sheetContext);
-          context.push('/fridges/$fridgeId/recipes?ingredient=${Uri.encodeComponent(item.name)}&category=${Uri.encodeComponent(item.category)}');
+          context.push('/fridges/$fridgeId/recipes?ingredient=${Uri.encodeComponent(item.localizedName(isTh))}&category=${Uri.encodeComponent(item.category)}');
         },
         onConsumed: (amount, finishedAll) {
           Navigator.pop(sheetContext); // Close sheet
@@ -295,19 +295,19 @@ class ItemDetailsPage extends ConsumerWidget {
             try {
               context.go('/fridges/$fridgeId');
             } catch (_) {}
-            FinishAllSnackbar.show(context, itemName: item.name);
+            FinishAllSnackbar.show(context, itemName: item.localizedName(isTh));
           }
         },
       ),
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref, ItemModel item) {
+  void _confirmDelete(BuildContext context, WidgetRef ref, ItemModel item, bool isTh) {
     showDialog(
       context: context,
       builder: (_) => DeleteItemDialog(
         itemId: item.id,
-        itemName: item.name,
+        itemName: item.localizedName(isTh),
         onConfirm: () {
           ref.read(fridgeItemsProvider(fridgeId).notifier).deleteItem(item.id);
           if (context.canPop()) {

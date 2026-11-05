@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../data/models/recipe_model.dart';
 import '../../../../data/repositories/item_repository.dart';
+import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
 import '../../../../sync/connectivity_watcher.dart';
 import '../../../../core/l10n/locale_provider.dart';
@@ -1149,6 +1150,17 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     );
   }
 
+  String _localizeRecipeText(String text, bool isTh) {
+    if (!isTh || text.isEmpty) return text;
+    var result = text;
+    for (final entry in ItemModel.foodEnToThai.entries) {
+      if (result.toLowerCase().contains(entry.key)) {
+        result = result.replaceAll(RegExp(RegExp.escape(entry.key), caseSensitive: false), entry.value);
+      }
+    }
+    return result;
+  }
+
   Widget _buildRecipeCard(RecipeModel recipe, [bool isTh = false]) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 6, 16, 10),
@@ -1207,7 +1219,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    recipe.title,
+                    _localizeRecipeText(recipe.title, isTh),
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
@@ -1217,7 +1229,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                   if (recipe.description.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
-                      recipe.description,
+                      _localizeRecipeText(recipe.description, isTh),
                       style: const TextStyle(
                         fontSize: 12.5,
                         color: Color(0xFF414942),
@@ -1248,7 +1260,7 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                               const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
-                                  '${recipe.cookingTime} · ${recipe.difficulty}',
+                                  '${recipe.localizedCookingTime(isTh)} · ${recipe.localizedDifficulty(isTh)}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(

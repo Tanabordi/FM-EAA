@@ -66,6 +66,126 @@ function translateThaiIngredientToEn(name) {
   return trimmed;
 }
 
+const EN_TO_THAI_MAP = {
+  'raw shrimp': 'กุ้งสด',
+  'shrimp': 'กุ้งสด',
+  'prawn': 'กุ้ง',
+  'prawns': 'กุ้ง',
+  'beef steak': 'สเต็กเนื้อวัว',
+  'wagyu beef steak': 'สเต็กเนื้อวากิว',
+  'wagyu beef': 'เนื้อวัววากิว',
+  'beef': 'เนื้อวัว',
+  'minced beef': 'เนื้อวัวบด',
+  'pork': 'เนื้อหมู',
+  'minced pork': 'หมูบด',
+  'ground pork': 'หมูบด',
+  'pork chops': 'พอร์คชอป',
+  'pork slice': 'หมูสไลด์',
+  'pork belly': 'หมูสามชั้น',
+  'chicken': 'เนื้อไก่',
+  'chicken breast': 'อกไก่',
+  'chicken wing': 'ปีกไก่',
+  'chicken wings': 'ปีกไก่',
+  'chicken thigh': 'สะโพกไก่',
+  'smoked sausage': 'ไส้กรอกรมควัน',
+  'cocktail sausage': 'ไส้กรอกค็อกเทล',
+  'smoked cocktail sausage': 'ค็อกเทลรมควัน',
+  'sausage': 'ไส้กรอก',
+  'sausages': 'ไส้กรอก',
+  'bacon': 'เบคอน',
+  'ham': 'แฮม',
+  'salmon': 'แซลมอน',
+  'salmon fillet': 'เนื้อปลาแซลมอน',
+  'fish': 'ปลา',
+  'fish fillet': 'เนื้อปลา',
+  'tofu': 'เต้าหู้',
+  'egg': 'ไข่ไก่',
+  'eggs': 'ไข่ไก่',
+  'fresh milk': 'นมสด',
+  'milk': 'นมสด',
+  'cheese': 'ชีส',
+  'butter': 'เนย',
+  'yogurt': 'โยเกิร์ต',
+  'bread': 'ขนมปัง',
+  'rice': 'ข้าว',
+  'cooked rice': 'ข้าวสวย',
+  'noodles': 'บะหมี่',
+  'pasta': 'พาสต้า',
+  'spaghetti': 'สปาเก็ตตี้',
+  'carrot': 'แครอท',
+  'carrots': 'แครอท',
+  'broccoli': 'บรอกโคลี',
+  'tomato': 'มะเขือเทศ',
+  'tomatoes': 'มะเขือเทศ',
+  'potato': 'มันฝรั่ง',
+  'potatoes': 'มันฝรั่ง',
+  'onion': 'หอมใหญ่',
+  'onions': 'หอมใหญ่',
+  'spring onion': 'ต้นหอม',
+  'spring onions': 'ต้นหอม',
+  'scallion': 'ต้นหอม',
+  'garlic': 'กระเทียม',
+  'chili': 'พริก',
+  'lime': 'มะนาว',
+  'lemon': 'เลมอน',
+  'lettuce': 'ผักกาดหอม',
+  'cabbage': 'กะหล่ำปลี',
+  'spinach': 'ผักโขม',
+  'mushroom': 'เห็ด',
+  'mushrooms': 'เห็ด',
+  'cucumber': 'แตงกวา',
+  'cucumbers': 'แตงกวา',
+  'bell pepper': 'พริกหวาน',
+  'coriander': 'ผักชี',
+  'cilantro': 'ผักชี',
+  'strawberry': 'สตรอว์เบอร์รี',
+  'strawberries': 'สตรอว์เบอร์รี',
+  'avocado': 'อะโวคาโด',
+  'avocados': 'อะโวคาโด',
+  'apple': 'แอปเปิ้ล',
+  'apples': 'แอปเปิ้ล',
+  'banana': 'กล้วย',
+  'bananas': 'กล้วย',
+  'orange': 'ส้ม',
+  'oranges': 'ส้ม',
+  'watermelon': 'แตงโม',
+  'mango': 'มะม่วง',
+  'grape': 'องุ่น',
+  'grapes': 'องุ่น',
+  'orange juice': 'น้ำส้ม',
+  'apple juice': 'น้ำแอปเปิ้ล',
+  'drinking water': 'น้ำดื่ม',
+  'water': 'น้ำดื่ม',
+  'green tea': 'ชาเขียว',
+  'coffee': 'กาแฟ',
+  'spicy chili sauce': 'ซอสพริกเผ็ด',
+  'chili sauce': 'ซอสพริก',
+  'tomato sauce': 'ซอสมะเขือเทศ',
+  'ketchup': 'ซอสมะเขือเทศ',
+  'soy sauce': 'ซีอิ๊วขาว',
+  'fish sauce': 'น้ำปลา',
+  'oyster sauce': 'ซอสหอยนางรม',
+  'mayonnaise': 'มายองเนส',
+  'cooking oil': 'น้ำมันพืช',
+  'vegetable oil': 'น้ำมันพืช',
+  'olive oil': 'น้ำมันมะกอก',
+  'honey': 'น้ำผึ้ง',
+  'jam': 'แยม',
+  'strawberry jam': 'แยมสตรอว์เบอร์รี',
+};
+
+function translateEnIngredientToThai(name) {
+  if (!name || typeof name !== 'string') return name;
+  const lower = name.toLowerCase().trim();
+  if (EN_TO_THAI_MAP[lower]) return EN_TO_THAI_MAP[lower];
+  for (const [en, thai] of Object.entries(EN_TO_THAI_MAP)) {
+    if (lower.includes(en)) {
+      return thai;
+    }
+  }
+  return name;
+}
+
 function getScanLabelPrompt(language = 'en') {
   if (language === 'en') {
     return `Analyze the image and respond strictly in JSON matching this schema:
@@ -420,7 +540,7 @@ function detectCategory(mainIngredient = '', explicitCategory = null) {
 
 function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, category = null) {
   const isEn = language === 'en';
-  const displayIngredient = isEn ? translateThaiIngredientToEn(mainIngredient) : mainIngredient;
+  const displayIngredient = isEn ? translateThaiIngredientToEn(mainIngredient) : translateEnIngredientToThai(mainIngredient);
   const detectedCat = detectCategory(mainIngredient, category);
 
   let pool = [];
@@ -1286,6 +1406,9 @@ async function scanLabel(buffer, mimeType, language = 'en', mode = 'full') {
     if (language === 'en' && parsed.foodName && /[\u0E00-\u0E7F]/.test(parsed.foodName)) {
       parsed.foodName = translateThaiIngredientToEn(parsed.foodName);
     }
+    if (language === 'th' && parsed.foodName && !/[\u0E00-\u0E7F]/.test(parsed.foodName)) {
+      parsed.foodName = translateEnIngredientToThai(parsed.foodName);
+    }
     return parsed;
   } catch (err) {
     throw new Error('Failed to parse AI response into valid JSON');
@@ -1314,7 +1437,7 @@ async function suggestRecipes({ userId, mainIngredient, category, language = 'en
 
   const detectedCat = detectCategory(mainIngredient, category);
   const isEn = language === 'en';
-  const displayIngredient = isEn ? translateThaiIngredientToEn(mainIngredient) : mainIngredient;
+  const displayIngredient = isEn ? translateThaiIngredientToEn(mainIngredient) : translateEnIngredientToThai(mainIngredient);
 
   let categoryGuidelineEn = '';
   let categoryGuidelineTh = '';
@@ -1400,16 +1523,16 @@ Respond strictly in JSON array of 6 items matching this schema:
 ]
 `
     : `คุณคือสุดยอดเชฟ AI ผู้เชี่ยวชาญการคิดเมนูอาหารที่สร้างสรรค์ ทำง่าย ใช้วัตถุดิบน้อย (10-20 นาที)
-วัตถุดิบที่ต้องการนำมาทำอาหาร: "${mainIngredient}"
+วัตถุดิบที่ต้องการนำมาทำอาหาร: "${displayIngredient}"
 หมวดหมู่: ${detectedCat}
 
 ${categoryGuidelineTh}
 
 ข้อกำหนดสำคัญมาก:
-1. ทุกเมนูต้องชูและโฟกัสเฉพาะ "${mainIngredient}" เป็นวัตถุดิบหลักเท่านั้น ห้ามใส่วัตถุดิบหลักอื่นที่ไม่เกี่ยวข้อง
+1. ทุกเมนูต้องชูและโฟกัสเฉพาะ "${displayIngredient}" เป็นวัตถุดิบหลักเท่านั้น ห้ามใส่วัตถุดิบหลักอื่นที่ไม่เกี่ยวข้อง
 2. วัตถุดิบเสริมต้องเป็นเครื่องปรุงหรือของพื้นฐานประจำบ้านเท่านั้น (เช่น ไข่ไก่, ข้าวสวย, น้ำมัน, กระเทียม, ซีอิ๊ว, น้ำปลา, เกลือ, พริกไทย, น้ำตาล, แป้ง, นม)
 3. เมนูทั้ง 6 ต้องมีความหลากหลายที่เหมาะสมกับหมวดหมู่ "${detectedCat}" ไม่ซ้ำแนวกัน
-4. เวลาปรุง 5-20 นาที ระดับความง่าย Easy หรือ Very easy
+4. เวลาปรุง 5-20 นาที ระดับความง่าย เช่น "ง่ายมาก", "ง่าย", "ปานกลาง"
 5. ${langInstruction}
 
 ตอบกลับเป็น JSON array ของวัตถุ 6 รายการเท่านั้น ตามโครงสร้างดังนี้:
@@ -1418,12 +1541,12 @@ ${categoryGuidelineTh}
     "id": "recipe_1",
     "title": "ชื่อเมนูที่สร้างสรรค์และน่ากิน",
     "description": "คำอธิบายความอร่อยสั้นๆ 1 ประโยค ดึงดูดให้อยากทำ",
-    "cookingTime": "15 min",
-    "difficulty": "Easy",
+    "cookingTime": "15 นาที",
+    "difficulty": "ง่ายมาก",
     "dishType": "stir_fry|omelet|soup|fried_rice|salad|sandwich|pasta|beverage|smoothie|pancake|dessert",
-    "expiringIngredient": "${mainIngredient}",
-    "ingredients": ["วัตถุดิบพร้อมปริมาณ"],
-    "steps": ["ขั้นตอนการทำสั้นกระชับเข้าใจง่าย"]
+    "expiringIngredient": "${displayIngredient}",
+    "ingredients": ["วัตถุดิบพร้อมปริมาณเป็นภาษาไทย"],
+    "steps": ["ขั้นตอนการทำสั้นกระชับเข้าใจง่ายเป็นภาษาไทย"]
   }
 ]
 `;
@@ -1459,13 +1582,25 @@ ${categoryGuidelineTh}
 
   // Ensure up to 6 recipes and attach unique non-repeating image assets
   const formattedRecipes = recipes.slice(0, 6).map((r, idx) => {
+    let cTime = r.cookingTime || (language === 'th' ? '15 นาที' : '15 min');
+    if (language === 'th') {
+      cTime = cTime.replace(/mins?|minutes?/i, 'นาที').replace(/hrs?|hours?/i, 'ชั่วโมง');
+    }
+    let diff = r.difficulty || (language === 'th' ? 'ง่ายมาก' : 'Easy');
+    if (language === 'th') {
+      const dLower = diff.toLowerCase();
+      if (dLower.includes('very easy')) diff = 'ง่ายมาก';
+      else if (dLower.includes('easy')) diff = 'ง่าย';
+      else if (dLower.includes('medium')) diff = 'ปานกลาง';
+      else if (dLower.includes('hard')) diff = 'ยาก';
+    }
     return attachRecipeImages(
       {
         id: r.id || `recipe_${idx + 1}`,
-        title: r.title || `Menu with ${displayIngredient}`,
+        title: r.title || (language === 'th' ? `เมนูจาก ${displayIngredient}` : `Menu with ${displayIngredient}`),
         description: r.description || '',
-        cookingTime: r.cookingTime || '15 min',
-        difficulty: r.difficulty || 'Easy',
+        cookingTime: cTime,
+        difficulty: diff,
         dishType: r.dishType || 'stir_fry',
         expiringIngredient: r.expiringIngredient || displayIngredient,
         ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
