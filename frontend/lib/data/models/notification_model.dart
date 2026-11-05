@@ -76,7 +76,11 @@ class NotificationModel {
     DateTime createdAt = (entry.createdAt as DateTime).toLocal();
     final now = DateTime.now();
     if (createdAt.isAfter(now.add(const Duration(minutes: 5)))) {
-      createdAt = createdAt.subtract(now.timeZoneOffset);
+      final offset = now.timeZoneOffset != Duration.zero ? now.timeZoneOffset : const Duration(hours: 7);
+      createdAt = createdAt.subtract(offset);
+      if (createdAt.isAfter(now.add(const Duration(minutes: 5)))) {
+        createdAt = now;
+      }
     }
 
     return NotificationModel(
@@ -155,7 +159,11 @@ class NotificationModel {
         }
         final now = DateTime.now();
         if (createdAt.isAfter(now.add(const Duration(minutes: 5)))) {
-          createdAt = createdAt.subtract(now.timeZoneOffset);
+          final offset = now.timeZoneOffset != Duration.zero ? now.timeZoneOffset : const Duration(hours: 7);
+          createdAt = createdAt.subtract(offset);
+          if (createdAt.isAfter(now.add(const Duration(minutes: 5)))) {
+            createdAt = now;
+          }
         }
       } catch (_) {}
     }
