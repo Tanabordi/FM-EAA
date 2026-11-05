@@ -72,7 +72,14 @@ class ItemRepository {
                 }
               }
             }
+            final unsyncedMap = {
+              for (final u in await database.itemDao.getUnsyncedItems(fridgeId)) u.id: u
+            };
             for (final item in list) {
+              // Do not overwrite items that have pending offline changes
+              if (unsyncedMap.containsKey(item.id)) {
+                continue;
+              }
               await database.itemDao.insertItemOptimistic(
                 id: item.id,
                 fridgeId: item.fridgeId,
@@ -175,6 +182,7 @@ class ItemRepository {
 
   /// Update item: calls backend API and updates Drift SQLite
   Future<void> updateItem(ItemModel item) async {
+    bool patchSucceeded = false;
     try {
       await apiClient.dio.patch(
         '/items/${item.id}',
@@ -188,6 +196,7 @@ class ItemRepository {
           if (item.imagePath != null) 'imagePath': item.imagePath,
         },
       );
+      patchSucceeded = true;
     } catch (_) {}
 
     try {
@@ -200,7 +209,7 @@ class ItemRepository {
         unit: item.unit,
         expiryDate: item.expiryDate,
         imagePath: item.imagePath,
-        isSynced: true,
+        isSynced: patchSucceeded,
       );
       await database.itemDao.autoRecordExpiredItems(item.fridgeId);
     } catch (_) {}
@@ -234,12 +243,19 @@ class ItemRepository {
       }
     } catch (_) {}
 
+    bool deleteSucceeded = false;
     try {
       await apiClient.dio.delete('/items/$itemId');
+      deleteSucceeded = true;
     } catch (_) {}
 
     try {
-      await database.itemDao.deleteItem(itemId);
+      if (deleteSucceeded) {
+        await database.itemDao.deleteItem(itemId);
+      } else {
+        // Offline: soft delete tombstone for LWW sync engine
+        await database.itemDao.softDeleteItem(itemId);
+      }
     } catch (_) {}
   }
 

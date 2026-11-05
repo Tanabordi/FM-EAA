@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/local/app_database.dart';
 import '../data/remote/api_client.dart';
+import '../data/repositories/fridge_repository.dart';
 import 'connectivity_watcher.dart';
 
 /// Offline-First Synchronization Engine
@@ -98,6 +99,16 @@ class SyncEngine {
         }
       },
     );
+
+    // Initial sync on startup if already online
+    connectivityWatcher.checkOnline().then((online) async {
+      if (online) {
+        final fridgeIds = await getActiveFridgeIds();
+        if (fridgeIds.isNotEmpty) {
+          await syncAllFridges(fridgeIds, force: false);
+        }
+      }
+    });
   }
 
   /// Dispose any active listeners.
@@ -116,4 +127,22 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   final engine = SyncEngine(apiClient: client, database: db);
   ref.onDispose(engine.dispose);
   return engine;
+});
+
+/// Riverpod provider that initializes auto-sync when watched
+final autoSyncInitializerProvider = Provider<void>((ref) {
+  final engine = ref.watch(syncEngineProvider);
+  final watcher = ref.watch(connectivityWatcherProvider);
+
+  engine.setupAutoSync(
+    connectivityWatcher: watcher,
+    getActiveFridgeIds: () async {
+      try {
+        final fridges = await ref.read(fridgeRepositoryProvider).getFridges();
+        return fridges.map((f) => f.id).toList();
+      } catch (_) {
+        return [];
+      }
+    },
+  );
 });

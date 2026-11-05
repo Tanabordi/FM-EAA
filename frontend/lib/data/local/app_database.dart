@@ -91,6 +91,7 @@ class ItemsTable extends Table {
   DateTimeColumn get expiryDate => dateTime()();
   TextColumn get imagePath => text().nullable()();
   BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -254,7 +255,8 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
     String? zone,
     String? searchQuery,
   }) {
-    final query = select(itemsTable)..where((t) => t.fridgeId.equals(fridgeId));
+    final query = select(itemsTable)
+      ..where((t) => t.fridgeId.equals(fridgeId) & t.isDeleted.equals(false));
 
     if (zone != null && zone.isNotEmpty) {
       query.where((t) => t.zone.equals(zone));
@@ -282,7 +284,8 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
     String? category,
     String? zone,
   }) {
-    final query = select(itemsTable)..where((t) => t.fridgeId.equals(fridgeId));
+    final query = select(itemsTable)
+      ..where((t) => t.fridgeId.equals(fridgeId) & t.isDeleted.equals(false));
 
     if (zone != null && zone.isNotEmpty) {
       query.where((t) => t.zone.equals(zone));
@@ -301,12 +304,16 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
 
   /// Get single item by id
   Future<ItemEntry?> getItemById(String id) {
-    return (select(itemsTable)..where((t) => t.id.equals(id))).getSingleOrNull();
+    return (select(itemsTable)
+          ..where((t) => t.id.equals(id) & t.isDeleted.equals(false)))
+        .getSingleOrNull();
   }
 
   /// Watch single item by id
   Stream<ItemEntry?> watchItemById(String id) {
-    return (select(itemsTable)..where((t) => t.id.equals(id))).watchSingleOrNull();
+    return (select(itemsTable)
+          ..where((t) => t.id.equals(id) & t.isDeleted.equals(false)))
+        .watchSingleOrNull();
   }
 
   /// Optimistic insert: Save item immediately to SQLite with is_synced = false
@@ -334,6 +341,7 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
         expiryDate: expiryDate,
         imagePath: Value(imagePath),
         isSynced: Value(isSynced),
+        isDeleted: const Value(false),
         updatedAt: Value(DateTime.now()),
       ),
       mode: InsertMode.insertOrReplace,
@@ -361,6 +369,7 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
       expiryDate: expiryDate != null ? Value(expiryDate) : const Value.absent(),
       imagePath: imagePath != null ? Value(imagePath) : const Value.absent(),
       isSynced: Value(isSynced),
+      isDeleted: const Value(false),
       updatedAt: Value(DateTime.now()),
     );
     final count = await (update(itemsTable)..where((t) => t.id.equals(id))).write(companion);
@@ -369,11 +378,24 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
 
   /// Get count of items with quantity > 0 in a fridge
   Future<int> getActiveItemCount(String fridgeId) async {
-    final items = await (select(itemsTable)..where((t) => t.fridgeId.equals(fridgeId))).get();
+    final items = await (select(itemsTable)
+          ..where((t) => t.fridgeId.equals(fridgeId) & t.isDeleted.equals(false)))
+        .get();
     return items.where((it) => it.quantity > 0).length;
   }
 
-  /// Delete item locally
+  /// Soft delete item locally (mark tombstone with isDeleted = true, isSynced = false)
+  Future<int> softDeleteItem(String id) {
+    return (update(itemsTable)..where((t) => t.id.equals(id))).write(
+      ItemsTableCompanion(
+        isDeleted: const Value(true),
+        isSynced: const Value(false),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// Delete item locally (Hard delete)
   Future<int> deleteItem(String id) {
     return (delete(itemsTable)..where((t) => t.id.equals(id))).go();
   }
@@ -393,7 +415,14 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
 
     await transaction(() async {
       if (shouldRemove) {
-        await (delete(itemsTable)..where((t) => t.id.equals(itemId))).go();
+        await (update(itemsTable)..where((t) => t.id.equals(itemId))).write(
+          ItemsTableCompanion(
+            quantity: const Value(0.0),
+            isDeleted: const Value(true),
+            isSynced: const Value(false),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
       } else {
         await (update(itemsTable)..where((t) => t.id.equals(itemId))).write(
           ItemsTableCompanion(
@@ -433,11 +462,12 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
 
     await transaction(() async {
       if (hist.itemId != null) {
-        final existingItem = await getItemById(hist.itemId!);
+        final existingItem = await (select(itemsTable)..where((t) => t.id.equals(hist.itemId!))).getSingleOrNull();
         if (existingItem != null) {
           await (update(itemsTable)..where((t) => t.id.equals(hist.itemId!))).write(
             ItemsTableCompanion(
               quantity: Value(existingItem.quantity + hist.quantityChanged),
+              isDeleted: const Value(false),
               isSynced: const Value(false),
               updatedAt: Value(DateTime.now()),
             ),
@@ -456,6 +486,7 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
               expiryDate: hist.expiryDate ?? DateTime.now(),
               imagePath: Value(hist.imagePath),
               isSynced: const Value(false),
+              isDeleted: const Value(false),
               updatedAt: Value(DateTime.now()),
             ),
             mode: InsertMode.insertOrReplace,
@@ -501,7 +532,10 @@ class ItemDao extends DatabaseAccessor<AppDatabase> with _$ItemDaoMixin {
     final now = DateTime.now();
     final thresholdDate = DateTime(now.year, now.month, now.day).add(Duration(days: daysThreshold + 1));
     return (select(itemsTable)
-          ..where((t) => t.fridgeId.equals(fridgeId) & t.expiryDate.isSmallerOrEqualValue(thresholdDate))
+          ..where((t) =>
+              t.fridgeId.equals(fridgeId) &
+              t.isDeleted.equals(false) &
+              t.expiryDate.isSmallerOrEqualValue(thresholdDate))
           ..orderBy([(t) => OrderingTerm(expression: t.expiryDate, mode: OrderingMode.asc)]))
         .get();
   }
@@ -660,7 +694,19 @@ class AppDatabase extends _$AppDatabase implements AppDatabaseSkeleton {
   AppDatabase([QueryExecutor? e]) : super(e ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async {
+      await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(itemsTable, itemsTable.isDeleted);
+      }
+    },
+  );
 
   @override
   Future<List<Map<String, dynamic>>> getUnsyncedItems(String fridgeId) async {
@@ -676,22 +722,40 @@ class AppDatabase extends _$AppDatabase implements AppDatabaseSkeleton {
       'expiry_date': i.expiryDate.toIso8601String(),
       'image_path': i.imagePath,
       'is_synced': i.isSynced ? 1 : 0,
+      'is_deleted': i.isDeleted ? 1 : 0,
       'updated_at': i.updatedAt.toIso8601String(),
     }).toList();
   }
 
   @override
   Future<void> markItemSynced(String itemId) async {
-    await itemDao.markItemSynced(itemId);
+    final item = await (select(itemsTable)..where((t) => t.id.equals(itemId))).getSingleOrNull();
+    if (item != null && item.isDeleted) {
+      // Once tombstone is synced to backend LWW, permanently remove it from local SQLite
+      await (delete(itemsTable)..where((t) => t.id.equals(itemId))).go();
+    } else {
+      await itemDao.markItemSynced(itemId);
+    }
   }
 
   @override
   Future<void> upsertRemoteItem(Map<String, dynamic> item) async {
+    final itemId = (item['id'] ?? '') as String;
+    if (itemId.isEmpty) return;
+
+    final isDeleted = (item['is_deleted'] == true ||
+        item['is_deleted'] == 1 ||
+        item['isDeleted'] == true);
+    if (isDeleted) {
+      await (delete(itemsTable)..where((t) => t.id.equals(itemId))).go();
+      return;
+    }
+
     final expiry = DateTime.tryParse(item['expiry_date'] ?? item['expiryDate'] ?? '') ?? DateTime.now();
     final updated = DateTime.tryParse(item['updated_at'] ?? item['updatedAt'] ?? '') ?? DateTime.now();
     await into(itemsTable).insert(
       ItemsTableCompanion.insert(
-        id: (item['id'] ?? '') as String,
+        id: itemId,
         fridgeId: (item['fridge_id'] ?? item['fridgeId'] ?? '') as String,
         name: (item['name'] ?? 'Untitled') as String,
         category: (item['category'] ?? 'meals') as String,
@@ -701,6 +765,7 @@ class AppDatabase extends _$AppDatabase implements AppDatabaseSkeleton {
         expiryDate: expiry,
         imagePath: Value((item['image_path'] ?? item['imagePath']) as String?),
         isSynced: const Value(true),
+        isDeleted: const Value(false),
         updatedAt: Value(updated),
       ),
       mode: InsertMode.insertOrReplace,
