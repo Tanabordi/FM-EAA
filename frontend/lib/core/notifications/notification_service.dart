@@ -1,5 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../../data/remote/api_client.dart';
 
 /// Service managing offline local notifications for item expiry alerts.
 class NotificationService {
@@ -26,9 +30,68 @@ class NotificationService {
     try {
       await _plugin.initialize(settings);
       _isInitialized = true;
+
+      // Register high-priority Android notification channel for Heads-Up alerts
+      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin != null) {
+        const channel = AndroidNotificationChannel(
+          'expiry_alerts',
+          'Fridge & Expiry Alerts',
+          description: 'Notifications for items expiring soon and fridge member activity',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+        );
+        await androidPlugin.createNotificationChannel(channel);
+      }
+
+      // Handle real-time foreground FCM notifications
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        final notification = message.notification;
+        final data = message.data;
+        if (notification != null) {
+          showExpiryAlert(
+            id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+            title: notification.title ?? 'FM-EAA',
+            body: notification.body ?? '',
+            payload: data['itemId'] ?? data['fridgeId'],
+          );
+        }
+      });
     } catch (e) {
       debugPrint('NotificationService init error: $e');
     }
+  }
+
+  /// Obtain FCM Device Token and register with backend server
+  Future<void> syncFcmTokenWithBackend() async {
+    if (kIsWeb) return;
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        final apiClient = ApiClient();
+        await apiClient.dio.post('/users/fcm-token', data: {
+          'fcmToken': token,
+        });
+        debugPrint('[NotificationService] FCM Token registered with backend: $token');
+      }
+    } catch (e) {
+      debugPrint('[NotificationService] Failed to sync FCM token: $e');
+    }
+  }
+
+  /// Remove FCM Device Token from backend server on logout
+  Future<void> removeFcmTokenFromBackend() async {
+    if (kIsWeb) return;
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        final apiClient = ApiClient();
+        await apiClient.dio.delete('/users/fcm-token', data: {
+          'fcmToken': token,
+        });
+      }
+    } catch (_) {}
   }
 
   Future<bool?> requestPermissions() async {
@@ -42,6 +105,105 @@ class NotificationService {
       return await ios.requestPermissions(alert: true, badge: true, sound: true);
     }
     return true;
+  }
+
+  /// Check whether notifications are enabled at the OS/System level
+  Future<bool> areNotificationsEnabled() async {
+    if (kIsWeb) return true;
+    try {
+      final status = await Permission.notification.status;
+      return status.isGranted;
+    } catch (_) {
+      try {
+        final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+        if (android != null) {
+          return (await android.areNotificationsEnabled()) ?? false;
+        }
+      } catch (_) {}
+      return true;
+    }
+  }
+
+  /// Open Android/iOS App Notification Settings page directly
+  Future<bool> openNotificationSettings() async {
+    if (kIsWeb) return false;
+    try {
+      return await openAppSettings();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Request notification permission with automatic in-app fallback dialog.
+  /// If notifications are disabled in OS settings, presents an explanatory dialog
+  /// with a direct button to jump into the system Settings page.
+  Future<bool> requestPermissionsWithFallback(BuildContext context) async {
+    if (kIsWeb) return true;
+
+    // Check actual OS status first
+    final currentStatus = await Permission.notification.status;
+    if (currentStatus.isGranted) {
+      return true;
+    }
+
+    // Attempt native system request if not permanently denied
+    if (!currentStatus.isPermanentlyDenied) {
+      try {
+        final req = await Permission.notification.request();
+        if (req.isGranted) return true;
+      } catch (_) {
+        final localResult = await requestPermissions();
+        if (localResult == true) return true;
+      }
+    }
+
+    // If still not granted (e.g. permanently denied in OS Settings), show fallback dialog
+    if (context.mounted) {
+      final shouldOpenSettings = await showDialog<bool>(
+        context: context,
+        barrierDismissible: true,
+        builder: (ctx) {
+          final theme = Theme.of(ctx);
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            icon: CircleAvatar(
+              radius: 28,
+              backgroundColor: theme.colorScheme.errorContainer,
+              child: Icon(Icons.notifications_off_rounded, color: theme.colorScheme.error, size: 30),
+            ),
+            title: const Text(
+              'เปิดการแจ้งเตือน',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              textAlign: TextAlign.center,
+            ),
+            content: const Text(
+              'การแจ้งเตือนถูกปิดอยู่ในการตั้งค่าเครื่องของคุณ เพื่อให้คุณไม่พลาดของใกล้หมดอายุและการแจ้งเตือนจากตู้เย็น กรุณาเปิดการแจ้งเตือนในการตั้งค่า',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, height: 1.4),
+            ),
+            actionsAlignment: MainAxisAlignment.spaceEvenly,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text('ข้ามไปก่อน', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+              ),
+              FilledButton.icon(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                icon: const Icon(Icons.settings, size: 18),
+                label: const Text('ไปที่การตั้งค่า'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (shouldOpenSettings == true) {
+        await openNotificationSettings();
+      }
+    }
+
+    // Re-verify after coming back from Settings or Dialog
+    return await areNotificationsEnabled();
   }
 
   /// Show an immediate alert notification
