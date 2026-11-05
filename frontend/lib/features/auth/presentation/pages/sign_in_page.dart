@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
@@ -63,12 +64,13 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       // Connect to authProvider
       await ref.read(authProvider.notifier).signIn(identifier, password);
 
+      final hasOsPermission = await NotificationService().areNotificationsEnabled();
       final prefs = await SharedPreferences.getInstance();
       final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
 
       if (!mounted) return;
 
-      if (!hasEnabled) {
+      if (!hasEnabled || !hasOsPermission) {
         context.go('/onboarding');
       } else {
         context.go('/fridges');
@@ -101,12 +103,13 @@ class _SignInPageState extends ConsumerState<SignInPage> {
         return;
       }
 
+      final hasOsPermission = await NotificationService().areNotificationsEnabled();
       final prefs = await SharedPreferences.getInstance();
       final hasEnabled = prefs.getBool('notifications_permission_granted') ?? false;
 
       if (!mounted) return;
 
-      if (!hasEnabled) {
+      if (!hasEnabled || !hasOsPermission) {
         context.go('/onboarding');
       } else {
         context.go('/fridges');
