@@ -16,11 +16,12 @@ class DeleteFridgeDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final isTh = ref.watch(localeProvider).languageCode == 'th';
-    const dialogBg = Color(0xFFEAEFE8);
+    final dialogBg = theme.colorScheme.surfaceContainer;
     const deleteRed = Color(0xFFBA1A1A);
-    const textDark = Color(0xFF181D18);
-    const textMuted = Color(0xFF414942);
+    final textDark = theme.colorScheme.onSurface;
+    final textMuted = theme.colorScheme.onSurfaceVariant;
 
     return Dialog(
       backgroundColor: dialogBg,
@@ -36,7 +37,7 @@ class DeleteFridgeDialog extends ConsumerWidget {
           children: [
             Text(
               isTh ? 'ลบตู้เย็น?' : 'Delete Fridge?',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: textDark,
@@ -46,7 +47,7 @@ class DeleteFridgeDialog extends ConsumerWidget {
             const SizedBox(height: 12),
             Text(
               isTh ? 'การดำเนินการนี้ไม่สามารถยกเลิกได้' : 'This action cannot be undone',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15.5,
                 color: textMuted,
                 fontWeight: FontWeight.w400,
@@ -65,7 +66,7 @@ class DeleteFridgeDialog extends ConsumerWidget {
                   onPressed: () => Navigator.of(context).pop(false),
                   child: Text(
                     isTh ? 'ยกเลิก' : 'Cancel',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: textDark,

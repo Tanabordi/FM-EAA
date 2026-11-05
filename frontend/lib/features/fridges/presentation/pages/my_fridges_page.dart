@@ -85,7 +85,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
     final isTh = ref.watch(localeProvider).languageCode == 'th';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3),
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: isEmpty
             ? _buildEmptyState(context, unreadNotifs, isTh)
@@ -116,6 +116,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
 
   /// Screen #5 Empty State (Image 1: 100% pixel-perfect match to Figma)
   Widget _buildEmptyState(BuildContext context, int unreadNotifs, bool isTh) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Column(
@@ -128,10 +129,10 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
             children: [
               Text(
                 isTh ? 'ตู้เย็นของฉัน' : 'My Fridges',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 28,
-                  color: Color(0xFF181D18),
+                  color: theme.colorScheme.onSurface,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -161,10 +162,10 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
           const SizedBox(height: 32),
           Text(
             isTh ? 'ยังไม่มีตู้เย็น' : 'No fridges yet',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF181D18),
+              color: theme.colorScheme.onSurface,
               letterSpacing: -0.3,
             ),
           ),
@@ -174,9 +175,9 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
                 ? 'สร้างตู้เย็นแรกของคุณ\nเพื่อเริ่มติดตามอาหาร'
                 : 'Create your first fridge space to start\ntracking your food',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14.5,
-              color: Color(0xFF414942),
+              color: theme.colorScheme.onSurfaceVariant,
               height: 1.45,
               fontWeight: FontWeight.w400,
             ),
@@ -231,10 +232,10 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
             children: [
               Text(
                 isTh ? 'ตู้เย็นของฉัน' : 'My Fridges',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 28,
-                  color: Color(0xFF181D18),
+                  color: theme.colorScheme.onSurface,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -259,8 +260,8 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
           const SizedBox(height: 6),
           Text(
             isTh ? 'ตรวจสอบรายการอาหารสดใหม่ในตู้' : "A fresh look at what's inside.",
-            style: const TextStyle(
-              color: Color(0xFF414942),
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
               fontSize: 14.5,
               fontWeight: FontWeight.w400,
             ),
@@ -274,21 +275,21 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
             children: [
               Text(
                 isTh ? 'ตู้เย็นของคุณ' : 'Your fridges',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
-                  color: Color(0xFF181D18),
+                  color: theme.colorScheme.onSurface,
                   letterSpacing: -0.3,
                 ),
               ),
               Text(
                 isTh ? '${dynamicFridges.length} ตู้' : '${dynamicFridges.length} fridges',
-                style: const TextStyle(
-                  color: Color(0xFF414942),
+                style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   decoration: TextDecoration.underline,
-                  decorationColor: Color(0xFF414942),
+                  decorationColor: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -381,7 +382,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
                             showModalBottomSheet(
                               context: context,
                               isScrollControlled: true,
-                              backgroundColor: const Color(0xFFF6FBF3),
+                              backgroundColor: Theme.of(context).colorScheme.surface,
                               shape: const RoundedRectangleBorder(
                                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                               ),
@@ -402,17 +403,25 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
 
   Widget _buildNotificationWarningBanner(BuildContext context, [bool isTh = false]) {
     if (_notificationsEnabled) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bannerBg = isDark ? const Color(0xFF332A15) : const Color(0xFFFFF3CD);
+    final bannerBorder = isDark ? const Color(0xFF5E4E24) : const Color(0xFFFFEEBA);
+    final textColor = isDark ? const Color(0xFFFFE58F) : const Color(0xFF856404);
+    final iconColor = isDark ? const Color(0xFFFFD666) : const Color(0xFF856404);
+    final btnBg = isDark ? const Color(0xFFD48806) : const Color(0xFF856404);
+
     return Container(
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3CD),
+        color: bannerBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFEEBA)),
+        border: Border.all(color: bannerBorder),
       ),
       child: Row(
         children: [
-          const Icon(Icons.notifications_off_rounded, color: Color(0xFF856404), size: 22),
+          Icon(Icons.notifications_off_rounded, color: iconColor, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -420,18 +429,18 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
               children: [
                 Text(
                   isTh ? 'การแจ้งเตือนถูกปิดอยู่' : 'Notifications are turned off',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF856404)),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
                 ),
                 Text(
                   isTh ? 'คุณอาจไม่ได้รับแจ้งเตือนของหมดอายุ' : 'You may miss expiration date alerts',
-                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF856404)),
+                  style: TextStyle(fontSize: 11.5, color: textColor),
                 ),
               ],
             ),
           ),
           TextButton(
             style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFF856404),
+              backgroundColor: btnBg,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               minimumSize: Size.zero,
@@ -459,49 +468,54 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
     required VoidCallback onPressed,
     int badgeCount = 0,
   }) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: const BoxDecoration(
-            color: Color(0xFFEAEFE8),
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            icon: Icon(icon, color: const Color(0xFF181D18), size: 20),
-            tooltip: tooltip,
-            onPressed: onPressed,
-            padding: EdgeInsets.zero,
-          ),
-        ),
-        if (badgeCount > 0)
-          Positioned(
-            top: -2,
-            right: -2,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+    return Builder(
+      builder: (context) {
+        final theme = Theme.of(context);
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFFBA1A1A),
+                color: theme.colorScheme.surfaceContainer,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1.5),
               ),
-              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-              child: Center(
-                child: Text(
-                  badgeCount > 99 ? '99+' : badgeCount.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.bold,
-                    height: 1,
+              child: IconButton(
+                icon: Icon(icon, color: theme.colorScheme.onSurface, size: 20),
+                tooltip: tooltip,
+                onPressed: onPressed,
+                padding: EdgeInsets.zero,
+              ),
+            ),
+            if (badgeCount > 0)
+              Positioned(
+                top: -2,
+                right: -2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFBA1A1A),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Center(
+                    child: Text(
+                      badgeCount > 99 ? '99+' : badgeCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        height: 1,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-      ],
+          ],
+        );
+      },
     );
   }
 }

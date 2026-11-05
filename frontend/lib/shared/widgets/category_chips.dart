@@ -58,6 +58,7 @@ class CategoryChips extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final theme = Theme.of(context);
           final items = kFoodCategories.map((category) {
             final isSelected =
                 category.toLowerCase() == selectedCategory.toLowerCase();
@@ -80,12 +81,12 @@ class CategoryChips extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: isSelected
-                              ? const Color(0xFF2E6A44) // Active forest green #2E6A44
-                              : const Color(0xFFEAEFE8), // Inactive surface container #EAEFE8
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.surfaceContainer,
                           border: isSelected
                               ? null
                               : Border.all(
-                                  color: const Color(0xFF717971), // Inactive border outline #717971
+                                  color: theme.colorScheme.outline,
                                   width: 1.2,
                                 ),
                         ),
@@ -94,8 +95,8 @@ class CategoryChips extends StatelessWidget {
                           category: category,
                           size: 28,
                           color: isSelected
-                              ? const Color(0xFFF6FBF3) // Active white-tinted icon
-                              : const Color(0xFF414942), // Inactive dark charcoal green #414942
+                              ? theme.colorScheme.onPrimary
+                              : theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -106,8 +107,8 @@ class CategoryChips extends StatelessWidget {
                           fontSize: 12,
                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           color: isSelected
-                              ? const Color(0xFF1A201C)
-                              : const Color(0xFF414942), // Inactive label #414942
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],

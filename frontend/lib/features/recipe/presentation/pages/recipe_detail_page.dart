@@ -199,8 +199,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     final isTh = _isTh;
     final recipe = widget.recipe;
 
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3),
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -288,23 +290,23 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEAEFE8),
+                            color: theme.colorScheme.surfaceContainer,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.access_time,
                                 size: 14,
-                                color: Color(0xFF414942),
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 recipe.localizedCookingTime(isTh),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12.5,
-                                  color: Color(0xFF414942),
+                                  color: theme.colorScheme.onSurfaceVariant,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -315,14 +317,14 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEAEFE8),
+                            color: theme.colorScheme.surfaceContainer,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             recipe.localizedDifficulty(isTh),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12.5,
-                              color: Color(0xFF414942),
+                              color: theme.colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -418,15 +420,15 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                             Container(
                               width: 26,
                               height: 26,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFEAEFE8),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainer,
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
                                 child: Text(
                                   '$stepNum',
-                                  style: const TextStyle(
-                                    color: Color(0xFF414942),
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurfaceVariant,
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -437,10 +439,10 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                             Expanded(
                               child: Text(
                                 _localizeRecipeText(stepText, isTh),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14.5,
                                   height: 1.4,
-                                  color: Color(0xFF414942),
+                                  color: theme.colorScheme.onSurfaceVariant,
                                   fontWeight: FontWeight.w400,
                                 ),
                               ),
@@ -457,11 +459,11 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
             // Bottom Action Dock
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF6FBF3),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
                 border: Border(
                   top: BorderSide(
-                    color: Color(0xFFE0E5DF),
+                    color: theme.colorScheme.outlineVariant,
                     width: 1.0,
                   ),
                 ),

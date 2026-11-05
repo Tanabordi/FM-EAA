@@ -70,9 +70,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final query = ref.watch(searchQueryProvider);
     final results = ref.watch(searchResultsProvider(widget.fridgeId));
     final isTh = ref.watch(localeProvider).languageCode == 'th';
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3), // Figma exact background #F6FBF3
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,40 +96,42 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               child: Container(
                 height: 52,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAEFE8), // Figma exact search bar background #EAEFE8
+                  color: theme.colorScheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(28),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x45000000), // Prominent deep drop shadow matching image
-                      blurRadius: 18,
-                      offset: Offset(0, 6),
-                    ),
-                    BoxShadow(
-                      color: Color(0x12000000),
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
+                  boxShadow: isDark
+                      ? null
+                      : const [
+                          BoxShadow(
+                            color: Color(0x45000000), // Prominent deep drop shadow matching image
+                            blurRadius: 18,
+                            offset: Offset(0, 6),
+                          ),
+                          BoxShadow(
+                            color: Color(0x12000000),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                 ),
                 child: Row(
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.only(left: 18, right: 12),
-                      child: Icon(Icons.search, color: Color(0xFF3A4A3E), size: 22),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18, right: 12),
+                      child: Icon(Icons.search, color: theme.colorScheme.onSurfaceVariant, size: 22),
                     ),
                     Expanded(
                       child: TextField(
                         controller: _searchController,
                         autofocus: false,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
-                          color: Color(0xFF1A201C),
+                          color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
                         ),
                         decoration: InputDecoration(
                           hintText: isTh ? 'ค้นหารายการอาหาร' : 'Search for items',
-                          hintStyle: const TextStyle(
-                            color: Color(0xFF4A5A4E),
+                          hintStyle: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 15,
                             fontWeight: FontWeight.w400,
                           ),
@@ -150,14 +154,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           child: Container(
                             width: 26,
                             height: 26,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFDFE4DC), // Circular grey badge matching image
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.close_rounded,
                               size: 15,
-                              color: Color(0xFF414942),
+                              color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -174,10 +178,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                 child: Text(
                   isTh ? 'ผลการค้นหา "$query"' : 'Results for "$query"',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16.5,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1A201C),
+                    color: theme.colorScheme.onSurface,
                     letterSpacing: -0.2,
                   ),
                 ),

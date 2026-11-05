@@ -16,24 +16,30 @@ class AppBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final defaultBg = isDark ? theme.colorScheme.surfaceContainerHigh : Colors.white;
+    final defaultOutline = isDark ? theme.colorScheme.outline : const Color(0xFF717971);
+    final defaultIcon = isDark ? theme.colorScheme.onSurface : const Color(0xFF414942);
+
     return Center(
       child: Container(
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: backgroundColor ?? Colors.white,
+          color: backgroundColor ?? defaultBg,
           borderRadius: BorderRadius.circular(13),
           border: Border.all(
-            color: const Color(0xFF717971), // Material 3 Outline #717971
+            color: defaultOutline,
             width: 1.2,
           ),
         ),
         child: IconButton(
           padding: EdgeInsets.zero,
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back,
             size: 20,
-            color: Color(0xFF414942), // Material 3 On Surface Variant #414942
+            color: defaultIcon,
           ),
           onPressed: onPressed ??
               () {

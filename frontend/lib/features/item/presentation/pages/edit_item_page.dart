@@ -405,9 +405,9 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                   ),
                 ),
                 ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFEAEFE8),
-                    child: Icon(Icons.photo_camera_outlined, color: Color(0xFF2E6A44)),
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(bottomSheetContext).colorScheme.surfaceContainer,
+                    child: Icon(Icons.photo_camera_outlined, color: Theme.of(bottomSheetContext).colorScheme.primary),
                   ),
                   title: Text(
                     isTh ? 'ถ่ายภาพด้วยกล้อง' : 'Take Photo with Camera',
@@ -424,9 +424,9 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                   },
                 ),
                 ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFEAEFE8),
-                    child: Icon(Icons.photo_library_outlined, color: Color(0xFF2E6A44)),
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(bottomSheetContext).colorScheme.surfaceContainer,
+                    child: Icon(Icons.photo_library_outlined, color: Theme.of(bottomSheetContext).colorScheme.primary),
                   ),
                   title: Text(
                     isTh ? 'เลือกจากคลังภาพ' : 'Choose from Gallery',
@@ -579,7 +579,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       filled: true,
-      fillColor: const Color(0xFFF6FBF3),
+      fillColor: Theme.of(context).colorScheme.surface,
       suffixIcon: suffixIcon,
       errorText: errorText,
       errorStyle: const TextStyle(fontSize: 12, color: Color(0xFFBA1A1A)),
@@ -710,10 +710,11 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     if (!_initialized) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF6FBF3),
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: theme.colorScheme.surface,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -726,7 +727,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
         _handleBack();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF6FBF3),
+        backgroundColor: theme.colorScheme.surface,
         body: SafeArea(
           child: Column(
             children: [
@@ -739,10 +740,10 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                     const SizedBox(width: 14),
                     Text(
                       isTh ? 'แก้ไขรายละเอียดวัตถุดิบ' : 'Edit Item details',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF181D17),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -768,7 +769,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                               child: Container(
                                 height: 220,
                                 width: double.infinity,
-                                color: const Color(0xFFEAEFE8),
+                                color: theme.colorScheme.surfaceContainer,
                                 child: _buildItemImage(),
                               ),
                             ),
@@ -956,7 +957,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
                         errorText: _expirationDateError,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         filled: true,
-                        fillColor: const Color(0xFFF6FBF3),
+                        fillColor: Theme.of(context).colorScheme.surface,
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(

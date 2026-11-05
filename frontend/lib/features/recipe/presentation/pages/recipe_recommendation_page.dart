@@ -917,8 +917,10 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
     final isTh = _isTh;
     final isQuotaFull = _usedCount >= _maxDailyQuota;
 
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FBF3),
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -1203,11 +1205,11 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                 if (loadingProgress == null) return child;
                 return Container(
                   height: 145,
-                  color: const Color(0xFFEAEFE8),
-                  child: const Center(
+                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  child: Center(
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Color(0xFF2E6A44),
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 );
@@ -1221,19 +1223,19 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                 children: [
                   Text(
                     _localizeRecipeText(recipe.title, isTh),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF181D17),
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   if (recipe.description.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       _localizeRecipeText(recipe.description, isTh),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
-                        color: Color(0xFF414942),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -1247,16 +1249,16 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF0F4ED),
+                            color: Theme.of(context).colorScheme.surfaceContainerHigh,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.access_time,
                                 size: 14,
-                                color: Color(0xFF414942),
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 4),
                               Flexible(
@@ -1264,9 +1266,9 @@ class _RecipeRecommendationPageState extends ConsumerState<RecipeRecommendationP
                                   '${recipe.localizedCookingTime(isTh)} · ${recipe.localizedDifficulty(isTh)}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFF414942),
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),

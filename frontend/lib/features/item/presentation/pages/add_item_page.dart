@@ -384,7 +384,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       filled: true,
-      fillColor: const Color(0xFFF6FBF3),
+      fillColor: Theme.of(context).colorScheme.surface,
       suffixIcon: suffixIcon,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -695,17 +695,17 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAEFE8),
+                    color: Theme.of(context).colorScheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.photo_outlined, color: Color(0xFF2E6A44), size: 22),
+                  child: Icon(Icons.photo_outlined, color: Theme.of(context).colorScheme.primary, size: 22),
                 ),
                 title: Text(
                   isTh ? 'นำรูปภาพออกเท่านั้น' : 'Remove photo only',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF181D17),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 subtitle: Text(
@@ -1147,7 +1147,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
         _handleBack();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF6FBF3),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         body: SafeArea(
           child: Column(
             children: [
@@ -1162,10 +1162,10 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                     const SizedBox(width: 14),
                     Text(
                       isTh ? 'เพิ่มรายการอาหาร' : 'Add items',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF181D17),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -1182,7 +1182,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEAEFE8),
+                        color: Theme.of(context).colorScheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
                           color: (_imagePath != null || _imageBytes != null)

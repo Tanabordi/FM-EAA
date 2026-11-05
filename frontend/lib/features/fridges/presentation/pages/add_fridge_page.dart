@@ -165,9 +165,10 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
   @override
   Widget build(BuildContext context) {
     ref.watch(localeProvider);
-    const bgColor = Color(0xFFF6FBF3);
-    const primaryGreen = Color(0xFF2E6A44);
-    const textDark = Color(0xFF181D18);
+    final theme = Theme.of(context);
+    final bgColor = theme.colorScheme.surface;
+    final primaryGreen = theme.colorScheme.primary;
+    final textDark = theme.colorScheme.onSurface;
     final isTh = _isTh;
 
     return PopScope(
@@ -198,7 +199,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                             const SizedBox(width: 14),
                             Text(
                               isTh ? 'เพิ่มตู้เย็นใหม่' : 'Add New Fridge',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: textDark,
