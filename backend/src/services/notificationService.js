@@ -28,8 +28,7 @@ class NotificationService {
       }
 
       const sql = `
-        SELECT id, user_id, type, payload_json, is_read,
-               TO_CHAR(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
+        SELECT id, user_id, type, payload_json, is_read, created_at
         FROM notifications
         WHERE user_id = :userId
         ORDER BY created_at DESC
@@ -43,6 +42,14 @@ class NotificationService {
           payload = { raw: r[3] };
         }
         const effectiveType = payload.sub_type || payload.type || r[2];
+        let createdAtIso;
+        if (r[5] instanceof Date) {
+          createdAtIso = r[5].toISOString();
+        } else if (r[5]) {
+          createdAtIso = new Date(r[5]).toISOString();
+        } else {
+          createdAtIso = new Date().toISOString();
+        }
         return {
           id: r[0],
           userId: r[1],
@@ -51,7 +58,7 @@ class NotificationService {
           message: payload.message || '',
           payload,
           isRead: Boolean(r[4]),
-          createdAt: r[5],
+          createdAt: createdAtIso,
         };
       });
 
