@@ -5,6 +5,29 @@ const notificationService = require('./notificationService');
 const ALLOWED_CATEGORIES = ['proteins', 'veggies', 'beverages', 'meals', 'sauces'];
 const ALLOWED_ZONES = ['fridge', 'freezer'];
 
+const UNIT_MAP_TH = {
+  punnet: 'ตะกร้า',
+  punnets: 'ตะกร้า',
+  box: 'กล่อง',
+  boxes: 'กล่อง',
+  bag: 'ถุง',
+  bags: 'ถุง',
+  bottle: 'ขวด',
+  bottles: 'ขวด',
+  can: 'กระป๋อง',
+  cans: 'กระป๋อง',
+  pack: 'แพ็ค',
+  packs: 'แพ็ค',
+  pieces: 'ชิ้น',
+  piece: 'ชิ้น',
+  pcs: 'ชิ้น',
+};
+
+function localizeUnitTh(u) {
+  if (!u) return '';
+  return UNIT_MAP_TH[u.toLowerCase().trim()] || u;
+}
+
 class ItemService {
   /**
    * Helper: Check if user has access to the specified fridge
@@ -239,11 +262,14 @@ class ItemService {
         const fridgeRes = await conn.execute(`SELECT name FROM fridges WHERE id = :fridgeId`, [fridgeId]);
         const fridgeName = (fridgeRes.rows && fridgeRes.rows[0]) ? fridgeRes.rows[0][0] : 'Fridge';
 
+        const unitTh = localizeUnitTh(cleanUnit);
         await notificationService.notifyFridgeMembers(conn, fridgeId, userId, {
           type: 'item_added',
           subType: 'item_added',
           title: '🥬 New Item Added',
+          title_th: '🥬 เพิ่มรายการอาหารใหม่',
           message: `${actorUsername} added "${cleanName}" (${numQuantity} ${cleanUnit}) to "${fridgeName}"`,
+          message_th: `${actorUsername} เพิ่ม "${cleanName}" (${numQuantity} ${unitTh}) ในตู้ "${fridgeName}"`,
           item_id: itemId,
           item_name: cleanName,
           quantity: numQuantity,
@@ -513,7 +539,9 @@ class ItemService {
           type: 'item_deleted',
           subType: 'item_deleted',
           title: '🗑️ Item Removed',
+          title_th: '🗑️ นำรายการอาหารออกแล้ว',
           message: `${actorUsername} removed "${deletedItemName}" from "${fridgeName}"`,
+          message_th: `${actorUsername} นำ "${deletedItemName}" ออกจากตู้ "${fridgeName}"`,
           item_id: itemId,
           item_name: deletedItemName,
           fridge_name: fridgeName,
@@ -605,15 +633,22 @@ class ItemService {
         const fridgeRes = await conn.execute(`SELECT name FROM fridges WHERE id = :fridgeId`, [fridgeId]);
         const fridgeName = (fridgeRes.rows && fridgeRes.rows[0]) ? fridgeRes.rows[0][0] : 'Fridge';
 
+        const unitTh = localizeUnitTh(item.unit);
         const message = quantityLeft === 0
           ? `${actorUsername} finished all "${item.name}" in "${fridgeName}"`
           : `${actorUsername} ate ${amountToConsume} ${item.unit} of "${item.name}" in "${fridgeName}" (${quantityLeft} ${item.unit} left)`;
+
+        const message_th = quantityLeft === 0
+          ? `${actorUsername} รับประทาน "${item.name}" ทั้งหมด ในตู้ "${fridgeName}"`
+          : `${actorUsername} รับประทาน "${item.name}" ${amountToConsume} ${unitTh} ในตู้ "${fridgeName}" (เหลือ ${quantityLeft} ${unitTh})`;
 
         await notificationService.notifyFridgeMembers(conn, fridgeId, userId, {
           type: 'item_consumed',
           subType: 'item_consumed',
           title: '🍽️ Item Consumed',
+          title_th: '🍽️ รับประทานอาหารแล้ว',
           message,
+          message_th,
           item_id: itemId,
           item_name: item.name,
           amount_consumed: amountToConsume,

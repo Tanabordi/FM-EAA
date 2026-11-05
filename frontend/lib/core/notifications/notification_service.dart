@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../data/models/notification_model.dart';
 import '../../data/remote/api_client.dart';
 
 /// Service managing offline local notifications for item expiry alerts.
@@ -45,15 +47,24 @@ class NotificationService {
         await androidPlugin.createNotificationChannel(channel);
       }
 
-      // Handle real-time foreground FCM notifications
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      // Handle real-time foreground FCM notifications with automatic bilingual localization
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
         final notification = message.notification;
         final data = message.data;
         if (notification != null) {
+          bool isTh = false;
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            isTh = prefs.getString('app_language') == 'th';
+          } catch (_) {}
+
+          final rawTitle = notification.title ?? 'FM-EAA';
+          final rawBody = notification.body ?? '';
+
           showExpiryAlert(
             id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-            title: notification.title ?? 'FM-EAA',
-            body: notification.body ?? '',
+            title: NotificationModel.localizeTitleStatic(rawTitle, isTh),
+            body: NotificationModel.localizeMessageStatic(rawBody, isTh),
             payload: data['itemId'] ?? data['fridgeId'],
           );
         }
@@ -69,11 +80,14 @@ class NotificationService {
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null && token.isNotEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        final lang = prefs.getString('app_language') ?? 'th';
         final apiClient = ApiClient();
         await apiClient.dio.post('/users/fcm-token', data: {
           'fcmToken': token,
+          'language': lang,
         });
-        debugPrint('[NotificationService] FCM Token registered with backend: $token');
+        debugPrint('[NotificationService] FCM Token registered with backend ($lang): $token');
       }
     } catch (e) {
       debugPrint('[NotificationService] Failed to sync FCM token: $e');

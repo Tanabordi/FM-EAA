@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'item_model.dart';
 
 class NotificationModel {
   final String id;
@@ -32,6 +33,139 @@ class NotificationModel {
   bool get isItemConsumed => type == 'item_consumed';
   bool get isItemDeleted => type == 'item_deleted';
   bool get isItemAction => isItemAdded || isItemConsumed || isItemDeleted;
+
+  static String localizeTitleStatic(String rawTitle, [bool isTh = false]) {
+    if (!isTh) return rawTitle;
+    final t = rawTitle.toLowerCase().trim();
+    if (t.contains('new item added') || t.contains('item added')) return '🥬 เพิ่มรายการอาหารใหม่';
+    if (t.contains('item consumed')) return '🍽️ รับประทานอาหารแล้ว';
+    if (t.contains('item removed') || t.contains('item deleted')) return '🗑️ นำรายการอาหารออกแล้ว';
+    if (t.contains('new member joined') || t.contains('member joined')) return '👥 สมาชิกใหม่เข้าร่วม';
+    if (t.contains('fridge invitation') || t.contains('invitation')) return '📩 คำเชิญเข้าร่วมตู้เย็น';
+    if (t.contains('expiry warning') || t.contains('expir')) return '⚠️ แจ้งเตือนอาหารใกล้หมดอายุ';
+    return rawTitle;
+  }
+
+  String localizedTitle([bool isTh = false]) => localizeTitleStatic(title, isTh);
+
+  static String localizeMessageStatic(String rawMessage, [bool isTh = false]) {
+    if (!isTh || rawMessage.trim().isEmpty) return rawMessage;
+
+    // Pattern 1: user added "Item" (quantity unit) to "Fridge"
+    // e.g. wansai added "strawberries" (12 punnet) to "Ulnwza"
+    final addMatch = RegExp(r'^(.+?)\s+added\s+"([^"]+)"\s*\(([^)]+)\)\s+to\s+"([^"]+)"$', caseSensitive: false).firstMatch(rawMessage);
+    if (addMatch != null) {
+      final user = addMatch.group(1) ?? '';
+      final item = ItemModel.getThaiFoodName(addMatch.group(2) ?? '');
+      final rawQtyUnit = addMatch.group(3) ?? '';
+      final fridge = addMatch.group(4) ?? '';
+
+      final qtyUnitMatch = RegExp(r'^(\d+(?:\.\d+)?)\s*(.*)$').firstMatch(rawQtyUnit.trim());
+      String qtyUnitStr;
+      if (qtyUnitMatch != null) {
+        final q = qtyUnitMatch.group(1) ?? '';
+        final u = ItemModel.localizeUnit(qtyUnitMatch.group(2) ?? '', true);
+        qtyUnitStr = '$q $u'.trim();
+      } else {
+        qtyUnitStr = ItemModel.localizeUnit(rawQtyUnit, true);
+      }
+      return '$user เพิ่ม "$item" ($qtyUnitStr) ในตู้ "$fridge"';
+    }
+
+    // Pattern 2: user ate quantity unit of "Item" in "Fridge" (quantityLeft unit left)
+    // e.g. RRR ate 1 punnet of "strawberries" in "Ulnwza" (7 punnet left)
+    final ateMatch = RegExp(r'^(.+?)\s+ate\s+(\d+(?:\.\d+)?)\s*(.+?)\s+of\s+"([^"]+)"\s+in\s+"([^"]+)"\s*\(([^)]+)\s+left\)$', caseSensitive: false).firstMatch(rawMessage);
+    if (ateMatch != null) {
+      final user = ateMatch.group(1) ?? '';
+      final amount = ateMatch.group(2) ?? '';
+      final unit1 = ItemModel.localizeUnit(ateMatch.group(3) ?? '', true);
+      final item = ItemModel.getThaiFoodName(ateMatch.group(4) ?? '');
+      final fridge = ateMatch.group(5) ?? '';
+      final rawLeft = ateMatch.group(6) ?? '';
+
+      final leftMatch = RegExp(r'^(\d+(?:\.\d+)?)\s*(.*)$').firstMatch(rawLeft.trim());
+      String leftStr;
+      if (leftMatch != null) {
+        final qL = leftMatch.group(1) ?? '';
+        final uL = ItemModel.localizeUnit(leftMatch.group(2) ?? '', true);
+        leftStr = '$qL $uL'.trim();
+      } else {
+        leftStr = ItemModel.localizeUnit(rawLeft, true);
+      }
+      return '$user รับประทาน "$item" $amount $unit1 ในตู้ "$fridge" (เหลือ $leftStr)';
+    }
+
+    // Pattern 3: user finished all "Item" in "Fridge"
+    // e.g. wansai finished all "strawberries" in "Ulnwza"
+    final finishedMatch = RegExp(r'^(.+?)\s+finished\s+all\s+"([^"]+)"\s+in\s+"([^"]+)"$', caseSensitive: false).firstMatch(rawMessage);
+    if (finishedMatch != null) {
+      final user = finishedMatch.group(1) ?? '';
+      final item = ItemModel.getThaiFoodName(finishedMatch.group(2) ?? '');
+      final fridge = finishedMatch.group(3) ?? '';
+      return '$user รับประทาน "$item" ทั้งหมด ในตู้ "$fridge"';
+    }
+
+    // Pattern 4: user removed "Item" from "Fridge"
+    // e.g. wansai removed "strawberries" from "Ulnwza"
+    final removedMatch = RegExp(r'^(.+?)\s+removed\s+"([^"]+)"\s+from\s+"([^"]+)"$', caseSensitive: false).firstMatch(rawMessage);
+    if (removedMatch != null) {
+      final user = removedMatch.group(1) ?? '';
+      final item = ItemModel.getThaiFoodName(removedMatch.group(2) ?? '');
+      final fridge = removedMatch.group(3) ?? '';
+      return '$user นำ "$item" ออกจากตู้ "$fridge"';
+    }
+
+    // Pattern 5: user joined "Fridge" (invited by Inviter)
+    final joinedMatch = RegExp(r'^(.+?)\s+joined\s+"([^"]+)"\s*\(invited\s+by\s+(.+?)\)$', caseSensitive: false).firstMatch(rawMessage);
+    if (joinedMatch != null) {
+      final user = joinedMatch.group(1) ?? '';
+      final fridge = joinedMatch.group(2) ?? '';
+      final inviter = joinedMatch.group(3) ?? '';
+      return '$user เข้าร่วมตู้ "$fridge" (ได้รับคำเชิญจาก $inviter)';
+    }
+
+    // Pattern 6: user invited you to join "Fridge"
+    final inviteMatch = RegExp(r'^(.+?)\s+invited\s+you\s+to\s+join\s+"([^"]+)"$', caseSensitive: false).firstMatch(rawMessage);
+    if (inviteMatch != null) {
+      final inviter = inviteMatch.group(1) ?? '';
+      final fridge = inviteMatch.group(2) ?? '';
+      return '$inviter เชิญคุณเข้าร่วมตู้ "$fridge"';
+    }
+
+    // Pattern 7: "Item" in "Fridge" expires in N days / expires today
+    final expiresMatch = RegExp(r'^"([^"]+)"\s+in\s+"([^"]+)"\s+expires\s+in\s+(\d+)\s+days?$', caseSensitive: false).firstMatch(rawMessage);
+    if (expiresMatch != null) {
+      final item = ItemModel.getThaiFoodName(expiresMatch.group(1) ?? '');
+      final fridge = expiresMatch.group(2) ?? '';
+      final days = expiresMatch.group(3) ?? '';
+      return '"$item" ในตู้ "$fridge" จะหมดอายุใน $days วัน';
+    }
+    final expiresTodayMatch = RegExp(r'^"([^"]+)"\s+in\s+"([^"]+)"\s+expires\s+today$', caseSensitive: false).firstMatch(rawMessage);
+    if (expiresTodayMatch != null) {
+      final item = ItemModel.getThaiFoodName(expiresTodayMatch.group(1) ?? '');
+      final fridge = expiresTodayMatch.group(2) ?? '';
+      return '"$item" ในตู้ "$fridge" จะหมดอายุวันนี้';
+    }
+
+    // Fallback translation for food names inside quotes and common unit keywords
+    var msg = rawMessage;
+    msg = msg.replaceAllMapped(RegExp(r'"([^"]+)"'), (m) {
+      final inner = m.group(1) ?? '';
+      return '"${ItemModel.getThaiFoodName(inner)}"';
+    });
+    msg = msg.replaceAll(RegExp(r'\bpunnets?\b', caseSensitive: false), 'ตะกร้า');
+    msg = msg.replaceAll(RegExp(r'\bpieces?\b', caseSensitive: false), 'ชิ้น');
+    msg = msg.replaceAll(RegExp(r'\bboxt?s?\b', caseSensitive: false), 'กล่อง');
+    msg = msg.replaceAll(RegExp(r'\bbags?\b', caseSensitive: false), 'ถุง');
+    msg = msg.replaceAll(RegExp(r'\bbottles?\b', caseSensitive: false), 'ขวด');
+    msg = msg.replaceAll(RegExp(r'\bcans?\b', caseSensitive: false), 'กระป๋อง');
+    msg = msg.replaceAll(RegExp(r'\bpacks?\b', caseSensitive: false), 'แพ็ค');
+    msg = msg.replaceAll(RegExp(r'\bleft\b', caseSensitive: false), 'เหลือ');
+
+    return msg;
+  }
+
+  String localizedMessage([bool isTh = false]) => localizeMessageStatic(message, isTh);
 
   factory NotificationModel.fromEntry(dynamic entry) {
     String title = '';

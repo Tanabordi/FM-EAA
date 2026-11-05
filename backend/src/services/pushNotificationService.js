@@ -93,7 +93,7 @@ class PushNotificationService {
     }
   }
 
-  _saveTokenToFile(userId, fcmToken) {
+  _saveTokenToFile(userId, fcmToken, language = 'th') {
     try {
       const filePath = path.resolve(__dirname, '../../.fcm_tokens.json');
       let data = {};
@@ -101,8 +101,12 @@ class PushNotificationService {
         data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       }
       if (!data[userId]) data[userId] = [];
-      if (!data[userId].includes(fcmToken)) {
-        data[userId].push(fcmToken);
+      const idx = data[userId].findIndex(t => (typeof t === 'string' ? t : t.token) === fcmToken);
+      const tokenEntry = { token: fcmToken, language: language || 'th' };
+      if (idx >= 0) {
+        data[userId][idx] = tokenEntry;
+      } else {
+        data[userId].push(tokenEntry);
       }
       fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
     } catch (_) {}
@@ -111,10 +115,10 @@ class PushNotificationService {
   /**
    * Register or refresh a device FCM token for a user
    */
-  async registerToken(userId, fcmToken) {
+  async registerToken(userId, fcmToken, language = 'th') {
     if (!userId || !fcmToken) return;
-    this._saveTokenToFile(userId, fcmToken);
-    console.log(`[PushNotificationService] Registered FCM token for user ${userId}`);
+    this._saveTokenToFile(userId, fcmToken, language);
+    console.log(`[PushNotificationService] Registered FCM token for user ${userId} (${language})`);
 
     let conn;
     try {
@@ -218,12 +222,19 @@ class PushNotificationService {
 
     const messaging = getMessaging(firebaseApp);
 
-    for (const token of allTokens) {
+    for (const tokenItem of allTokens) {
+      const token = typeof tokenItem === 'string' ? tokenItem : tokenItem.token;
+      const lang = typeof tokenItem === 'object' && tokenItem.language ? tokenItem.language : 'th';
+      const isEnglish = lang === 'en';
+
+      const pushTitle = (!isEnglish && data.title_th) ? data.title_th : (title || 'FM-EAA');
+      const pushBody = (!isEnglish && (data.body_th || data.message_th)) ? (data.body_th || data.message_th) : (body || '');
+
       const message = {
         token,
         notification: {
-          title: title || 'FM-EAA',
-          body: body || '',
+          title: pushTitle,
+          body: pushBody,
         },
         data: stringData,
         android: {

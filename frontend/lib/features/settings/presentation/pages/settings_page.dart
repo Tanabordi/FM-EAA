@@ -175,8 +175,14 @@ class SettingsPage extends ConsumerWidget {
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.notifications_active_outlined),
-                    title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.w500)),
-                    subtitle: const Text('Manage device permissions & alerts', style: TextStyle(fontSize: 12)),
+                    title: Text(
+                      isTh ? 'การแจ้งเตือน' : 'Notifications',
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    subtitle: Text(
+                      isTh ? 'จัดการสิทธิ์และการแจ้งเตือนในเครื่อง' : 'Manage device permissions & alerts',
+                      style: const TextStyle(fontSize: 12),
+                    ),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () async {
                       await NotificationService().openNotificationSettings();

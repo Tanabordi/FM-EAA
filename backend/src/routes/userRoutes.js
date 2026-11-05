@@ -166,11 +166,11 @@ const pushNotificationService = require('../services/pushNotificationService');
 // POST /api/users/fcm-token - Register or update device FCM token
 router.post('/fcm-token', authenticateToken, async (req, res, next) => {
   try {
-    const { fcmToken } = req.body;
+    const { fcmToken, language } = req.body;
     if (!fcmToken || typeof fcmToken !== 'string') {
       return res.status(400).json({ error: 'fcmToken is required' });
     }
-    await pushNotificationService.registerToken(req.user.id, fcmToken.trim());
+    await pushNotificationService.registerToken(req.user.id, fcmToken.trim(), language || 'th');
     res.status(200).json({ success: true, message: 'FCM token registered' });
   } catch (err) {
     next(err);

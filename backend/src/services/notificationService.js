@@ -136,6 +136,8 @@ class NotificationService {
             type: finalSubType,
             fridgeId: fridgeId || '',
             itemId: extra.item_id || extra.itemId || '',
+            title_th: extra.title_th || notifData.title_th || '',
+            body_th: extra.message_th || notifData.message_th || '',
           },
         }).catch((pushErr) => {
           console.warn('[NotificationService] Push delivery notice:', pushErr.message);
