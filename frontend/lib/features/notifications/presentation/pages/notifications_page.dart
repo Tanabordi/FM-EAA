@@ -144,7 +144,16 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
             Text(isTh ? 'การแจ้งเตือน' : 'Notifications', style: const TextStyle(fontWeight: FontWeight.bold)),
             if (widget.fridgeId != null && effectiveFridgeName != null && effectiveFridgeName.isNotEmpty)
               Text(
-                effectiveFridgeName,
+                isTh ? 'ตู้ $effectiveFridgeName' : effectiveFridgeName,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              )
+            else if (widget.fridgeId == null)
+              Text(
+                isTh ? 'รวมทุกตู้เย็น' : 'All fridges',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.normal,
