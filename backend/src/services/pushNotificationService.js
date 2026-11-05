@@ -13,10 +13,13 @@ function initFirebase() {
   try {
     let serviceAccount = null;
 
-    // 1. Look for explicit firebase-service-account.json
+    // 1. Look for explicit firebase-service-account.json or google-services.json
     const standardPath = path.resolve(__dirname, '../../firebase-service-account.json');
+    const googleServicesPath = path.resolve(__dirname, '../../google-services.json');
     if (fs.existsSync(standardPath)) {
       serviceAccount = JSON.parse(fs.readFileSync(standardPath, 'utf8'));
+    } else if (fs.existsSync(googleServicesPath)) {
+      serviceAccount = JSON.parse(fs.readFileSync(googleServicesPath, 'utf8'));
     } else {
       // 2. Search for any downloaded adminsdk json file in backend
       const backendDir = path.resolve(__dirname, '../../');
