@@ -3,7 +3,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/core/router/app_router.dart';
-import 'package:go_router/go_router.dart';
 
 void main() {
   testWidgets('AppRouter navigates across key application routes', (tester) async {

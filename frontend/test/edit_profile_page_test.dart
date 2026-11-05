@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/core/l10n/locale_provider.dart';
 import 'package:fm_eaa/features/settings/presentation/pages/edit_profile_page.dart';
-import 'package:fm_eaa/features/settings/providers/settings_provider.dart';
 import 'package:fm_eaa/shared/widgets/app_back_button.dart';
 
 void main() {

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +6,6 @@ import 'package:fm_eaa/core/theme/material_theme.dart';
 import 'package:fm_eaa/data/local/app_database.dart';
 import 'package:fm_eaa/data/remote/api_client.dart';
 import 'package:fm_eaa/data/repositories/history_repository.dart';
-import 'package:fm_eaa/data/repositories/notification_repository.dart';
 import 'package:fm_eaa/features/history/providers/history_provider.dart';
 import 'package:fm_eaa/features/notifications/providers/notifications_provider.dart';
 import 'package:fm_eaa/shared/widgets/user_avatar.dart';
@@ -85,11 +83,11 @@ void main() {
 
     testWidgets('renders base64 data image avatar', (tester) async {
       // 1x1 transparent PNG
-      final base64Png =
+      const base64Png =
           'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: UserAvatar(
               name: 'Tul',

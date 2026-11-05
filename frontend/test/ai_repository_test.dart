@@ -35,7 +35,7 @@ void main() {
     });
 
     test('AiScanResult copyWith', () {
-      final original = const AiScanResult(
+      const original = AiScanResult(
         foodName: 'Milk',
         category: 'beverages',
         confidence: 0.95,

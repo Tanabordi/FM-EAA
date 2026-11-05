@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/data/repositories/ai_repository.dart';
-import 'package:fm_eaa/features/fridge_detail/providers/fridge_detail_provider.dart';
 import 'package:fm_eaa/features/fridges/providers/fridges_provider.dart';
 import 'package:fm_eaa/features/item/presentation/pages/add_item_page.dart';
 
@@ -55,9 +54,9 @@ void main() {
     testWidgets('clears all data via remove options sheet', (tester) async {
       await tester.pumpWidget(
         buildTestableWidget(
-          AddItemPage(
+          const AddItemPage(
             fridgeId: 'fridge_kitchen',
-            initialScanResult: const AiScanResult(
+            initialScanResult: AiScanResult(
               isDetected: true,
               foodName: 'Cheddar Cheese',
               category: 'Dairy',
@@ -89,9 +88,9 @@ void main() {
     testWidgets('tapping photo thumbnail opens change photo sheet', (tester) async {
       await tester.pumpWidget(
         buildTestableWidget(
-          AddItemPage(
+          const AddItemPage(
             fridgeId: 'fridge_kitchen',
-            initialScanResult: const AiScanResult(
+            initialScanResult: AiScanResult(
               isDetected: true,
               foodName: 'Cheddar Cheese',
               category: 'Dairy',

@@ -539,34 +539,34 @@ void main() {
     });
 
     test('localizes messages into Thai patterns correctly', () {
-      final msg1 = 'Tul added "strawberries" (12 punnet) to "Kitchen"';
+      const msg1 = 'Tul added "strawberries" (12 punnet) to "Kitchen"';
       final localized1 = NotificationModel.localizeMessageStatic(msg1, true);
       expect(localized1, contains('Tul เพิ่ม "strawberries"'));
       expect(localized1, contains('ในตู้ "Kitchen"'));
 
-      final msg2 = 'Alex ate 1 punnet of "strawberries" in "Kitchen" (7 left)';
+      const msg2 = 'Alex ate 1 punnet of "strawberries" in "Kitchen" (7 left)';
       final localized2 = NotificationModel.localizeMessageStatic(msg2, true);
       expect(localized2, contains('Alex'));
 
-      final msg3 = 'wansai finished all "strawberries" in "Kitchen"';
+      const msg3 = 'wansai finished all "strawberries" in "Kitchen"';
       expect(NotificationModel.localizeMessageStatic(msg3, true), 'wansai รับประทาน "strawberries" ทั้งหมด ในตู้ "Kitchen"');
 
-      final msg4 = 'wansai removed "strawberries" from "Kitchen"';
+      const msg4 = 'wansai removed "strawberries" from "Kitchen"';
       expect(NotificationModel.localizeMessageStatic(msg4, true), 'wansai นำ "strawberries" ออกจากตู้ "Kitchen"');
 
-      final msg5 = 'wansai joined "Kitchen" (invited by Tul)';
+      const msg5 = 'wansai joined "Kitchen" (invited by Tul)';
       expect(NotificationModel.localizeMessageStatic(msg5, true), 'wansai เข้าร่วมตู้ "Kitchen" (ได้รับคำเชิญจาก Tul)');
 
-      final msg6 = 'Tul invited you to join "Kitchen"';
+      const msg6 = 'Tul invited you to join "Kitchen"';
       expect(NotificationModel.localizeMessageStatic(msg6, true), 'Tul เชิญคุณเข้าร่วมตู้ "Kitchen"');
 
-      final msg7 = '"Milk" in "Kitchen" expires in 2 days';
+      const msg7 = '"Milk" in "Kitchen" expires in 2 days';
       expect(NotificationModel.localizeMessageStatic(msg7, true), '"Milk" ในตู้ "Kitchen" จะหมดอายุใน 2 วัน');
 
-      final msg8 = '"Milk" in "Kitchen" expires today';
+      const msg8 = '"Milk" in "Kitchen" expires today';
       expect(NotificationModel.localizeMessageStatic(msg8, true), '"Milk" ในตู้ "Kitchen" จะหมดอายุวันนี้');
 
-      final msgFallback = 'Item has 5 bottles and 2 cans left';
+      const msgFallback = 'Item has 5 bottles and 2 cans left';
       expect(NotificationModel.localizeMessageStatic(msgFallback, true), contains('ขวด'));
 
       expect(NotificationModel.localizeMessageStatic(msg1, false), msg1);
@@ -710,7 +710,7 @@ void main() {
 
   group('RecipeModel Unit Tests', () {
     test('localization for cooking time and difficulty', () {
-      final recipe = RecipeModel(
+      const recipe = RecipeModel(
         id: 'r1',
         title: 'Strawberry Shortcake',
         cookingTime: '25 mins',
@@ -740,7 +740,7 @@ void main() {
 
   group('FamilyMemberItem and UserSearchResult Unit Tests', () {
     test('FamilyMemberItem serialization and role checking', () {
-      final owner = FamilyMemberItem(
+      const owner = FamilyMemberItem(
         id: 'm1',
         name: 'Tul',
         role: 'Owner',

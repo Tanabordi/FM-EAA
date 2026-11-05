@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/data/local/app_database.dart';
-import 'package:fm_eaa/data/repositories/ai_repository.dart';
 import 'package:fm_eaa/features/recipe/presentation/pages/recipe_recommendation_page.dart';
 import 'package:fm_eaa/shared/widgets/app_top_bar.dart';
 

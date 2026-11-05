@@ -317,7 +317,7 @@ void main() {
 
   group('AppDatabase Notifications & Helper Methods Unit Tests', () {
     test('notification storage, read status, count streams, and purge', () async {
-      final userId = 'user_test_notifs';
+      const userId = 'user_test_notifs';
 
       // Insert notifications
       await db.insertNotification(

@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fm_eaa/data/models/user_model.dart';
 import 'package:fm_eaa/data/remote/api_client.dart';
 import 'package:fm_eaa/data/repositories/auth_repository.dart';
 import 'package:google_sign_in/google_sign_in.dart';

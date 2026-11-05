@@ -7,7 +7,6 @@ import 'package:fm_eaa/data/models/fridge_model.dart';
 import 'package:fm_eaa/data/models/history_model.dart';
 import 'package:fm_eaa/data/models/item_model.dart';
 import 'package:fm_eaa/data/models/notification_model.dart';
-import 'package:fm_eaa/data/models/user_model.dart';
 import 'package:fm_eaa/data/remote/api_client.dart';
 import 'package:fm_eaa/data/repositories/auth_repository.dart';
 import 'package:fm_eaa/data/repositories/family_repository.dart';
