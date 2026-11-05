@@ -460,6 +460,25 @@ class NotificationService {
 
       if (generated.length > 0) {
         await conn.commit();
+
+        // Dispatch push notifications for newly generated expiry milestones
+        try {
+          const pushNotificationService = require('./pushNotificationService');
+          for (const item of generated) {
+            pushNotificationService.sendPushToUser(userId, {
+              title: `⏰ ${item.payload.title || 'Expiry Alert'}`,
+              body: item.payload.message || '',
+              data: {
+                type: 'expiry',
+                notificationId: item.id,
+                itemId: item.payload.item_id || '',
+                fridgeId: item.payload.fridge_id || '',
+              },
+            }).catch((err) => {
+              console.warn('[NotificationService] Expiry push warning:', err.message);
+            });
+          }
+        } catch (_) {}
       }
 
       return generated;

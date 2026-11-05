@@ -575,6 +575,22 @@ class FridgeService {
 
       await conn.commit();
 
+      // Dispatch push notification to invited user
+      try {
+        const pushNotificationService = require('./pushNotificationService');
+        pushNotificationService.sendPushToUser(targetUser.id, {
+          title: '✉️ Fridge Invitation',
+          body: `${inviterUsername} invited you to join '${fridgeName}'`,
+          data: {
+            type: 'invite',
+            fridgeId,
+            inviteId,
+          },
+        }).catch((err) => {
+          console.warn('[FridgeService] Invite push notification warning:', err.message);
+        });
+      } catch (_) {}
+
       return {
         success: true,
         message: `Invitation sent to ${targetUser.username}`,
