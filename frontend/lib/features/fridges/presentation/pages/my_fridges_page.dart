@@ -153,7 +153,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
               ),
             ],
           ),
-          _buildNotificationWarningBanner(context),
+          _buildNotificationWarningBanner(context, isTh),
           const Spacer(flex: 3),
           const Center(
             child: CuteFridgeIllustration(size: 240),
@@ -265,7 +265,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
               fontWeight: FontWeight.w400,
             ),
           ),
-          _buildNotificationWarningBanner(context),
+          _buildNotificationWarningBanner(context, isTh),
           const SizedBox(height: 24),
           // Section header: "Your fridges" + "N fridges"
           Row(
@@ -400,7 +400,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
     );
   }
 
-  Widget _buildNotificationWarningBanner(BuildContext context) {
+  Widget _buildNotificationWarningBanner(BuildContext context, [bool isTh = false]) {
     if (_notificationsEnabled) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.only(top: 12),
@@ -414,17 +414,17 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
         children: [
           const Icon(Icons.notifications_off_rounded, color: Color(0xFF856404), size: 22),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'การแจ้งเตือนถูกปิดอยู่',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF856404)),
+                  isTh ? 'การแจ้งเตือนถูกปิดอยู่' : 'Notifications are turned off',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF856404)),
                 ),
                 Text(
-                  'คุณอาจไม่ได้รับแจ้งเตือนของหมดอายุ',
-                  style: TextStyle(fontSize: 11.5, color: Color(0xFF856404)),
+                  isTh ? 'คุณอาจไม่ได้รับแจ้งเตือนของหมดอายุ' : 'You may miss expiration date alerts',
+                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF856404)),
                 ),
               ],
             ),
@@ -439,10 +439,13 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
-              await NotificationService().requestPermissionsWithFallback(context);
+              await NotificationService().requestPermissionsWithFallback(context, isTh);
               _checkNotificationPermission();
             },
-            child: const Text('เปิดสิทธิ์', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text(
+              isTh ? 'เปิดสิทธิ์' : 'Enable',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

@@ -124,7 +124,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
       body: SafeArea(
         child: Column(
           children: [
-            _buildNotificationWarningBanner(context),
+            _buildNotificationWarningBanner(context, isTh),
             Expanded(
               child: notificationsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -227,7 +227,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
 );
 }
 
-  Widget _buildNotificationWarningBanner(BuildContext context) {
+  Widget _buildNotificationWarningBanner(BuildContext context, [bool isTh = false]) {
     if (_notificationsEnabled) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -241,17 +241,17 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
         children: [
           const Icon(Icons.notifications_off_rounded, color: Color(0xFF856404), size: 22),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'การแจ้งเตือนถูกปิดอยู่ในการตั้งค่า',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF856404)),
+                  isTh ? 'การแจ้งเตือนถูกปิดอยู่ในการตั้งค่า' : 'Notifications disabled in settings',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF856404)),
                 ),
                 Text(
-                  'เปิดการแจ้งเตือนเพื่อรับการอัปเดตแบบเรียลไทม์',
-                  style: TextStyle(fontSize: 11.5, color: Color(0xFF856404)),
+                  isTh ? 'เปิดการแจ้งเตือนเพื่อรับการอัปเดตแบบเรียลไทม์' : 'Enable notifications for real-time updates',
+                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF856404)),
                 ),
               ],
             ),
@@ -266,10 +266,13 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> with Widg
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
-              await NotificationService().requestPermissionsWithFallback(context);
+              await NotificationService().requestPermissionsWithFallback(context, isTh);
               _checkNotificationPermission();
             },
-            child: const Text('เปิดสิทธิ์', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text(
+              isTh ? 'เปิดสิทธิ์' : 'Enable',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
