@@ -163,4 +163,102 @@ describe('Storage & Email Services Unit Tests', () => {
       expect(res.messageId).toBe('smtp_msg_456');
     });
   });
+
+  describe('AuthService OTP & Edge Cases', () => {
+    const authService = require('../src/services/authService');
+
+    beforeEach(() => {
+      authService.passwordResetStore.clear();
+    });
+
+    it('verifyOtp validates required email and otp', () => {
+      expect(() => authService.verifyOtp('', '123456')).toThrow('Email and OTP code are required');
+      expect(() => authService.verifyOtp('test@example.com', '')).toThrow('Email and OTP code are required');
+    });
+
+    it('verifyOtp throws 400 when no reset record exists', () => {
+      expect(() => authService.verifyOtp('notfound@example.com', '123456')).toThrow('No password reset requested');
+    });
+
+    it('verifyOtp throws 400 when OTP has expired', () => {
+      authService.passwordResetStore.set('expired@example.com', {
+        otp: '123456',
+        expiresAt: Date.now() - 1000,
+        attempts: 0,
+        verified: false,
+      });
+
+      expect(() => authService.verifyOtp('expired@example.com', '123456')).toThrow('expired');
+      expect(authService.passwordResetStore.has('expired@example.com')).toBe(false);
+    });
+
+    it('verifyOtp throws 429 when max attempts (5) reached', () => {
+      authService.passwordResetStore.set('lockout@example.com', {
+        otp: '123456',
+        expiresAt: Date.now() + 60000,
+        attempts: 5,
+        verified: false,
+      });
+
+      expect(() => authService.verifyOtp('lockout@example.com', '123456')).toThrow('Too many failed attempts');
+      expect(authService.passwordResetStore.has('lockout@example.com')).toBe(false);
+    });
+
+    it('verifyOtp increments attempt counter on wrong OTP', () => {
+      authService.passwordResetStore.set('wrong@example.com', {
+        otp: '123456',
+        expiresAt: Date.now() + 60000,
+        attempts: 0,
+        verified: false,
+      });
+
+      expect(() => authService.verifyOtp('wrong@example.com', '999999')).toThrow('Invalid verification code');
+      expect(authService.passwordResetStore.get('wrong@example.com').attempts).toBe(1);
+    });
+
+    it('verifyOtp marks record verified on correct OTP', () => {
+      authService.passwordResetStore.set('valid@example.com', {
+        otp: '123456',
+        expiresAt: Date.now() + 60000,
+        attempts: 1,
+        verified: false,
+      });
+
+      const res = authService.verifyOtp('valid@example.com', '123456');
+      expect(res.success).toBe(true);
+      expect(authService.passwordResetStore.get('valid@example.com').verified).toBe(true);
+    });
+
+    it('resetPassword validates inputs and complex password requirements', async () => {
+      await expect(authService.resetPassword('', '123456', 'Pass123!')).rejects.toThrow('required');
+      await expect(authService.resetPassword('test@example.com', '', 'Pass123!')).rejects.toThrow('required');
+      await expect(authService.resetPassword('test@example.com', '123456', '')).rejects.toThrow('required');
+
+      authService.passwordResetStore.set('user@example.com', {
+        otp: '123456',
+        expiresAt: Date.now() + 60000,
+        attempts: 0,
+        verified: false,
+      });
+
+      // Wrong OTP
+      await expect(authService.resetPassword('user@example.com', '000000', 'NewPass123!')).rejects.toThrow('Invalid verification code');
+
+      // Password too short
+      await expect(authService.resetPassword('user@example.com', '123456', 'Short1!')).rejects.toThrow('at least 8 characters');
+
+      // Password too long (> 64)
+      await expect(authService.resetPassword('user@example.com', '123456', 'A'.repeat(65) + '1')).rejects.toThrow('must not exceed 64 characters');
+
+      // Password no letters
+      await expect(authService.resetPassword('user@example.com', '123456', '1234567890')).rejects.toThrow('contain both letters and numbers');
+
+      // Password no numbers
+      await expect(authService.resetPassword('user@example.com', '123456', 'LettersOnlyHere')).rejects.toThrow('contain both letters and numbers');
+    });
+
+    it('loginWithGoogle validates missing credentials', async () => {
+      await expect(authService.loginWithGoogle({})).rejects.toThrow('Invalid Google payload');
+    });
+  });
 });

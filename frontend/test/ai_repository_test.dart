@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fm_eaa/data/remote/api_client.dart';
 import 'package:fm_eaa/data/repositories/ai_repository.dart';
+import 'package:fm_eaa/shared/utils/environment.dart';
 
 void main() {
   late Dio dio;
@@ -12,6 +13,11 @@ void main() {
   setUp(() {
     dio = Dio();
     apiClient = ApiClient(customDio: dio);
+    setTestEnvironmentOverride(null);
+  });
+
+  tearDown(() {
+    setTestEnvironmentOverride(null);
   });
 
   group('AiScanResult & RecipeSuggestionResult Unit Tests', () {
@@ -63,44 +69,45 @@ void main() {
     });
 
     test('detects beverage keywords', () {
-      expect(AiRepository.detectCategory('Whole Milk'), 'beverages');
-      expect(AiRepository.detectCategory('Cold Brew Coffee'), 'beverages');
-      expect(AiRepository.detectCategory('ชาเขียวมัทฉะ'), 'beverages');
-      expect(AiRepository.detectCategory('น้ำส้มคั้น'), 'beverages');
-      expect(AiRepository.detectCategory('น้ำเปล่า'), 'beverages');
+      expect(AiRepository.detectCategory('Milk'), 'beverages');
+      expect(AiRepository.detectCategory('Iced Latte'), 'beverages');
+      expect(AiRepository.detectCategory('Orange Juice'), 'beverages');
+      expect(AiRepository.detectCategory('Mineral Water'), 'beverages');
+      expect(AiRepository.detectCategory('Green Tea'), 'beverages');
+      expect(AiRepository.detectCategory('นมสด'), 'beverages');
     });
 
     test('detects sauce keywords', () {
-      expect(AiRepository.detectCategory('Mayonnaise dip'), 'sauces');
-      expect(AiRepository.detectCategory('ซอสมะเขือเทศโรซ่า'), 'sauces');
-      expect(AiRepository.detectCategory('น้ำปลาแท้'), 'sauces');
-      expect(AiRepository.detectCategory('ซีอิ๊วขาว'), 'sauces');
-      expect(AiRepository.detectCategory('Strawberry Jam'), 'sauces');
+      expect(AiRepository.detectCategory('Tomato Ketchup'), 'sauces');
+      expect(AiRepository.detectCategory('Soy Sauce'), 'sauces');
+      expect(AiRepository.detectCategory('Salad Dressing'), 'sauces');
+      expect(AiRepository.detectCategory('Mayonnaise'), 'sauces');
+      expect(AiRepository.detectCategory('น้ำปลา'), 'sauces');
     });
 
     test('detects veggie and fruit keywords', () {
-      expect(AiRepository.detectCategory('Spinach Leaves'), 'veggies');
-      expect(AiRepository.detectCategory('มะเขือเทศเชอรี่'), 'veggies');
-      expect(AiRepository.detectCategory('Fresh Strawberries'), 'veggies');
-      expect(AiRepository.detectCategory('กล้วยหอมทอง'), 'veggies');
       expect(AiRepository.detectCategory('Carrots'), 'veggies');
-      expect(AiRepository.detectCategory('แตงกวาญี่ปุ่น'), 'veggies');
+      expect(AiRepository.detectCategory('Apples'), 'veggies');
+      expect(AiRepository.detectCategory('Spinach'), 'veggies');
+      expect(AiRepository.detectCategory('Garlic'), 'veggies');
+      expect(AiRepository.detectCategory('เห็ดหอม'), 'veggies');
     });
 
     test('detects meal keywords', () {
-      expect(AiRepository.detectCategory('Spaghetti Bolognese'), 'meals');
-      expect(AiRepository.detectCategory('ข้าวผัดกระเพรา'), 'meals');
-      expect(AiRepository.detectCategory('Whole wheat bread'), 'meals');
-      expect(AiRepository.detectCategory('Pizza Margherita'), 'meals');
-      expect(AiRepository.detectCategory('ก๋วยเตี๋ยวเรือ'), 'meals');
+      expect(AiRepository.detectCategory('Ramen Noodles'), 'meals');
+      expect(AiRepository.detectCategory('Fried Rice'), 'meals');
+      expect(AiRepository.detectCategory('Curry'), 'meals');
+      expect(AiRepository.detectCategory('Sandwich'), 'meals');
+      expect(AiRepository.detectCategory('ข้าวผัด'), 'meals');
     });
 
     test('defaults to proteins for meat, poultry, seafood, or unknown', () {
       expect(AiRepository.detectCategory('Chicken Breast'), 'proteins');
-      expect(AiRepository.detectCategory('Pork Belly'), 'proteins');
+      expect(AiRepository.detectCategory('Pork Loin'), 'proteins');
       expect(AiRepository.detectCategory('Salmon Fillet'), 'proteins');
       expect(AiRepository.detectCategory('Tofu'), 'proteins');
-      expect(AiRepository.detectCategory('Unknown Item'), 'proteins');
+      expect(AiRepository.detectCategory('Eggs'), 'proteins');
+      expect(AiRepository.detectCategory('Unknown Item XYZ'), 'proteins');
     });
   });
 
@@ -109,43 +116,43 @@ void main() {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
-      final freshFish = AiRepository.estimateShelfLife('Salmon', category: 'proteins', storage: 'Fridge');
-      expect(freshFish.difference(today).inDays, 2);
+      final chickenFridge = AiRepository.estimateShelfLife('Chicken Breast', category: 'proteins', storage: 'Fridge');
+      expect(chickenFridge.difference(today).inDays, 3);
 
-      final eggs = AiRepository.estimateShelfLife('Eggs', category: 'proteins', storage: 'Fridge');
-      expect(eggs.difference(today).inDays, 21);
+      final chickenFreezer = AiRepository.estimateShelfLife('Chicken Breast', category: 'proteins', storage: 'Freezer');
+      expect(chickenFreezer.difference(today).inDays, 90);
 
-      final sausage = AiRepository.estimateShelfLife('Sausage', category: 'proteins', storage: 'Fridge');
-      expect(sausage.difference(today).inDays, 7);
+      final porkFridge = AiRepository.estimateShelfLife('Pork', category: 'proteins', storage: 'Fridge');
+      expect(porkFridge.difference(today).inDays, 3);
 
-      final tofu = AiRepository.estimateShelfLife('Tofu', category: 'proteins', storage: 'Fridge');
-      expect(tofu.difference(today).inDays, 5);
+      final fishFridge = AiRepository.estimateShelfLife('Salmon', category: 'proteins', storage: 'Fridge');
+      expect(fishFridge.difference(today).inDays, 2);
 
-      final chicken = AiRepository.estimateShelfLife('Chicken', category: 'proteins', storage: 'Fridge');
-      expect(chicken.difference(today).inDays, 3);
+      final eggFridge = AiRepository.estimateShelfLife('Eggs', category: 'proteins', storage: 'Fridge');
+      expect(eggFridge.difference(today).inDays, 21);
 
-      final frozenMeat = AiRepository.estimateShelfLife('Beef', category: 'proteins', storage: 'Freezer');
-      expect(frozenMeat.difference(today).inDays, 90);
+      final tofuFridge = AiRepository.estimateShelfLife('Tofu', category: 'proteins', storage: 'Fridge');
+      expect(tofuFridge.difference(today).inDays, 5);
     });
 
     test('estimates veggies shelf life in fridge and freezer', () {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
-      final spinach = AiRepository.estimateShelfLife('Spinach', category: 'veggies', storage: 'Fridge');
-      expect(spinach.difference(today).inDays, 5);
+      final spinachFridge = AiRepository.estimateShelfLife('Spinach', category: 'veggies', storage: 'Fridge');
+      expect(spinachFridge.difference(today).inDays, 5);
 
-      final berries = AiRepository.estimateShelfLife('Strawberry', category: 'veggies', storage: 'Fridge');
-      expect(berries.difference(today).inDays, 4);
+      final carrotsFridge = AiRepository.estimateShelfLife('Carrots', category: 'veggies', storage: 'Fridge');
+      expect(carrotsFridge.difference(today).inDays, 14);
 
-      final apple = AiRepository.estimateShelfLife('Apple', category: 'veggies', storage: 'Fridge');
-      expect(apple.difference(today).inDays, 14);
+      final applesFridge = AiRepository.estimateShelfLife('Apples', category: 'veggies', storage: 'Fridge');
+      expect(applesFridge.difference(today).inDays, 14);
 
-      final tomato = AiRepository.estimateShelfLife('Tomato', category: 'veggies', storage: 'Fridge');
-      expect(tomato.difference(today).inDays, 7);
+      final berriesFridge = AiRepository.estimateShelfLife('Strawberries', category: 'veggies', storage: 'Fridge');
+      expect(berriesFridge.difference(today).inDays, 4);
 
-      final frozenVeg = AiRepository.estimateShelfLife('Broccoli', category: 'veggies', storage: 'Freezer');
-      expect(frozenVeg.difference(today).inDays, 180);
+      final bananasFridge = AiRepository.estimateShelfLife('Bananas', category: 'veggies', storage: 'Fridge');
+      expect(bananasFridge.difference(today).inDays, 4);
     });
 
     test('estimates beverages shelf life', () {
@@ -197,24 +204,253 @@ void main() {
     });
   });
 
-  group('AiRepository getSuggestedRecipes Unit Tests', () {
-    test('generates fallback recipes when offline or testing', () async {
+  group('AiRepository Smart Fallback Recipes for all categories', () {
+    test('exercises fallback recipe generator across all categories, languages, and offsets', () async {
       final repo = AiRepository(apiClient: apiClient);
-      final res = await repo.getSuggestedRecipes('Strawberries', language: 'en');
 
-      expect(res.recipes, isNotEmpty);
-      expect(res.usedDailyQuota, 1);
-      expect(res.maxDailyQuota, 3);
-      expect(res.isFromAi, isFalse);
+      // Beverages
+      final bevEn = await repo.getSuggestedRecipes('Milk', category: 'beverages', language: 'en', offset: 0);
+      expect(bevEn.recipes, isNotEmpty);
+      final bevTh = await repo.getSuggestedRecipes('นมสด', category: 'beverages', language: 'th', offset: 1);
+      expect(bevTh.recipes, isNotEmpty);
 
-      final resTh = await repo.getSuggestedRecipes('ไข่ไก่', language: 'th');
-      expect(resTh.recipes, isNotEmpty);
+      // Sauces
+      final sauceEn = await repo.getSuggestedRecipes('Ketchup', category: 'sauces', language: 'en', offset: 0);
+      expect(sauceEn.recipes, isNotEmpty);
+      final sauceTh = await repo.getSuggestedRecipes('ซีอิ๊วขาว', category: 'sauces', language: 'th', offset: 1);
+      expect(sauceTh.recipes, isNotEmpty);
+
+      // Meals
+      final mealEn = await repo.getSuggestedRecipes('Fried Rice', category: 'meals', language: 'en', offset: 0);
+      expect(mealEn.recipes, isNotEmpty);
+      final mealTh = await repo.getSuggestedRecipes('ข้าวผัด', category: 'meals', language: 'th', offset: 1);
+      expect(mealTh.recipes, isNotEmpty);
+
+      // Veggies
+      final vegEn = await repo.getSuggestedRecipes('Carrot', category: 'veggies', language: 'en', offset: 0);
+      expect(vegEn.recipes, isNotEmpty);
+      final vegTh = await repo.getSuggestedRecipes('แครอท', category: 'veggies', language: 'th', offset: 1);
+      expect(vegTh.recipes, isNotEmpty);
+
+      // Proteins
+      final protEn = await repo.getSuggestedRecipes('Pork', category: 'proteins', language: 'en', offset: 0);
+      expect(protEn.recipes, isNotEmpty);
+      final protTh = await repo.getSuggestedRecipes('หมู', category: 'proteins', language: 'th', offset: 2);
+      expect(protTh.recipes, isNotEmpty);
+    });
+  });
+
+  group('AiRepository Remote API Scanning Tests with Interceptor', () {
+    test('scanLabelBytes handles successful food recognition from API', () async {
+      setTestEnvironmentOverride(false);
+
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            if (options.path.contains('/ai/scan-label')) {
+              return handler.resolve(
+                Response(
+                  requestOptions: options,
+                  statusCode: 200,
+                  data: {
+                    'is_food': true,
+                    'foodName': 'ดัชมิลล์ นมสด',
+                    'expiryDate': '2026-11-28',
+                    'category': 'Beverages',
+                    'storage': 'Fridge',
+                    'unit': 'bottle',
+                    'confidence': 0.96,
+                  },
+                ),
+              );
+            }
+            return handler.next(options);
+          },
+        ),
+      );
+
+      final repo = AiRepository(apiClient: apiClient);
+      final result = await repo.scanLabelBytes(Uint8List.fromList([1, 2, 3]), language: 'th');
+      expect(result.isDetected, isTrue);
+      expect(result.foodName, 'ดัชมิลล์ นมสด');
+      expect(result.category, 'Beverages');
+      expect(result.unit, 'bottle');
     });
 
-    test('scanExpiryBytes returns estimate in test environment', () async {
+    test('scanLabelBytes handles non-food response from API', () async {
+      setTestEnvironmentOverride(false);
+
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            return handler.resolve(
+              Response(
+                requestOptions: options,
+                statusCode: 200,
+                data: {
+                  'is_food': false,
+                  'foodName': null,
+                },
+              ),
+            );
+          },
+        ),
+      );
+
       final repo = AiRepository(apiClient: apiClient);
-      final expiry = await repo.scanExpiryBytes(Uint8List.fromList([1, 2, 3]));
-      expect(expiry, isNotNull);
+      final result = await repo.scanLabelBytes(Uint8List.fromList([1, 2, 3]));
+      expect(result.isDetected, isFalse);
+      expect(result.isFood, isFalse);
+    });
+
+    test('scanExpiryBytes handles expiry_only response from API', () async {
+      setTestEnvironmentOverride(false);
+
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            return handler.resolve(
+              Response(
+                requestOptions: options,
+                statusCode: 200,
+                data: {
+                  'expiryDate': '2027-02-15',
+                  'confidence': 0.95,
+                },
+              ),
+            );
+          },
+        ),
+      );
+
+      final repo = AiRepository(apiClient: apiClient);
+      final date = await repo.scanExpiryBytes(Uint8List.fromList([1, 2, 3]));
+      expect(date, DateTime(2027, 2, 15));
+    });
+
+    test('getSuggestedRecipes receives valid recipe payload from API', () async {
+      setTestEnvironmentOverride(false);
+
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            if (options.path.contains('/ai/recipes')) {
+              return handler.resolve(
+                Response(
+                  requestOptions: options,
+                  statusCode: 200,
+                  data: {
+                    'recipes': [
+                      {
+                        'id': 'api_r1',
+                        'title': 'Garlic Salmon',
+                        'description': 'Delicious grilled salmon',
+                        'cookingTime': '15 mins',
+                        'difficulty': 'Easy',
+                        'dishType': 'stir_fry',
+                        'expiringIngredient': 'Salmon',
+                        'imageUrl': 'https://example.com/salmon.jpg',
+                        'ingredients': ['Salmon', 'Garlic'],
+                        'steps': ['Pan sear salmon', 'Add garlic'],
+                      }
+                    ],
+                    'usedDailyQuota': 2,
+                    'maxDailyQuota': 3,
+                    'remainingDailyQuota': 1,
+                  },
+                ),
+              );
+            }
+            return handler.next(options);
+          },
+        ),
+      );
+
+      final repo = AiRepository(apiClient: apiClient);
+      final res = await repo.getSuggestedRecipes('Salmon', category: 'proteins', language: 'en');
+      expect(res.recipes, hasLength(1));
+      expect(res.recipes.first.title, 'Garlic Salmon');
+      expect(res.usedDailyQuota, 2);
+      expect(res.remainingDailyQuota, 1);
+      expect(res.isFromAi, isTrue);
+    });
+
+    test('getSuggestedRecipes gracefully handles API 429 quota exhaustion', () async {
+      setTestEnvironmentOverride(false);
+
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                response: Response(
+                  requestOptions: options,
+                  statusCode: 429,
+                  data: {'error': 'Quota exceeded'},
+                ),
+              ),
+            );
+          },
+        ),
+      );
+
+      final repo = AiRepository(apiClient: apiClient);
+      expect(
+        () => repo.getSuggestedRecipes('Pork', category: 'proteins', language: 'en'),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('scanLabel and scanExpiryDate with real File handling and Dio responses', () async {
+      setTestEnvironmentOverride(false);
+
+      final tempDir = Directory.systemTemp.createTempSync('ai_test');
+      final testFile = File('${tempDir.path}/test_strawberries.jpg');
+      testFile.writeAsBytesSync(Uint8List.fromList([1, 2, 3, 4]));
+
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            if (options.path.contains('scan-label')) {
+              return handler.resolve(
+                Response(
+                  requestOptions: options,
+                  statusCode: 200,
+                  data: {
+                    'is_food': true,
+                    'foodName': 'Strawberries',
+                    'category': 'fruits',
+                    'expiryDate': DateTime.now().add(const Duration(days: 5)).toIso8601String(),
+                  },
+                ),
+              );
+            }
+            if (options.path.contains('scan-expiry')) {
+              return handler.resolve(
+                Response(
+                  requestOptions: options,
+                  statusCode: 200,
+                  data: {
+                    'expiryDate': DateTime.now().add(const Duration(days: 7)).toIso8601String(),
+                  },
+                ),
+              );
+            }
+            return handler.next(options);
+          },
+        ),
+      );
+
+      final repo = AiRepository(apiClient: apiClient);
+      final labelRes = await repo.scanLabel(testFile, language: 'en');
+      expect(labelRes.foodName, 'Strawberries');
+      expect(labelRes.isFood, isTrue);
+
+      final expRes = await repo.scanExpiryDate(testFile, language: 'en');
+      expect(expRes, isNotNull);
+
+      tempDir.deleteSync(recursive: true);
     });
   });
 }

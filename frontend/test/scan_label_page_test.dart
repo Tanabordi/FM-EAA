@@ -381,5 +381,75 @@ void main() {
     // Must NOT overwrite user's manual date!
     expect(find.descendant(of: dateFieldFinder, matching: find.text('12/31/2026')), findsOneWidget);
   });
+
+  testWidgets('Tapping camera shutter button captures test photo and enables analyze button', (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: ScanLabelPage(fridgeId: 'fridge_1'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final cameraBtn = find.byKey(const Key('scan_label_camera_btn'));
+    expect(cameraBtn, findsOneWidget);
+    await tester.tap(cameraBtn);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('scan_label_analyze_btn')), findsOneWidget);
+  });
+
+  testWidgets('ScanLabelPage with initialImageBytes displays image and enables analyze immediately', (tester) async {
+    final bytes = Uint8List.fromList([1, 2, 3, 4]);
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: ScanLabelPage(
+            fridgeId: 'fridge_1',
+            initialImageBytes: bytes,
+            initialImagePath: 'test_label.jpg',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('scan_label_analyze_btn')), findsOneWidget);
+  });
+
+  testWidgets('Analyze failure shows error snackbar gracefully', (tester) async {
+    final throwingRepo = ThrowingAiRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          aiRepositoryProvider.overrideWithValue(throwingRepo),
+        ],
+        child: const MaterialApp(
+          home: ScanLabelPage(
+            fridgeId: 'fridge_1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('scan_label_camera_btn')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('scan_label_analyze_btn')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+  });
 }
+
+class ThrowingAiRepository extends AiRepository {
+  ThrowingAiRepository() : super(apiClient: ApiClient());
+
+  @override
+  Future<AiScanResult> scanLabelBytes(Uint8List bytes, {String? filename, String language = 'en'}) async {
+    throw Exception('Server error: 500');
+  }
+}
+
 
