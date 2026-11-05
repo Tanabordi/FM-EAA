@@ -27,7 +27,7 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Backend Tests
+      - name: Run Backend Tests with Code Coverage
         env:
           PORT: ${{ secrets.PORT }}
           NODE_ENV: test
@@ -37,7 +37,7 @@ jobs:
           ORACLE_CONNECT_STRING: ${{ secrets.ORACLE_DB_CONNECT_STRING }}
           ORACLE_DB_USER: ${{ secrets.ORACLE_DB_USER }}
           ORACLE_DB_PASSWORD: ${{ secrets.ORACLE_DB_PASSWORD }}
-          ORACLE_DB_CONNECT_STRING: ${{ secrets.ORACLE_DB_CONNECT_STRING }}
+          ORACLE_CONNECT_STRING: ${{ secrets.ORACLE_DB_CONNECT_STRING }}
           ORACLE_DB_SCHEMA: ${{ secrets.ORACLE_DB_SCHEMA }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
@@ -45,7 +45,7 @@ jobs:
           GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OCI_PAR_URL: ${{ secrets.OCI_PAR_URL }}
-        run: npm test
+        run: npm run test:coverage
 
   frontend:
     name: Frontend Test & Build
@@ -69,6 +69,9 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Install System Dependencies for SQLite
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
       - name: Install Dependencies
         run: flutter pub get
 
@@ -77,6 +80,27 @@ jobs:
 
       - name: Run Tests with Coverage (Automated Testing)
         run: flutter test --coverage
+
+      - name: Coverage ≥ 70%
+        run: |
+          node -e "
+            const fs = require('fs');
+            const content = fs.readFileSync('coverage/lcov.info', 'utf8');
+            let totalLF = 0, totalLH = 0, skip = false;
+            for (const line of content.split('\n')) {
+              if (line.startsWith('SF:')) skip = line.endsWith('.g.dart');
+              if (!skip) {
+                if (line.startsWith('LF:')) totalLF += parseInt(line.slice(3).trim());
+                if (line.startsWith('LH:')) totalLH += parseInt(line.slice(3).trim());
+              }
+            }
+            const pct = (totalLH / totalLF) * 100;
+            console.log('Frontend Code Coverage: ' + pct.toFixed(2) + '% (Required >= 70.0%)');
+            if (pct < 70.0) {
+              console.error('::error::Code coverage (' + pct.toFixed(2) + '%) is below the required 70% threshold.');
+              process.exit(1);
+            }
+          "
 
       - name: Setup google-services.json for CI Build
         env:

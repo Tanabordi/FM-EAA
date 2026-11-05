@@ -6,7 +6,18 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest --detectOpenHandles --testTimeout=30000"
+    "test": "jest --detectOpenHandles --testTimeout=30000 --forceExit",
+    "test:coverage": "jest --coverage --detectOpenHandles --testTimeout=30000 --forceExit"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageThreshold": {
+      "global": {
+        "statements": 70,
+        "lines": 70,
+        "functions": 70
+      }
+    }
   },
   "dependencies": {
     "@google/genai": "^2.32.0",
