@@ -6,6 +6,7 @@ import '../../../../data/models/item_model.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/category_chips.dart';
 import '../../../../shared/widgets/item_card.dart';
+import '../../../../shared/widgets/offline_banner.dart';
 import '../../../item/presentation/widgets/finish_all_snackbar.dart';
 import '../../../item/presentation/widgets/mark_consumed_sheet.dart';
 import '../../providers/fridge_detail_provider.dart';
@@ -108,6 +109,7 @@ class _FridgeDetailPageState extends ConsumerState<FridgeDetailPage>
       body: SafeArea(
         child: Column(
           children: [
+            const OfflineBanner(),
             // Top App Bar
             _buildAppBar(context),
             // Floating Pill Search Bar with Shadow

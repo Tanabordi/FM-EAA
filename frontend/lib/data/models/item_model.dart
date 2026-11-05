@@ -12,6 +12,7 @@ class ItemModel {
   final DateTime expiryDate;
   final String? imagePath;
   final bool isSynced;
+  final bool isDeleted;
   final DateTime updatedAt;
 
   const ItemModel({
@@ -25,6 +26,7 @@ class ItemModel {
     required this.expiryDate,
     this.imagePath,
     this.isSynced = true,
+    this.isDeleted = false,
     required this.updatedAt,
   });
 
@@ -350,6 +352,7 @@ class ItemModel {
       expiryDate: entry.expiryDate,
       imagePath: entry.imagePath,
       isSynced: entry.isSynced,
+      isDeleted: entry.isDeleted,
       updatedAt: entry.updatedAt,
     );
   }
@@ -383,6 +386,10 @@ class ItemModel {
       qty = double.tryParse(rawQuantity.toString()) ?? 1.0;
     }
 
+    final isDel = json['isDeleted'] == true ||
+        json['is_deleted'] == true ||
+        (json['is_deleted'] as int? ?? 0) == 1;
+
     return ItemModel(
       id: json['id']?.toString() ?? '',
       fridgeId: (json['fridgeId'] ?? json['fridge_id'] ?? '').toString(),
@@ -394,6 +401,7 @@ class ItemModel {
       expiryDate: parsedExpiry,
       imagePath: (json['imagePath'] ?? json['image_path'])?.toString(),
       isSynced: json['isSynced'] == true || (json['is_synced'] as int? ?? 1) == 1,
+      isDeleted: isDel,
       updatedAt: parsedUpdated,
     );
   }
@@ -410,6 +418,7 @@ class ItemModel {
       'expiry_date': expiryDate.toIso8601String(),
       'image_path': imagePath,
       'is_synced': isSynced ? 1 : 0,
+      'is_deleted': isDeleted ? 1 : 0,
       'updated_at': updatedAt.toIso8601String(),
     };
   }
