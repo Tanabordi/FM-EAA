@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/primary_button.dart';
@@ -19,6 +20,18 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   bool _isLoading = false;
   String? _emailError;
 
+  bool _isThRead() {
+    try {
+      return ref.read(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -26,13 +39,14 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   }
 
   Future<void> _handleSendLink() async {
+    final isTh = _isThRead();
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
-      setState(() => _emailError = 'Email is required');
+      setState(() => _emailError = isTh ? 'กรุณากรอกอีเมล' : 'Email is required');
       return;
     } else if (!email.contains('@') || !email.contains('.')) {
-      setState(() => _emailError = 'Please enter a valid email address');
+      setState(() => _emailError = isTh ? 'กรุณากรอกอีเมลที่ถูกต้อง' : 'Please enter a valid email address');
       return;
     }
 
@@ -46,9 +60,11 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password reset code has been sent to your email.'),
-          backgroundColor: Color(0xFF2E7D32),
+        SnackBar(
+          content: Text(isTh
+              ? 'ส่งรหัสรีเซ็ตรหัสผ่านไปยังอีเมลของคุณเรียบร้อยแล้ว'
+              : 'Password reset code has been sent to your email.'),
+          backgroundColor: const Color(0xFF2E7D32),
         ),
       );
 
@@ -72,6 +88,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -87,7 +104,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                   const FigmaBackButton(),
                   const SizedBox(width: 16),
                   Text(
-                    'Reset Password',
+                    isTh ? 'รีเซ็ตรหัสผ่าน' : 'Reset Password',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface,
@@ -99,7 +116,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
               const SizedBox(height: 32),
               // Subtitle
               Text(
-                'Enter your email',
+                isTh ? 'กรอกอีเมลของคุณ' : 'Enter your email',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                   fontSize: 15,
@@ -109,7 +126,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
               // Email input matching Figma style
               AppTextField(
                 controller: _emailController,
-                labelText: 'Email',
+                labelText: isTh ? 'อีเมล' : 'Email',
                 hintText: '',
                 errorText: _emailError,
                 onChanged: (_) {
@@ -120,7 +137,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
               const SizedBox(height: 32),
               // Send Link Button
               PrimaryButton(
-                label: 'Send Link',
+                label: isTh ? 'ส่งรหัสรีเซ็ต' : 'Send Link',
                 isLoading: _isLoading,
                 onPressed: _handleSendLink,
               ),

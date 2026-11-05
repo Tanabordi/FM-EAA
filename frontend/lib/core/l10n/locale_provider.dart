@@ -1,16 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Locale State Provider (Supports 'th' and 'en')
 class LocaleNotifier extends StateNotifier<Locale> {
-  LocaleNotifier() : super(const Locale('en'));
+  LocaleNotifier() : super(const Locale('en')) {
+    _loadPersistedLocale();
+  }
 
-  void setLocale(String languageCode) {
+  Future<void> _loadPersistedLocale() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final code = prefs.getString('app_language');
+      if (code != null && (code == 'en' || code == 'th')) {
+        state = Locale(code);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> setLocale(String languageCode) async {
     state = Locale(languageCode);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('app_language', languageCode);
+    } catch (_) {}
   }
 
   void toggleLocale() {
-    state = state.languageCode == 'en' ? const Locale('th') : const Locale('en');
+    final next = state.languageCode == 'en' ? 'th' : 'en';
+    setLocale(next);
   }
 }
 
@@ -34,4 +52,3 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
   return ThemeModeNotifier();
 });
-

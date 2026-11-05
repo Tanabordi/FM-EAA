@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/l10n/locale_provider.dart';
 
 /// Leave Fridge Alert Dialog
 class LeaveFridgeDialog extends ConsumerWidget {
@@ -16,6 +17,7 @@ class LeaveFridgeDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
     const dialogBg = Color(0xFFEAEFE8);
     const leaveRed = Color(0xFFBA1A1A);
     const textDark = Color(0xFF181D18);
@@ -23,7 +25,7 @@ class LeaveFridgeDialog extends ConsumerWidget {
 
     final displayName = (fridgeName != null && fridgeName!.isNotEmpty)
         ? '"$fridgeName"'
-        : 'this fridge';
+        : (isTh ? 'ตู้เย็นนี้' : 'this fridge');
 
     return Dialog(
       backgroundColor: dialogBg,
@@ -37,9 +39,9 @@ class LeaveFridgeDialog extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Leave Fridge?',
-              style: TextStyle(
+            Text(
+              isTh ? 'ออกจากตู้เย็น?' : 'Leave Fridge?',
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: textDark,
@@ -48,7 +50,9 @@ class LeaveFridgeDialog extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Are you sure you want to leave $displayName? You will lose access to its items.',
+              isTh
+                  ? 'คุณแน่ใจหรือไม่ว่าต้องการออกจาก $displayName? คุณจะไม่สามารถเข้าถึงวัตถุดิบในตู้เย็นนี้ได้อีก'
+                  : 'Are you sure you want to leave $displayName? You will lose access to its items.',
               style: const TextStyle(
                 fontSize: 15.5,
                 color: textMuted,
@@ -66,9 +70,9 @@ class LeaveFridgeDialog extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
+                  child: Text(
+                    isTh ? 'ยกเลิก' : 'Cancel',
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: textDark,
@@ -91,9 +95,9 @@ class LeaveFridgeDialog extends ConsumerWidget {
                       onConfirm!();
                     }
                   },
-                  child: const Text(
-                    'Leave',
-                    style: TextStyle(
+                  child: Text(
+                    isTh ? 'ออกจากตู้เย็น' : 'Leave',
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),

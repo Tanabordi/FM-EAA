@@ -5,6 +5,7 @@
 
 # Firebase secrets
 backend/*firebase*.json
+backend/google-services.json
 backend/.fcm_tokens.json
 frontend/android/app/google-services.json
 

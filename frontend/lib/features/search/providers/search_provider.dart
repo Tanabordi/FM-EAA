@@ -15,7 +15,14 @@ final searchResultsProvider = Provider.family<List<ItemModel>, String>((ref, fri
     // Exclude expired items from search results (moved to History > Expired)
     if (item.status == FreshnessStatus.expired) return false;
 
-    return item.name.toLowerCase().contains(query) ||
-        item.category.toLowerCase().contains(query);
+    final enName = item.name.toLowerCase();
+    final thName = ItemModel.getThaiFoodName(item.name).toLowerCase();
+    final enCategory = item.category.toLowerCase();
+    final thCategory = ItemModel.getThaiCategoryName(item.category).toLowerCase();
+
+    return enName.contains(query) ||
+        thName.contains(query) ||
+        enCategory.contains(query) ||
+        thCategory.contains(query);
   }).toList();
 });

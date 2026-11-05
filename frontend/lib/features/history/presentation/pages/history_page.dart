@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/theme/freshness_colors.dart';
 import '../../../../data/models/history_model.dart';
+import '../../../../data/models/item_model.dart';
 import '../../providers/history_provider.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 
@@ -46,9 +48,14 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
   String get _currentTabLabel => _tabController.index == 0 ? 'Consumed' : 'Expired';
 
   Future<void> _confirmClearAll(int count) async {
+    final isTh = ref.read(localeProvider).languageCode == 'th';
+    final tabName = _tabController.index == 0
+        ? (isTh ? 'บริโภคแล้ว' : 'Consumed')
+        : (isTh ? 'หมดอายุ' : 'Expired');
+
     if (count == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No $_currentTabLabel history to clear.')),
+        SnackBar(content: Text(isTh ? 'ไม่มีประวัติ$tabNameให้ล้าง' : 'No $_currentTabLabel history to clear.')),
       );
       return;
     }
@@ -57,16 +64,20 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Clear All $_currentTabLabel History?'),
+        title: Text(isTh ? 'ล้างประวัติ$tabNameทั้งหมด?' : 'Clear All $_currentTabLabel History?'),
         content: Text(
           isExpired
-              ? 'Are you sure you want to clear all expired records for this fridge? This will also remove these expired items from your fridge inventory. This action cannot be undone.'
-              : 'Are you sure you want to clear all consumed records for this fridge? This will only remove the records from your history and does not affect your fridge inventory. This action cannot be undone.',
+              ? (isTh
+                  ? 'คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติหมดอายุทั้งหมดสำหรับตู้เย็นนี้? การดำเนินการนี้จะลบรายการที่หมดอายุออกจากตู้เย็นของคุณด้วย และไม่สามารถยกเลิกได้'
+                  : 'Are you sure you want to clear all expired records for this fridge? This will also remove these expired items from your fridge inventory. This action cannot be undone.')
+              : (isTh
+                  ? 'คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติการบริโภคทั้งหมดสำหรับตู้เย็นนี้? การดำเนินการนี้จะลบเฉพาะประวัติและไม่กระทบต่อตู้เย็นของคุณ และไม่สามารถยกเลิกได้'
+                  : 'Are you sure you want to clear all consumed records for this fridge? This will only remove the records from your history and does not affect your fridge inventory. This action cannot be undone.'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(isTh ? 'ยกเลิก' : 'Cancel'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -74,7 +85,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Clear All'),
+            child: Text(isTh ? 'ล้างทั้งหมด' : 'Clear All'),
           ),
         ],
       ),
@@ -87,26 +98,35 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('All $_currentTabLabel history records cleared.')),
+        SnackBar(content: Text(isTh ? 'ล้างประวัติ$tabNameทั้งหมดเรียบร้อยแล้ว' : 'All $_currentTabLabel history records cleared.')),
       );
     }
   }
 
   Future<void> _confirmDeleteSingle(HistoryModel item) async {
+    final isTh = ref.read(localeProvider).languageCode == 'th';
     final isExpired = item.isExpired;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isExpired ? 'Delete Expired Item' : 'Delete Consumption Record'),
+        title: Text(
+          isTh
+              ? (isExpired ? 'ลบรายการหมดอายุ' : 'ลบบันทึกการบริโภค')
+              : (isExpired ? 'Delete Expired Item' : 'Delete Consumption Record'),
+        ),
         content: Text(
           isExpired
-              ? 'Remove "${item.itemName}" from history and your fridge? This will also remove the item from your fridge inventory.'
-              : 'Remove "${item.itemName}" from consumption history? This will only remove the record from your history.',
+              ? (isTh
+                  ? 'ลบ "${item.itemName}" ออกจากประวัติและตู้เย็นของคุณหรือไม่? การดำเนินการนี้จะลบรายการนี้ออกจากตู้เย็นด้วย'
+                  : 'Remove "${item.itemName}" from history and your fridge? This will also remove the item from your fridge inventory.')
+              : (isTh
+                  ? 'ลบ "${item.itemName}" ออกจากประวัติการบริโภคหรือไม่? การดำเนินการนี้จะลบเฉพาะบันทึกนี้เท่านั้น'
+                  : 'Remove "${item.itemName}" from consumption history? This will only remove the record from your history.'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(isTh ? 'ยกเลิก' : 'Cancel'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -114,7 +134,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
+            child: Text(isTh ? 'ลบ' : 'Delete'),
           ),
         ],
       ),
@@ -127,8 +147,8 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
         SnackBar(
           content: Text(
             isExpired
-                ? 'Removed "${item.itemName}" from history and fridge.'
-                : 'Removed "${item.itemName}" from consumption history.',
+                ? (isTh ? 'ลบ "${item.itemName}" ออกจากประวัติและตู้เย็นแล้ว' : 'Removed "${item.itemName}" from history and fridge.')
+                : (isTh ? 'ลบ "${item.itemName}" ออกจากประวัติการบริโภคแล้ว' : 'Removed "${item.itemName}" from consumption history.'),
           ),
         ),
       );
@@ -139,6 +159,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final historyAsync = ref.watch(historyStreamProvider(widget.fridgeId));
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -152,9 +173,9 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
           padding: EdgeInsets.only(left: 16),
           child: AppBackButton(),
         ),
-        title: const Text(
-          'History',
-          style: TextStyle(
+        title: Text(
+          isTh ? 'ประวัติ' : 'History',
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
@@ -176,9 +197,9 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               unselectedLabelColor: const Color(0xFF717971),
               unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-              tabs: const [
-                Tab(text: 'Consumed'),
-                Tab(text: 'Expired'),
+              tabs: [
+                Tab(text: isTh ? 'บริโภคแล้ว' : 'Consumed'),
+                Tab(text: isTh ? 'หมดอายุ' : 'Expired'),
               ],
             ),
           ),
@@ -209,29 +230,29 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                       Expanded(
                         child: Text(
                           _tabController.index == 0
-                              ? 'Consumed is auto-deleted after 30 days'
-                              : 'Expired is auto-deleted after 30 days',
+                              ? (isTh ? 'ประวัติการบริโภคจะถูกลบอัตโนมัติหลังจาก 30 วัน' : 'Consumed is auto-deleted after 30 days')
+                              : (isTh ? 'ประวัติหมดอายุจะถูกลบอัตโนมัติหลังจาก 30 วัน' : 'Expired is auto-deleted after 30 days'),
                           style: const TextStyle(fontSize: 12, color: Color(0xFF6B726B)),
                         ),
                       ),
                       InkWell(
                         onTap: () => _confirmClearAll(currentCount),
                         borderRadius: BorderRadius.circular(6),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'Clear All',
-                                style: TextStyle(
+                                isTh ? 'ล้างทั้งหมด' : 'Clear All',
+                                style: const TextStyle(
                                   color: Color(0xFFB91C1C),
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
                                 ),
                               ),
-                              SizedBox(width: 4),
-                              Icon(
+                              const SizedBox(width: 4),
+                              const Icon(
                                 Icons.delete_outline,
                                 color: Color(0xFFB91C1C),
                                 size: 18,
@@ -248,9 +269,9 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                     controller: _tabController,
                     children: [
                       // Consumed Tab
-                      _buildHistoryList(context, consumedItems, isConsumedTab: true),
+                      _buildHistoryList(context, consumedItems, isConsumedTab: true, isTh: isTh),
                       // Expired Tab
-                      _buildHistoryList(context, expiredItems, isConsumedTab: false),
+                      _buildHistoryList(context, expiredItems, isConsumedTab: false, isTh: isTh),
                     ],
                   ),
                 ),
@@ -266,6 +287,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
     BuildContext context,
     List<HistoryModel> items, {
     required bool isConsumedTab,
+    bool isTh = false,
   }) {
     if (items.isEmpty) {
       return Center(
@@ -286,14 +308,16 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
             ),
             const SizedBox(height: 16),
             Text(
-              isConsumedTab ? 'No Consumed History' : 'No Expired History',
+              isConsumedTab
+                  ? (isTh ? 'ไม่มีประวัติการบริโภค' : 'No Consumed History')
+                  : (isTh ? 'ไม่มีประวัติหมดอายุ' : 'No Expired History'),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             Text(
               isConsumedTab
-                  ? 'Items consumed from your fridge will appear here.'
-                  : 'Expired items will appear here.',
+                  ? (isTh ? 'รายการอาหารที่ถูกบริโภคจะแสดงที่นี่' : 'Items consumed from your fridge will appear here.')
+                  : (isTh ? 'รายการอาหารที่หมดอายุจะแสดงที่นี่' : 'Expired items will appear here.'),
               style: const TextStyle(fontSize: 13, color: Color(0xFF717971)),
             ),
           ],
@@ -324,7 +348,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                 ),
               ),
             ),
-            ...groupItems.map((item) => _buildCard(context, item)),
+            ...groupItems.map((item) => _buildCard(context, item, isTh)),
             const SizedBox(height: 6),
           ],
         );
@@ -332,7 +356,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
     );
   }
 
-  Widget _buildCard(BuildContext context, HistoryModel item) {
+  Widget _buildCard(BuildContext context, HistoryModel item, [bool isTh = false]) {
     final qtyChanged = item.quantityChanged == item.quantityChanged.toInt()
         ? item.quantityChanged.toInt().toString()
         : item.quantityChanged.toString();
@@ -342,6 +366,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
 
     final timeStr = DateFormat('hh:mm a').format(item.createdAt);
     final dateStr = DateFormat('d MMM').format(item.createdAt);
+    final localizedUnit = ItemModel.localizeUnit(item.unit, isTh);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -382,7 +407,9 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                 const SizedBox(height: 3),
                 if (item.isConsumed) ...[
                   Text(
-                    '-$qtyChanged ${item.unit} ($qtyLeft left) • by @${item.byUsername}',
+                    isTh
+                        ? '-$qtyChanged $localizedUnit (เหลือ $qtyLeft) • โดย @${item.byUsername}'
+                        : '-$qtyChanged ${item.unit} ($qtyLeft left) • by @${item.byUsername}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF555F55),
@@ -399,7 +426,9 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                   ),
                 ] else ...[
                   Text(
-                    '$qtyChanged ${item.unit} expired',
+                    isTh
+                        ? '$qtyChanged $localizedUnit หมดอายุ'
+                        : '$qtyChanged ${item.unit} expired',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -409,7 +438,9 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    '• Expired on $dateStr • $timeStr',
+                    isTh
+                        ? '• หมดอายุเมื่อ $dateStr • $timeStr'
+                        : '• Expired on $dateStr • $timeStr',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF555F55),
@@ -417,7 +448,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
                   ),
                 ],
                 const SizedBox(height: 8),
-                _buildStatusBadge(item.isConsumed),
+                _buildStatusBadge(item.isConsumed, isTh),
               ],
             ),
           ),
@@ -532,7 +563,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
     );
   }
 
-  Widget _buildStatusBadge(bool isConsumed) {
+  Widget _buildStatusBadge(bool isConsumed, [bool isTh = false]) {
     if (isConsumed) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -540,14 +571,14 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
           color: const Color(0xFF435343), // Figma dark charcoal/olive capsule
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check, size: 13, color: Colors.white),
-            SizedBox(width: 4),
+            const Icon(Icons.check, size: 13, color: Colors.white),
+            const SizedBox(width: 4),
             Text(
-              'Consumed',
-              style: TextStyle(
+              isTh ? 'บริโภคแล้ว' : 'Consumed',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -563,14 +594,14 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
           color: const Color(0xFFEA3A3D), // Figma red capsule
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 13, color: Colors.white),
-            SizedBox(width: 4),
+            const Icon(Icons.error_outline, size: 13, color: Colors.white),
+            const SizedBox(width: 4),
             Text(
-              'Expired',
-              style: TextStyle(
+              isTh ? 'หมดอายุแล้ว' : 'Expired',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,

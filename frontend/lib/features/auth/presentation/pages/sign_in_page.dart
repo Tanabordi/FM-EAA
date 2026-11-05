@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
@@ -45,15 +46,16 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   Future<void> _handleSignIn() async {
     final identifier = _identifierController.text.trim();
     final password = _passwordController.text;
+    final isTh = ref.read(localeProvider).languageCode == 'th';
 
     setState(() {
-      _identifierError = identifier.isEmpty ? 'Please enter username or email' : null;
-      _passwordError = password.isEmpty ? 'Please enter password' : null;
+      _identifierError = identifier.isEmpty ? (isTh ? 'กรุณากรอกชื่อผู้ใช้หรืออีเมล' : 'Please enter username or email') : null;
+      _passwordError = password.isEmpty ? (isTh ? 'กรุณากรอกรหัสผ่าน' : 'Please enter password') : null;
     });
 
     if (identifier.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in both username/email and password')),
+        SnackBar(content: Text(isTh ? 'กรุณากรอกทั้งชื่อผู้ใช้/อีเมล และรหัสผ่าน' : 'Please fill in both username/email and password')),
       );
       return;
     }
@@ -132,6 +134,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.isAuthenticated && next.user != null) {
         context.go('/fridges');
@@ -180,7 +183,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               const SizedBox(height: 28),
               // Title matching Figma
               Text(
-                'Welcome To\nFridge Management &\nExpiry Alert App',
+                isTh
+                    ? 'ยินดีต้อนรับสู่\nแอปจัดการตู้เย็น &\nแจ้งเตือนวันหมดอายุ'
+                    : 'Welcome To\nFridge Management &\nExpiry Alert App',
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
@@ -191,7 +196,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               const SizedBox(height: 10),
               // Subtitle
               Text(
-                'Sign in to your account to continue.',
+                isTh ? 'เข้าสู่ระบบเพื่อดำเนินการต่อ' : 'Sign in to your account to continue.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -201,7 +206,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               // Username or Email
               AppTextField(
                 controller: _identifierController,
-                labelText: 'Username or Email',
+                labelText: isTh ? 'ชื่อผู้ใช้หรืออีเมล' : 'Username or Email',
                 hintText: '',
                 errorText: _identifierError,
                 onChanged: (_) {
@@ -212,7 +217,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               // Password
               AppTextField(
                 controller: _passwordController,
-                labelText: 'Password',
+                labelText: isTh ? 'รหัสผ่าน' : 'Password',
                 hintText: '',
                 errorText: _passwordError,
                 onChanged: (_) {
@@ -237,7 +242,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: Text(
-                      'Forgot password?',
+                      isTh ? 'ลืมรหัสผ่าน?' : 'Forgot password?',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -250,7 +255,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               const SizedBox(height: 28),
               // Sign In Button
               PrimaryButton(
-                label: 'Sign In',
+                label: isTh ? 'เข้าสู่ระบบ' : 'Sign In',
                 isLoading: _isLoading,
                 onPressed: _handleSignIn,
               ),
@@ -267,7 +272,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
-                      'Or',
+                      isTh ? 'หรือ' : 'Or',
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 14,
@@ -285,7 +290,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               const SizedBox(height: 24),
               // Google Sign-In Button
               GoogleSignInButton(
-                label: 'Sign in with Google',
+                label: isTh ? 'เข้าสู่ระบบด้วย Google' : 'Sign in with Google',
                 onPressed: _handleGoogleSignIn,
               ),
               const SizedBox(height: 36),
@@ -294,7 +299,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "Don’t have an account? ",
+                    isTh ? 'ยังไม่มีบัญชีใช่หรือไม่? ' : "Don’t have an account? ",
                     style: TextStyle(
                       color: colorScheme.onSurfaceVariant,
                       fontSize: 14,
@@ -303,7 +308,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   InkWell(
                     onTap: () => context.push('/create-account'),
                     child: Text(
-                      'Sign up',
+                      isTh ? 'สมัครสมาชิก' : 'Sign up',
                       style: TextStyle(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.bold,

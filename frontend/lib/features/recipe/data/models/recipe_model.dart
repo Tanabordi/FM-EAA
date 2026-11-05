@@ -1,3 +1,5 @@
+import '../../../../data/models/item_model.dart';
+
 class RecipeModel {
   final String id;
   final String title;
@@ -22,6 +24,29 @@ class RecipeModel {
     this.ingredients = const [],
     this.steps = const [],
   });
+
+  String localizedCookingTime(bool isTh) {
+    if (!isTh) return cookingTime;
+    var time = cookingTime;
+    time = time.replaceAll(RegExp(r'\b(mins?|minutes?)\b', caseSensitive: false), 'นาที');
+    time = time.replaceAll(RegExp(r'\b(hrs?|hours?)\b', caseSensitive: false), 'ชั่วโมง');
+    return time;
+  }
+
+  String localizedDifficulty(bool isTh) {
+    if (!isTh) return difficulty;
+    final d = difficulty.toLowerCase().trim();
+    if (d == 'very easy' || d.contains('very easy')) return 'ง่ายมาก';
+    if (d == 'easy' || d.contains('easy')) return 'ง่าย';
+    if (d == 'medium' || d.contains('medium')) return 'ปานกลาง';
+    if (d == 'hard' || d.contains('hard')) return 'ยาก';
+    return difficulty;
+  }
+
+  String localizedExpiringIngredient(bool isTh) {
+    if (!isTh) return expiringIngredient;
+    return ItemModel.getThaiFoodName(expiringIngredient);
+  }
 
   factory RecipeModel.fromJson(Map<String, dynamic> json, {String? defaultExpiring}) {
     return RecipeModel(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../providers/fridges_provider.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
@@ -28,6 +29,30 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
   String? _nameError;
   String? _descError;
   bool _forceExit = false;
+
+  bool get _isTh {
+    try {
+      return ref.read(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  bool _isThRead() {
+    try {
+      return ref.read(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -58,14 +83,17 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
   }
 
   void _handleBack() {
+    final isTh = _isThRead();
     if (_hasUnsavedChanges) {
       showDialog(
         context: context,
         builder: (dialogContext) => ConfirmDialog(
-          title: 'Discard changes?',
-          message: 'You have unsaved changes. Are you sure you want to discard them?',
-          confirmLabel: 'Discard',
-          cancelLabel: 'Keep editing',
+          title: isTh ? 'ละทิ้งการเปลี่ยนแปลง?' : 'Discard changes?',
+          message: isTh
+              ? 'คุณมีข้อมูลที่ยังไม่ได้บันทึก คุณแน่ใจหรือไม่ว่าต้องการละทิ้ง?'
+              : 'You have unsaved changes. Are you sure you want to discard them?',
+          confirmLabel: isTh ? 'ละทิ้ง' : 'Discard',
+          cancelLabel: isTh ? 'แก้ไขต่อ' : 'Keep editing',
           isDestructive: true,
           onConfirm: () {
             setState(() => _forceExit = true);
@@ -82,6 +110,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
   }
 
   void _createFridge() async {
+    final isTh = _isThRead();
     setState(() {
       _nameError = null;
       _descError = null;
@@ -92,15 +121,15 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
     bool hasError = false;
 
     if (name.isEmpty) {
-      setState(() => _nameError = 'Fridge name is required');
+      setState(() => _nameError = isTh ? 'กรุณากรอกชื่อตู้เย็น' : 'Fridge name is required');
       hasError = true;
     } else if (name.length > 15) {
-      setState(() => _nameError = 'Fridge name must not exceed 15 characters');
+      setState(() => _nameError = isTh ? 'ชื่อตู้เย็นต้องไม่เกิน 15 ตัวอักษร' : 'Fridge name must not exceed 15 characters');
       hasError = true;
     }
 
     if (desc.length > 100) {
-      setState(() => _descError = 'Description must not exceed 100 characters');
+      setState(() => _descError = isTh ? 'คำอธิบายต้องไม่เกิน 100 ตัวอักษร' : 'Description must not exceed 100 characters');
       hasError = true;
     }
 
@@ -118,7 +147,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
       });
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Fridge "$name" created successfully'),
+          content: Text(isTh ? 'สร้างตู้เย็น "$name" เรียบร้อยแล้ว' : 'Fridge "$name" created successfully'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -126,7 +155,7 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Failed to create fridge: $e'),
+          content: Text(isTh ? 'ไม่สามารถสร้างตู้เย็นได้: $e' : 'Failed to create fridge: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -135,9 +164,11 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
     const bgColor = Color(0xFFF6FBF3);
     const primaryGreen = Color(0xFF2E6A44);
     const textDark = Color(0xFF181D18);
+    final isTh = _isTh;
 
     return PopScope(
       canPop: !_hasUnsavedChanges,
@@ -165,9 +196,9 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                           children: [
                             AppBackButton(onPressed: _handleBack),
                             const SizedBox(width: 14),
-                            const Text(
-                              'Add New Fridge',
-                              style: TextStyle(
+                            Text(
+                              isTh ? 'เพิ่มตู้เย็นใหม่' : 'Add New Fridge',
+                              style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: textDark,
@@ -182,16 +213,16 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                         AppTextField(
                           controller: _nameController,
                           focusNode: _nameFocusNode,
-                          labelText: 'Fridge Name',
+                          labelText: isTh ? 'ชื่อตู้เย็น' : 'Fridge Name',
                           hintText: '',
-                          helperText: '1–15 characters',
+                          helperText: isTh ? '1–15 ตัวอักษร' : '1–15 characters',
                           errorText: _nameError,
                           textInputAction: TextInputAction.next,
                           onSubmitted: (_) => _descFocusNode.requestFocus(),
                           onChanged: (val) {
                             if (val.trim().length > 15) {
                               setState(() {
-                                _nameError = 'Fridge name must not exceed 15 characters';
+                                _nameError = isTh ? 'ชื่อตู้เย็นต้องไม่เกิน 15 ตัวอักษร' : 'Fridge name must not exceed 15 characters';
                               });
                             } else if (_nameError != null && val.trim().isNotEmpty) {
                               setState(() {
@@ -207,16 +238,16 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                         AppTextField(
                           controller: _descController,
                           focusNode: _descFocusNode,
-                          labelText: 'Description',
+                          labelText: isTh ? 'คำอธิบาย' : 'Description',
                           hintText: '',
-                          helperText: '0–100 characters (optional)',
+                          helperText: isTh ? '0–100 ตัวอักษร (ไม่บังคับ)' : '0–100 characters (optional)',
                           errorText: _descError,
                           maxLines: 5,
                           minLines: 4,
                           onChanged: (val) {
                             if (val.trim().length > 100) {
                               setState(() {
-                                _descError = 'Description must not exceed 100 characters';
+                                _descError = isTh ? 'คำอธิบายต้องไม่เกิน 100 ตัวอักษร' : 'Description must not exceed 100 characters';
                               });
                             } else if (_descError != null) {
                               setState(() {
@@ -240,9 +271,9 @@ class _AddFridgePageState extends ConsumerState<AddFridgePage> {
                               elevation: 0,
                             ),
                             onPressed: _createFridge,
-                            child: const Text(
-                              'Create Fridge',
-                              style: TextStyle(
+                            child: Text(
+                              isTh ? 'สร้างตู้เย็น' : 'Create Fridge',
+                              style: const TextStyle(
                                 fontSize: 15.5,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,

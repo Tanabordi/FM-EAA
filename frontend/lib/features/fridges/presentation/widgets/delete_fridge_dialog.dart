@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../providers/fridges_provider.dart';
 
 /// Screen #8: Delete Fridge Alert Dialog (Matching Image 3: media_1793353307481_8e2a9f17.png 100% pixel-perfect)
@@ -15,6 +16,7 @@ class DeleteFridgeDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
     const dialogBg = Color(0xFFEAEFE8);
     const deleteRed = Color(0xFFBA1A1A);
     const textDark = Color(0xFF181D18);
@@ -32,9 +34,9 @@ class DeleteFridgeDialog extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Delete Fridge?',
-              style: TextStyle(
+            Text(
+              isTh ? 'ลบตู้เย็น?' : 'Delete Fridge?',
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: textDark,
@@ -42,9 +44,9 @@ class DeleteFridgeDialog extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'This action cannot be undone',
-              style: TextStyle(
+            Text(
+              isTh ? 'การดำเนินการนี้ไม่สามารถยกเลิกได้' : 'This action cannot be undone',
+              style: const TextStyle(
                 fontSize: 15.5,
                 color: textMuted,
                 fontWeight: FontWeight.w400,
@@ -61,9 +63,9 @@ class DeleteFridgeDialog extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
+                  child: Text(
+                    isTh ? 'ยกเลิก' : 'Cancel',
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: textDark,
@@ -85,21 +87,20 @@ class DeleteFridgeDialog extends ConsumerWidget {
                     ref.read(fridgesProvider.notifier).removeFridge(fridgeId);
                     final displayName = (fridgeName != null && fridgeName!.isNotEmpty)
                         ? '"$fridgeName"'
-                        : 'Fridge';
+                        : (isTh ? 'ตู้เย็น' : 'Fridge');
                     messenger.showSnackBar(
                       SnackBar(
-                        content: Text('$displayName deleted successfully'),
+                        content: Text(isTh ? '$displayName ถูกลบเรียบร้อยแล้ว' : '$displayName deleted successfully'),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                     Navigator.of(context).pop(true);
                   },
-                  child: const Text(
-                    'Delete',
-                    style: TextStyle(
+                  child: Text(
+                    isTh ? 'ลบ' : 'Delete',
+                    style: const TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),

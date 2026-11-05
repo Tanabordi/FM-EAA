@@ -66,6 +66,126 @@ function translateThaiIngredientToEn(name) {
   return trimmed;
 }
 
+const EN_TO_THAI_MAP = {
+  'raw shrimp': 'กุ้งสด',
+  'shrimp': 'กุ้งสด',
+  'prawn': 'กุ้ง',
+  'prawns': 'กุ้ง',
+  'beef steak': 'สเต็กเนื้อวัว',
+  'wagyu beef steak': 'สเต็กเนื้อวากิว',
+  'wagyu beef': 'เนื้อวัววากิว',
+  'beef': 'เนื้อวัว',
+  'minced beef': 'เนื้อวัวบด',
+  'pork': 'เนื้อหมู',
+  'minced pork': 'หมูบด',
+  'ground pork': 'หมูบด',
+  'pork chops': 'พอร์คชอป',
+  'pork slice': 'หมูสไลด์',
+  'pork belly': 'หมูสามชั้น',
+  'chicken': 'เนื้อไก่',
+  'chicken breast': 'อกไก่',
+  'chicken wing': 'ปีกไก่',
+  'chicken wings': 'ปีกไก่',
+  'chicken thigh': 'สะโพกไก่',
+  'smoked sausage': 'ไส้กรอกรมควัน',
+  'cocktail sausage': 'ไส้กรอกค็อกเทล',
+  'smoked cocktail sausage': 'ค็อกเทลรมควัน',
+  'sausage': 'ไส้กรอก',
+  'sausages': 'ไส้กรอก',
+  'bacon': 'เบคอน',
+  'ham': 'แฮม',
+  'salmon': 'แซลมอน',
+  'salmon fillet': 'เนื้อปลาแซลมอน',
+  'fish': 'ปลา',
+  'fish fillet': 'เนื้อปลา',
+  'tofu': 'เต้าหู้',
+  'egg': 'ไข่ไก่',
+  'eggs': 'ไข่ไก่',
+  'fresh milk': 'นมสด',
+  'milk': 'นมสด',
+  'cheese': 'ชีส',
+  'butter': 'เนย',
+  'yogurt': 'โยเกิร์ต',
+  'bread': 'ขนมปัง',
+  'rice': 'ข้าว',
+  'cooked rice': 'ข้าวสวย',
+  'noodles': 'บะหมี่',
+  'pasta': 'พาสต้า',
+  'spaghetti': 'สปาเก็ตตี้',
+  'carrot': 'แครอท',
+  'carrots': 'แครอท',
+  'broccoli': 'บรอกโคลี',
+  'tomato': 'มะเขือเทศ',
+  'tomatoes': 'มะเขือเทศ',
+  'potato': 'มันฝรั่ง',
+  'potatoes': 'มันฝรั่ง',
+  'onion': 'หอมใหญ่',
+  'onions': 'หอมใหญ่',
+  'spring onion': 'ต้นหอม',
+  'spring onions': 'ต้นหอม',
+  'scallion': 'ต้นหอม',
+  'garlic': 'กระเทียม',
+  'chili': 'พริก',
+  'lime': 'มะนาว',
+  'lemon': 'เลมอน',
+  'lettuce': 'ผักกาดหอม',
+  'cabbage': 'กะหล่ำปลี',
+  'spinach': 'ผักโขม',
+  'mushroom': 'เห็ด',
+  'mushrooms': 'เห็ด',
+  'cucumber': 'แตงกวา',
+  'cucumbers': 'แตงกวา',
+  'bell pepper': 'พริกหวาน',
+  'coriander': 'ผักชี',
+  'cilantro': 'ผักชี',
+  'strawberry': 'สตรอว์เบอร์รี',
+  'strawberries': 'สตรอว์เบอร์รี',
+  'avocado': 'อะโวคาโด',
+  'avocados': 'อะโวคาโด',
+  'apple': 'แอปเปิ้ล',
+  'apples': 'แอปเปิ้ล',
+  'banana': 'กล้วย',
+  'bananas': 'กล้วย',
+  'orange': 'ส้ม',
+  'oranges': 'ส้ม',
+  'watermelon': 'แตงโม',
+  'mango': 'มะม่วง',
+  'grape': 'องุ่น',
+  'grapes': 'องุ่น',
+  'orange juice': 'น้ำส้ม',
+  'apple juice': 'น้ำแอปเปิ้ล',
+  'drinking water': 'น้ำดื่ม',
+  'water': 'น้ำดื่ม',
+  'green tea': 'ชาเขียว',
+  'coffee': 'กาแฟ',
+  'spicy chili sauce': 'ซอสพริกเผ็ด',
+  'chili sauce': 'ซอสพริก',
+  'tomato sauce': 'ซอสมะเขือเทศ',
+  'ketchup': 'ซอสมะเขือเทศ',
+  'soy sauce': 'ซีอิ๊วขาว',
+  'fish sauce': 'น้ำปลา',
+  'oyster sauce': 'ซอสหอยนางรม',
+  'mayonnaise': 'มายองเนส',
+  'cooking oil': 'น้ำมันพืช',
+  'vegetable oil': 'น้ำมันพืช',
+  'olive oil': 'น้ำมันมะกอก',
+  'honey': 'น้ำผึ้ง',
+  'jam': 'แยม',
+  'strawberry jam': 'แยมสตรอว์เบอร์รี',
+};
+
+function translateEnIngredientToThai(name) {
+  if (!name || typeof name !== 'string') return name;
+  const lower = name.toLowerCase().trim();
+  if (EN_TO_THAI_MAP[lower]) return EN_TO_THAI_MAP[lower];
+  for (const [en, thai] of Object.entries(EN_TO_THAI_MAP)) {
+    if (lower.includes(en)) {
+      return thai;
+    }
+  }
+  return name;
+}
+
 function getScanLabelPrompt(language = 'en') {
   if (language === 'en') {
     return `Analyze the image and respond strictly in JSON matching this schema:
@@ -420,7 +540,7 @@ function detectCategory(mainIngredient = '', explicitCategory = null) {
 
 function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, category = null) {
   const isEn = language === 'en';
-  const displayIngredient = isEn ? translateThaiIngredientToEn(mainIngredient) : mainIngredient;
+  const displayIngredient = isEn ? translateThaiIngredientToEn(mainIngredient) : translateEnIngredientToThai(mainIngredient);
   const detectedCat = detectCategory(mainIngredient, category);
 
   let pool = [];
@@ -429,7 +549,7 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
     pool = [
       {
         id: 'recipe_bev_1',
-        title: isEn ? `Refreshing Iced ${displayIngredient} Splash` : `เครื่องดื่มเย็นชื่นใจสูตร${mainIngredient}`,
+        title: isEn ? `Refreshing Iced ${displayIngredient} Splash` : `เครื่องดื่มเย็นชื่นใจสูตร${displayIngredient}`,
         description: isEn ? 'Cool, vibrant, and incredibly refreshing beverage.' : 'สดชื่น ดับกระหาย คลายร้อน ทำง่ายใน 3 นาที',
         cookingTime: '5 min',
         difficulty: 'Very easy',
@@ -442,14 +562,14 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? 'Fresh mint or lemon slice (optional)' : 'ใบสะระแหน่หรือเลมอนฝาน (ถ้ามี)',
         ],
         steps: [
-          isEn ? `Pour ${displayIngredient} into a serving glass over ice.` : `เท${mainIngredient}ลงในแก้วที่ใส่น้ำแข็งเตรียมไว้`,
+          isEn ? `Pour ${displayIngredient} into a serving glass over ice.` : `เท${displayIngredient}ลงในแก้วที่ใส่น้ำแข็งเตรียมไว้`,
           isEn ? 'Stir in honey or syrup to your desired sweetness.' : 'เติมน้ำผึ้งหรือน้ำเชื่อม คนให้เข้ากันตามความหวานที่ชอบ',
           isEn ? 'Garnish with mint leaves or citrus slice and serve chilled.' : 'ตกแต่งด้วยใบสะระแหน่หรือเลมอน พร้อมเสิร์ฟทันที',
         ],
       },
       {
         id: 'recipe_bev_2',
-        title: isEn ? `Creamy ${displayIngredient} Smoothie` : `สมูทตี้เนื้อนุ่มปั่นใส่${mainIngredient}`,
+        title: isEn ? `Creamy ${displayIngredient} Smoothie` : `สมูทตี้เนื้อนุ่มปั่นใส่${displayIngredient}`,
         description: isEn ? 'Rich, velvety smoothie blended to perfection.' : 'เนื้อเนียนนุ่ม หอมมัน ได้คุณค่าสารอาหารเต็มๆ',
         cookingTime: '5 min',
         difficulty: 'Very easy',
@@ -462,75 +582,75 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? '1/2 cup crushed ice' : 'น้ำแข็งบด 1/2 ถ้วย',
         ],
         steps: [
-          isEn ? `Combine ${displayIngredient}, yogurt, and ice in a blender.` : `ใส่${mainIngredient} โยเกิร์ต และน้ำแข็งลงในโถปั่น`,
+          isEn ? `Combine ${displayIngredient}, yogurt, and ice in a blender.` : `ใส่${displayIngredient} โยเกิร์ต และน้ำแข็งลงในโถปั่น`,
           isEn ? 'Blend on high until silky smooth and creamy.' : 'ปั่นด้วยความเร็วสูงจนเนื้อเนียนละเอียดเข้ากันดี',
           isEn ? 'Pour into a tall glass and enjoy immediately.' : 'เทใส่แก้วทรงสูง พร้อมดื่มเพื่อความสดชื่น',
         ],
       },
       {
         id: 'recipe_bev_3',
-        title: isEn ? `Golden Fluffy Pancakes with ${displayIngredient}` : `แพนเค้กนุ่มฟูทำจาก${mainIngredient}`,
+        title: isEn ? `Golden Fluffy Pancakes with ${displayIngredient}` : `แพนเค้กนุ่มฟูทำจาก${displayIngredient}`,
         description: isEn ? 'Light, airy breakfast pancakes infused with rich flavor.' : 'แพนเค้กเนื้อนุ่มฟู หอมละมุน เหมาะกับมื้อเช้า',
         cookingTime: '15 min',
         difficulty: 'Easy',
         dishType: 'pancake',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `1/2 cup ${displayIngredient}` : `${mainIngredient} 1/2 ถ้วย`,
+          isEn ? `1/2 cup ${displayIngredient}` : `${displayIngredient} 1/2 ถ้วย`,
           isEn ? '1 cup all-purpose flour' : 'แป้งสาลีอเนกประสงค์ 1 ถ้วย',
           isEn ? '1 large egg' : 'ไข่ไก่ 1 ฟอง',
           isEn ? '1 tbsp melted butter or oil' : 'เนยละลาย 1 ช้อนโต๊ะ',
           isEn ? '1 tsp baking powder and maple syrup' : 'ผงฟู 1 ช้อนชา และน้ำเชื่อมตามชอบ',
         ],
         steps: [
-          isEn ? `Whisk egg, melted butter, and ${displayIngredient} together.` : `ตีไข่ เนยละลาย และ${mainIngredient}เข้าด้วยกัน`,
+          isEn ? `Whisk egg, melted butter, and ${displayIngredient} together.` : `ตีไข่ เนยละลาย และ${displayIngredient}เข้าด้วยกัน`,
           isEn ? 'Gently fold in flour and baking powder until just combined.' : 'ร่อนแป้งและผงฟูลงไป ตะล่อมเบาๆ ให้เข้ากัน',
           isEn ? 'Pour batter onto a buttered griddle and cook both sides until golden.' : 'หยอดแป้งลงบนกระทะทาเนย พลิกกลับด้านจนสุกเหลืองทองทั้งสองด้าน',
         ],
       },
       {
         id: 'recipe_bev_4',
-        title: isEn ? `Silky Chia Seed Pudding with ${displayIngredient}` : `พุดดิ้งเมล็ดเจียเนื้อละมุนผสม${mainIngredient}`,
+        title: isEn ? `Silky Chia Seed Pudding with ${displayIngredient}` : `พุดดิ้งเมล็ดเจียเนื้อละมุนผสม${displayIngredient}`,
         description: isEn ? 'Healthy zero-waste breakfast or dessert bowl.' : 'อาหารเช้าหรือของหวานคลีนๆ อิ่มท้องนาน ดีต่อสุขภาพ',
         cookingTime: '5 min',
         difficulty: 'Very easy',
         dishType: 'dessert',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `1 cup ${displayIngredient}` : `${mainIngredient} 1 ถ้วย`,
+          isEn ? `1 cup ${displayIngredient}` : `${displayIngredient} 1 ถ้วย`,
           isEn ? '3 tbsp chia seeds' : 'เมล็ดเจีย 3 ช้อนโต๊ะ',
           isEn ? '1 tsp vanilla extract or honey' : 'น้ำผึ้งหรือวานิลลา 1 ช้อนชา',
           isEn ? 'Fresh fruit or nuts for topping' : 'ผลไม้สดหรือถั่วสำหรับโรยหน้า',
         ],
         steps: [
-          isEn ? `Whisk ${displayIngredient}, chia seeds, and honey in a jar.` : `คน${mainIngredient} เมล็ดเจีย และน้ำผึ้งให้เข้ากันในขวดโหล`,
+          isEn ? `Whisk ${displayIngredient}, chia seeds, and honey in a jar.` : `คน${displayIngredient} เมล็ดเจีย และน้ำผึ้งให้เข้ากันในขวดโหล`,
           isEn ? 'Let rest for 15 minutes (or chill overnight) until thickened.' : 'ทิ้งไว้ 15 นาที หรือแช่ตู้เย็นไว้จนเมล็ดเจียพองตัวเป็นเนื้อพุดดิ้ง',
           isEn ? 'Top with fresh fruit and enjoy cold.' : 'โรยหน้าด้วยผลไม้สดหรือถั่วตามชอบ พร้อมตักทาน',
         ],
       },
       {
         id: 'recipe_bev_5',
-        title: isEn ? `Golden French Toast Soaked in ${displayIngredient}` : `เฟรนช์โทสต์หอมเนยชุบ${mainIngredient}`,
+        title: isEn ? `Golden French Toast Soaked in ${displayIngredient}` : `เฟรนช์โทสต์หอมเนยชุบ${displayIngredient}`,
         description: isEn ? 'Custardy inside, golden-crisp outside breakfast classic.' : 'นุ่มชุ่มฉ่ำด้านใน หอมกรอบด้านนอก ทำง่ายสุดๆ',
         cookingTime: '10 min',
         difficulty: 'Very easy',
         dishType: 'sandwich',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `1/3 cup ${displayIngredient}` : `${mainIngredient} 1/3 ถ้วย`,
+          isEn ? `1/3 cup ${displayIngredient}` : `${displayIngredient} 1/3 ถ้วย`,
           isEn ? '2 thick bread slices' : 'ขนมปังแผ่นหนา 2 แผ่น',
           isEn ? '1 large egg' : 'ไข่ไก่ 1 ฟอง',
           isEn ? '1 tbsp butter for pan' : 'เนยสดสำหรับทอด 1 ช้อนโต๊ะ',
         ],
         steps: [
-          isEn ? `Beat egg with ${displayIngredient} in a shallow dish.` : `ตอกไข่ตีผสมกับ${mainIngredient}ในจานก้นลึก`,
+          isEn ? `Beat egg with ${displayIngredient} in a shallow dish.` : `ตอกไข่ตีผสมกับ${displayIngredient}ในจานก้นลึก`,
           isEn ? 'Dip bread slices, coating both sides evenly.' : 'นำขนมปังลงชุบให้ชุ่มทั้งสองด้าน',
           isEn ? 'Pan-fry in melted butter over medium heat until golden brown.' : 'ทอดในกระทะใส่เนยด้วยไฟกลางจนเหลืองทองสวยทั้งสองด้าน',
         ],
       },
       {
         id: 'recipe_bev_6',
-        title: isEn ? `Warm Spiced ${displayIngredient} Latte` : `เครื่องดื่มลาเต้อุ่นละมุนใส่${mainIngredient}`,
+        title: isEn ? `Warm Spiced ${displayIngredient} Latte` : `เครื่องดื่มลาเต้อุ่นละมุนใส่${displayIngredient}`,
         description: isEn ? 'Soothing, aromatic warm drink for any cozy moment.' : 'หอมกรุ่น อุ่นท้อง สบายใจ ดื่มก่อนนอนหรือช่วงพักผ่อน',
         cookingTime: '5 min',
         difficulty: 'Very easy',
@@ -542,45 +662,45 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? '1 tsp brown sugar or honey' : 'น้ำตาลทรายแดงหรือน้ำผึ้ง 1 ช้อนชา',
         ],
         steps: [
-          isEn ? `Warm ${displayIngredient} gently in a small pot over low heat.` : `นำ${mainIngredient}ตั้งไฟอ่อนในหม้อใบเล็กพออุ่น`,
+          isEn ? `Warm ${displayIngredient} gently in a small pot over low heat.` : `นำ${displayIngredient}ตั้งไฟอ่อนในหม้อใบเล็กพออุ่น`,
           isEn ? 'Whisk briskly to create a delicate foam top.' : 'ใช้ที่ตีฟองนมหรือตะกร้อมือตีจนขึ้นฟองนุ่ม',
           isEn ? 'Pour into your favorite mug and dust with cinnamon.' : 'เทใส่แก้วโปรด โรยผงอบเชยหรือโกโก้พร้อมดื่ม',
         ],
       },
       {
         id: 'recipe_bev_7',
-        title: isEn ? `Sparkling Citrus Splash with ${displayIngredient}` : `ม็อกเทลสดชื่นซาบซ่าใส่${mainIngredient}`,
+        title: isEn ? `Sparkling Citrus Splash with ${displayIngredient}` : `ม็อกเทลสดชื่นซาบซ่าใส่${displayIngredient}`,
         description: isEn ? 'Fizzy, thirst-quenching drink with lively bubbles.' : 'ซ่าสดชื่น ดับร้อน ปลุกความกระปรี้กระเปร่า',
         cookingTime: '3 min',
         difficulty: 'Very easy',
         dishType: 'beverage',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `1/2 cup ${displayIngredient}` : `${mainIngredient} 1/2 ถ้วย`,
+          isEn ? `1/2 cup ${displayIngredient}` : `${displayIngredient} 1/2 ถ้วย`,
           isEn ? '1/2 cup sparkling soda water' : 'โซดา 1/2 ถ้วย',
           isEn ? 'Ice cubes and lime wedge' : 'น้ำแข็งและมะนาวหั่นเสี้ยว',
         ],
         steps: [
           isEn ? 'Fill a tall glass with fresh ice.' : 'ใส่น้ำแข็งเต็มแก้ว',
-          isEn ? `Pour ${displayIngredient} followed by chilled soda water.` : `เท${mainIngredient}ตามด้วยโซดาแช่เย็นเจี๊ยบ`,
+          isEn ? `Pour ${displayIngredient} followed by chilled soda water.` : `เท${displayIngredient}ตามด้วยโซดาแช่เย็นเจี๊ยบ`,
           isEn ? 'Stir gently once and serve immediately.' : 'คนเบาๆ ให้เข้ากัน ดื่มด่ำความสดชื่นทันที',
         ],
       },
       {
         id: 'recipe_bev_8',
-        title: isEn ? `Overnight Rolled Oats with ${displayIngredient}` : `ข้าวโอ๊ตข้ามคืนผสม${mainIngredient}`,
+        title: isEn ? `Overnight Rolled Oats with ${displayIngredient}` : `ข้าวโอ๊ตข้ามคืนผสม${displayIngredient}`,
         description: isEn ? 'Grab-and-go nutrient-rich breakfast jar.' : 'มื้อเช้าสะดวกพร้อมทาน อุดมไฟเบอร์ อิ่มท้องสบายๆ',
         cookingTime: '5 min',
         difficulty: 'Very easy',
         dishType: 'dessert',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `3/4 cup ${displayIngredient}` : `${mainIngredient} 3/4 ถ้วย`,
+          isEn ? `3/4 cup ${displayIngredient}` : `${displayIngredient} 3/4 ถ้วย`,
           isEn ? '1/2 cup rolled oats' : 'ข้าวโอ๊ต 1/2 ถ้วย',
           isEn ? '1 tbsp honey or maple syrup' : 'น้ำผึ้ง 1 ช้อนโต๊ะ',
         ],
         steps: [
-          isEn ? `Combine oats and ${displayIngredient} in a mason jar.` : `เทข้าวโอ๊ตผสมกับ${mainIngredient}ในขวดโหล`,
+          isEn ? `Combine oats and ${displayIngredient} in a mason jar.` : `เทข้าวโอ๊ตผสมกับ${displayIngredient}ในขวดโหล`,
           isEn ? 'Stir in honey, seal lid, and refrigerate overnight.' : 'คนผสมน้ำผึ้ง ปิดฝา แช่ตู้เย็นทิ้งไว้ข้ามคืน',
           isEn ? 'Open and enjoy directly with spoon next morning.' : 'เปิดฝาพร้อมตักทานได้ทันทีในเช้าวันใหม่',
         ],
@@ -590,158 +710,158 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
     pool = [
       {
         id: 'recipe_sauce_1',
-        title: isEn ? `Golden Glazed Pan-Sear with ${displayIngredient}` : `เมนูย่างเกลซเคลือบซอส${mainIngredient}`,
+        title: isEn ? `Golden Glazed Pan-Sear with ${displayIngredient}` : `เมนูย่างเกลซเคลือบซอส${displayIngredient}`,
         description: isEn ? 'Rich, caramelized glaze coated beautifully over protein or veggies.' : 'เคลือบซอสเข้มข้นจนขึ้นเงา หอมอร่อยกลมกล่อม',
         cookingTime: '12 min',
         difficulty: 'Easy',
         dishType: 'stir_fry',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `2 tbsp ${displayIngredient}` : `${mainIngredient} 2 ช้อนโต๊ะ`,
+          isEn ? `2 tbsp ${displayIngredient}` : `${displayIngredient} 2 ช้อนโต๊ะ`,
           isEn ? 'Tofu, eggs, or protein of choice' : 'เต้าหู้ ไข่ไก่ หรือเนื้อสัตว์ตามชอบ',
           isEn ? '1 tbsp cooking oil or butter' : 'น้ำมันพืชหรือเนย 1 ช้อนโต๊ะ',
           isEn ? '1 clove garlic, minced' : 'กระเทียมสับ 1 กลีบ',
         ],
         steps: [
           isEn ? 'Sear your choice of protein or tofu in a pan until golden.' : 'นำเต้าหู้หรือเนื้อสัตว์ลงจี่ในกระทะจนเหลืองสวย',
-          isEn ? `Spoon in ${displayIngredient} and garlic, tossing to coat evenly.` : `ใส่กระเทียมและตัก${mainIngredient}ลงไป คลุกเคล้าให้เคลือบทั่ว`,
+          isEn ? `Spoon in ${displayIngredient} and garlic, tossing to coat evenly.` : `ใส่กระเทียมและตัก${displayIngredient}ลงไป คลุกเคล้าให้เคลือบทั่ว`,
           isEn ? 'Simmer for 1-2 minutes until glossy and fragrant, then serve.' : 'เคี่ยวต่อ 1-2 นาทีจนซอสเคลือบเงาหอม เสิร์ฟพร้อมข้าวสวย',
         ],
       },
       {
         id: 'recipe_sauce_2',
-        title: isEn ? `Quick Tossed Garlic Pasta with ${displayIngredient}` : `พาสต้าคลุกซอส${mainIngredient}`,
+        title: isEn ? `Quick Tossed Garlic Pasta with ${displayIngredient}` : `พาสต้าคลุกซอส${displayIngredient}`,
         description: isEn ? 'Al dente pasta tossed lightly with seasoned sauce.' : 'เส้นพาสต้าเหนียวนุ่มคลุกเคล้าซอสรสเด็ด ทำง่ายในพริบตา',
         cookingTime: '15 min',
         difficulty: 'Easy',
         dishType: 'pasta',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `3 tbsp ${displayIngredient}` : `${mainIngredient} 3 ช้อนโต๊ะ`,
+          isEn ? `3 tbsp ${displayIngredient}` : `${displayIngredient} 3 ช้อนโต๊ะ`,
           isEn ? '150g pasta (spaghetti or penne)' : 'เส้นสปาเก็ตตี้หรือมักกะโรนี 150 กรัม',
           isEn ? '1 tbsp olive oil' : 'น้ำมันมะกอก 1 ช้อนโต๊ะ',
           isEn ? 'Parmesan or black pepper to finish' : 'พริกไทยดำหรือชีสโรยหน้า',
         ],
         steps: [
           isEn ? 'Boil pasta in salted water until al dente, drain.' : 'ต้มเส้นพาสต้าในน้ำเดือดใส่เกลือจนสุกพอดี ตักสะเด็ดน้ำ',
-          isEn ? `Warm ${displayIngredient} in pan with olive oil.` : `อุ่น${mainIngredient}ในกระทะกับน้ำมันมะกอกด้วยไฟอ่อน`,
+          isEn ? `Warm ${displayIngredient} in pan with olive oil.` : `อุ่น${displayIngredient}ในกระทะกับน้ำมันมะกอกด้วยไฟอ่อน`,
           isEn ? 'Toss pasta into sauce until every strand is coated.' : 'นำเส้นลงคลุกเคล้าในกระทะจนซอสเคลือบเส้นทั่ว ตักใส่จาน',
         ],
       },
       {
         id: 'recipe_sauce_3',
-        title: isEn ? `Crisp Garden Salad with ${displayIngredient} Dressing` : `สลัดผักกรอบราดน้ำสลัด${mainIngredient}`,
+        title: isEn ? `Crisp Garden Salad with ${displayIngredient} Dressing` : `สลัดผักกรอบราดน้ำสลัด${displayIngredient}`,
         description: isEn ? 'Vibrant fresh greens elevated with delicious sauce.' : 'ผักกรอบสดชื่น เข้ากันดีเยี่ยมกับซอสรสกลมกล่อม',
         cookingTime: '8 min',
         difficulty: 'Very easy',
         dishType: 'salad',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `2 tbsp ${displayIngredient}` : `${mainIngredient} 2 ช้อนโต๊ะ`,
+          isEn ? `2 tbsp ${displayIngredient}` : `${displayIngredient} 2 ช้อนโต๊ะ`,
           isEn ? 'Assorted salad greens, tomatoes, cucumber' : 'ผักสลัดรวม มะเขือเทศ หรือแตงกวา',
           isEn ? '1 tsp olive oil or lemon juice' : 'น้ำมันมะกอกหรือน้ำมะนาว 1 ช้อนชา',
         ],
         steps: [
           isEn ? 'Rinse and chop fresh salad vegetables.' : 'ล้างผักสดให้สะอาด หั่นชิ้นพอดีคำจัดใส่ชาม',
-          isEn ? `Whisk ${displayIngredient} with olive oil or splash of lemon.` : `ผสม${mainIngredient}กับน้ำมันมะกอกหรือมะนาวเล็กน้อย`,
+          isEn ? `Whisk ${displayIngredient} with olive oil or splash of lemon.` : `ผสม${displayIngredient}กับน้ำมันมะกอกหรือมะนาวเล็กน้อย`,
           isEn ? 'Drizzle dressing over greens and toss gently before eating.' : 'ราดลงบนผักสลัด คลุกเคล้าเบาๆ พร้อมรับประทาน',
         ],
       },
       {
         id: 'recipe_sauce_4',
-        title: isEn ? `Cheesy Melt Toast with ${displayIngredient} Spread` : `โทสต์อบชีสทา${mainIngredient}`,
+        title: isEn ? `Cheesy Melt Toast with ${displayIngredient} Spread` : `โทสต์อบชีสทา${displayIngredient}`,
         description: isEn ? 'Toasty bread with savory sauce and melted cheese.' : 'ขนมปังปิ้งกรอบนอกนุ่มใน ทาซอสเข้มข้นอบชีสเยิ้มๆ',
         cookingTime: '8 min',
         difficulty: 'Very easy',
         dishType: 'sandwich',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `1-2 tbsp ${displayIngredient}` : `${mainIngredient} 1-2 ช้อนโต๊ะ`,
+          isEn ? `1-2 tbsp ${displayIngredient}` : `${displayIngredient} 1-2 ช้อนโต๊ะ`,
           isEn ? '2 slices bread' : 'ขนมปัง 2 แผ่น',
           isEn ? '1 slice cheese or shredded cheese' : 'ชีส 1 แผ่น',
           isEn ? 'Butter for crust' : 'เนยสดเล็กน้อย',
         ],
         steps: [
-          isEn ? `Spread ${displayIngredient} generously onto bread slices.` : `ทา${mainIngredient}ให้ทั่วแผ่นขนมปัง`,
+          isEn ? `Spread ${displayIngredient} generously onto bread slices.` : `ทา${displayIngredient}ให้ทั่วแผ่นขนมปัง`,
           isEn ? 'Top with cheese and place in toaster oven or pan.' : 'วางชีสลงไป นำเข้าเตาอบหรือจี่ในกระทะทาเนย',
           isEn ? 'Heat until cheese is bubbly and melted, serve warm.' : 'อบจนชีสละลายเยิ้มและขนมปังกรอบเหลืองทอง',
         ],
       },
       {
         id: 'recipe_sauce_5',
-        title: isEn ? `Savory Rice Bowl with ${displayIngredient} Drizzle` : `ข้าวหน้าไข่ราดซอส${mainIngredient}`,
+        title: isEn ? `Savory Rice Bowl with ${displayIngredient} Drizzle` : `ข้าวหน้าไข่ราดซอส${displayIngredient}`,
         description: isEn ? 'Comforting warm rice bowl topped with tasty sauce.' : 'ข้าวสวยร้อนๆ ท็อปไข่ดาวหรือไข่ข้น ราดซอสฉ่ำๆ',
         cookingTime: '10 min',
         difficulty: 'Very easy',
         dishType: 'fried_rice',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `2 tbsp ${displayIngredient}` : `${mainIngredient} 2 ช้อนโต๊ะ`,
+          isEn ? `2 tbsp ${displayIngredient}` : `${displayIngredient} 2 ช้อนโต๊ะ`,
           isEn ? '1 bowl warm jasmine rice' : 'ข้าวสวยร้อนๆ 1 ถ้วย',
           isEn ? '1 fried or soft boiled egg' : 'ไข่ดาวหรือไข่ต้มยางมะตูม 1 ฟอง',
           isEn ? 'Chopped spring onions or sesame seeds' : 'ต้นหอมซอยหรืองาขาวโรยหน้า',
         ],
         steps: [
           isEn ? 'Scoop warm rice into a serving bowl and top with egg.' : 'ตักข้าวสวยใส่ชาม วางไข่ดาวลงด้านบน',
-          isEn ? `Drizzle ${displayIngredient} over the hot egg and rice.` : `ราด${mainIngredient}ลงบนไข่และข้าวขณะร้อนๆ`,
+          isEn ? `Drizzle ${displayIngredient} over the hot egg and rice.` : `ราด${displayIngredient}ลงบนไข่และข้าวขณะร้อนๆ`,
           isEn ? 'Garnish with spring onions or sesame seeds and enjoy.' : 'โรยต้นหอมซอย พร้อมคลุกเคล้าความอร่อย',
         ],
       },
       {
         id: 'recipe_sauce_6',
-        title: isEn ? `Crispy Finger Food with Zesty ${displayIngredient} Dip` : `ชุดของว่างพร้อมดิปซอส${mainIngredient}`,
+        title: isEn ? `Crispy Finger Food with Zesty ${displayIngredient} Dip` : `ชุดของว่างพร้อมดิปซอส${displayIngredient}`,
         description: isEn ? 'Crisp bites paired with an irresistible dipping sauce.' : 'ของทานเล่นกรอบๆ จิ้มซอสรสกลมกล่อม เพลินสุดๆ',
         cookingTime: '10 min',
         difficulty: 'Very easy',
         dishType: 'snack',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `3 tbsp ${displayIngredient}` : `${mainIngredient} 3 ช้อนโต๊ะ`,
+          isEn ? `3 tbsp ${displayIngredient}` : `${displayIngredient} 3 ช้อนโต๊ะ`,
           isEn ? 'Crackers, potato wedges, nuggets, or celery sticks' : 'มันฝรั่งทอด นักเก็ต หรือผักแท่งตามชอบ',
           isEn ? 'Squeeze of lime or herbs (optional)' : 'มะนาวหรือผักชีซอยเล็กน้อย',
         ],
         steps: [
-          isEn ? `Transfer ${displayIngredient} into a small dipping bowl.` : `ตัก${mainIngredient}ใส่ถ้วยน้ำจิ้มใบเล็ก`,
+          isEn ? `Transfer ${displayIngredient} into a small dipping bowl.` : `ตัก${displayIngredient}ใส่ถ้วยน้ำจิ้มใบเล็ก`,
           isEn ? 'Add a touch of fresh pepper or lime juice if desired.' : 'ปรุงแต่งด้วยพริกไทยหรือมะนาวเพิ่มมิติรสชาติ',
           isEn ? 'Arrange your favorite crispy finger foods around and dip away.' : 'จัดวางของทานเล่นรอบจาน จิ้มทานได้ทันที',
         ],
       },
       {
         id: 'recipe_sauce_7',
-        title: isEn ? `Golden Omelet Filled with ${displayIngredient}` : `ไข่เจียวสอดไส้ซอส${mainIngredient}`,
+        title: isEn ? `Golden Omelet Filled with ${displayIngredient}` : `ไข่เจียวสอดไส้ซอส${displayIngredient}`,
         description: isEn ? 'Fluffy egg pocket bursting with rich sauce inside.' : 'ไข่เจียวนุ่มๆ สอดไส้ซอสรสเด็ด กัดตรงไหนก็ฟิน',
         cookingTime: '8 min',
         difficulty: 'Very easy',
         dishType: 'omelet',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `2 tbsp ${displayIngredient}` : `${mainIngredient} 2 ช้อนโต๊ะ`,
+          isEn ? `2 tbsp ${displayIngredient}` : `${displayIngredient} 2 ช้อนโต๊ะ`,
           isEn ? '2 large eggs' : 'ไข่ไก่ 2 ฟอง',
           isEn ? '1 tbsp cooking oil or butter' : 'น้ำมันพืชหรือเนย 1 ช้อนโต๊ะ',
         ],
         steps: [
           isEn ? 'Beat eggs lightly and pour into hot buttered pan.' : 'ตีไข่พอแตก เทลงในกระทะทาเนยร้อนปานกลาง',
-          isEn ? `When bottom is set, spoon ${displayIngredient} onto one half.` : `พอไข่เริ่มเซ็ตตัว ตัก${mainIngredient}ใส่ลงบนไข่ครึ่งหนึ่ง`,
+          isEn ? `When bottom is set, spoon ${displayIngredient} onto one half.` : `พอไข่เริ่มเซ็ตตัว ตัก${displayIngredient}ใส่ลงบนไข่ครึ่งหนึ่ง`,
           isEn ? 'Fold egg over and slide onto a warm plate.' : 'พับครึ่งไข่ ตักเสิร์ฟพร้อมข้าวสวยร้อนๆ',
         ],
       },
       {
         id: 'recipe_sauce_8',
-        title: isEn ? `Tangy Sautéed Skillet with ${displayIngredient}` : `ผัดซอสกระทะร้อนใส่${mainIngredient}`,
+        title: isEn ? `Tangy Sautéed Skillet with ${displayIngredient}` : `ผัดซอสกระทะร้อนใส่${displayIngredient}`,
         description: isEn ? 'Quick sizzling skillet dish coated in savory sauce.' : 'ผัดเร็วๆ ด้วยไฟแรง ซอสเคลือบหอมติดกระทะ',
         cookingTime: '10 min',
         difficulty: 'Easy',
         dishType: 'stir_fry',
         expiringIngredient: displayIngredient,
         ingredients: [
-          isEn ? `2-3 tbsp ${displayIngredient}` : `${mainIngredient} 2-3 ช้อนโต๊ะ`,
+          isEn ? `2-3 tbsp ${displayIngredient}` : `${displayIngredient} 2-3 ช้อนโต๊ะ`,
           isEn ? 'Any chopped vegetable or protein leftovers' : 'ผักหรือเนื้อสัตว์ที่มีในตู้เย็น',
           isEn ? '1 tbsp cooking oil' : 'น้ำมันพืช 1 ช้อนโต๊ะ',
         ],
         steps: [
           isEn ? 'Heat oil in wok or skillet over high heat.' : 'ตั้งกระทะใส่น้ำมันใช้ไฟแรง',
           isEn ? 'Sauté ingredients for 3 minutes until tender-crisp.' : 'ใส่ของในตู้เย็นลงผัดประมาณ 3 นาทีจนสุก',
-          isEn ? `Stir in ${displayIngredient} rapidly to glaze before turning off heat.` : `ใส่${mainIngredient}ลงไป ผัดเคล้าเร็วๆ จนซอสเคลือบทั่ว ปิดไฟเสิร์ฟ`,
+          isEn ? `Stir in ${displayIngredient} rapidly to glaze before turning off heat.` : `ใส่${displayIngredient}ลงไป ผัดเคล้าเร็วๆ จนซอสเคลือบทั่ว ปิดไฟเสิร์ฟ`,
         ],
       },
     ];
@@ -749,7 +869,7 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
     pool = [
       {
         id: 'recipe_veg_1',
-        title: isEn ? `Garlic Sautéed ${displayIngredient}` : `ผัดกระเทียม${mainIngredient}`,
+        title: isEn ? `Garlic Sautéed ${displayIngredient}` : `ผัดกระเทียม${displayIngredient}`,
         description: isEn ? 'Quick, aromatic vegetable stir-fry with garlic.' : 'ผัดผักหอมกลิ่นกระเทียม ผักหวานกรอบกำลังดี',
         cookingTime: '8 min',
         difficulty: 'Very easy',
@@ -763,13 +883,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Heat oil in pan, sauté crushed garlic until fragrant.' : 'ตั้งกระทะใส่น้ำมัน เจียวกระเทียมจนหอมฉุน',
-          isEn ? `Add ${displayIngredient} and stir-fry over high heat for 3-4 minutes.` : `ใส่${mainIngredient}ลงไป ผัดไฟแรง 3-4 นาทีจนสุกกรอบ`,
+          isEn ? `Add ${displayIngredient} and stir-fry over high heat for 3-4 minutes.` : `ใส่${displayIngredient}ลงไป ผัดไฟแรง 3-4 นาทีจนสุกกรอบ`,
           isEn ? 'Season with soy sauce, toss once, and serve warm.' : 'ปรุงรสด้วยซีอิ๊วขาว ตักเสิร์ฟพร้อมข้าวสวยร้อนๆ',
         ],
       },
       {
         id: 'recipe_veg_2',
-        title: isEn ? `Fresh Vibrant Salad with ${displayIngredient}` : `สลัดสดชื่นใส่${mainIngredient}`,
+        title: isEn ? `Fresh Vibrant Salad with ${displayIngredient}` : `สลัดสดชื่นใส่${displayIngredient}`,
         description: isEn ? 'Crisp, refreshing, nutrient-packed raw salad bowl.' : 'รสชาติสดชื่น กรุบกรอบ อุดมวิตามิน อิ่มเบาสบายท้อง',
         cookingTime: '5 min',
         difficulty: 'Very easy',
@@ -782,14 +902,14 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? '1 tbsp lemon or lime juice' : 'น้ำมะนาว 1 ช้อนโต๊ะ',
         ],
         steps: [
-          isEn ? `Wash and slice ${displayIngredient} cleanly.` : `ล้างและหั่น${mainIngredient}เป็นชิ้นพอดีคำ`,
-          isEn ? 'Combine greens in a bowl and arrange ingredients nicely.' : 'จัดผักสดใส่ชาม วาง${mainIngredient}ลงไป',
+          isEn ? `Wash and slice ${displayIngredient} cleanly.` : `ล้างและหั่น${displayIngredient}เป็นชิ้นพอดีคำ`,
+          isEn ? 'Combine greens in a bowl and arrange ingredients nicely.' : 'จัดผักสดใส่ชาม วาง${displayIngredient}ลงไป',
           isEn ? 'Drizzle olive oil and lemon juice, toss lightly before serving.' : 'ราดน้ำมันมะกอกและน้ำมะนาว คลุกเคล้าเบาๆ พร้อมเสิร์ฟ',
         ],
       },
       {
         id: 'recipe_veg_3',
-        title: isEn ? `Comforting Vegetable Soup with ${displayIngredient}` : `ต้มจืดซุปร้อนๆ ใส่${mainIngredient}`,
+        title: isEn ? `Comforting Vegetable Soup with ${displayIngredient}` : `ต้มจืดซุปร้อนๆ ใส่${displayIngredient}`,
         description: isEn ? 'Soothing clear broth infused with fresh vegetable sweetness.' : 'น้ำซุปใสกลมกล่อม ซดคล่องคอ หวานธรรมชาติ',
         cookingTime: '15 min',
         difficulty: 'Easy',
@@ -803,13 +923,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Bring broth to a gentle simmer in a pot.' : 'ตั้งน้ำซุปให้เดือดปุดๆ ในหม้อ',
-          isEn ? `Add ${displayIngredient} and simmer for 5-8 minutes until tender.` : `ใส่${mainIngredient}ลงไปต้มประมาณ 5-8 นาทีจนสุกนุ่ม`,
+          isEn ? `Add ${displayIngredient} and simmer for 5-8 minutes until tender.` : `ใส่${displayIngredient}ลงไปต้มประมาณ 5-8 นาทีจนสุกนุ่ม`,
           isEn ? 'Season with light soy sauce and garnish before serving.' : 'ปรุงรสด้วยซีอิ๊วขาว โรยผักชีหรือพริกไทย เสิร์ฟอุ่นๆ',
         ],
       },
       {
         id: 'recipe_veg_4',
-        title: isEn ? `Silky Scrambled Eggs with ${displayIngredient}` : `ไข่ข้นนุ่มใส่${mainIngredient}`,
+        title: isEn ? `Silky Scrambled Eggs with ${displayIngredient}` : `ไข่ข้นนุ่มใส่${displayIngredient}`,
         description: isEn ? 'Creamy, soft curd eggs folded with tender greens.' : 'ไข่ข้นเยิ้มๆ หอมนุ่มละมุนลิ้น ทานคู่กับผักอร่อยลงตัว',
         cookingTime: '8 min',
         difficulty: 'Very easy',
@@ -822,14 +942,14 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? 'Pinch of salt and pepper' : 'เกลือและพริกไทยเล็กน้อย',
         ],
         steps: [
-          isEn ? `Lightly sauté ${displayIngredient} in butter until tender.` : `ผัด${mainIngredient}ในกระทะทาเนยพอสุกนุ่ม`,
+          isEn ? `Lightly sauté ${displayIngredient} in butter until tender.` : `ผัด${displayIngredient}ในกระทะทาเนยพอสุกนุ่ม`,
           isEn ? 'Beat eggs with pinch of salt and pour into pan.' : 'ตีไข่กับเกลือเบาๆ แล้วเทลงกระทะ',
           isEn ? 'Gently scramble over low heat until custardy and soft.' : 'ใช้ไฟอ่อนคนไข่เบาๆ พอเป็นครีมเยิ้ม ตักขึ้นเสิร์ฟทันที',
         ],
       },
       {
         id: 'recipe_veg_5',
-        title: isEn ? `Crispy Tempura Fritters with ${displayIngredient}` : `ผักชุบทอดกรอบใส่${mainIngredient}`,
+        title: isEn ? `Crispy Tempura Fritters with ${displayIngredient}` : `ผักชุบทอดกรอบใส่${displayIngredient}`,
         description: isEn ? 'Golden, airy, and crunchy zero-waste snack.' : 'กรอบนอกนุ่มใน เคี้ยวเพลิน จิ้มน้ำจิ้มอร่อยมาก',
         cookingTime: '12 min',
         difficulty: 'Easy',
@@ -843,13 +963,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Whisk flour and cold water into a light batter.' : 'ผสมแป้งทอดกรอบกับน้ำเย็นจัดให้เข้ากัน',
-          isEn ? `Dip ${displayIngredient} slices into batter.` : `นำ${mainIngredient}ลงชุบแป้งบางๆ`,
+          isEn ? `Dip ${displayIngredient} slices into batter.` : `นำ${displayIngredient}ลงชุบแป้งบางๆ`,
           isEn ? 'Deep-fry in hot oil until golden crisp, drain on paper towel.' : 'ทอดในน้ำมันร้อนจนเหลืองกรอบ ตักขึ้นสะเด็ดน้ำมัน',
         ],
       },
       {
         id: 'recipe_veg_6',
-        title: isEn ? `Warm Grain Bowl with ${displayIngredient}` : `ข้าวหน้าผักอบ${mainIngredient}`,
+        title: isEn ? `Warm Grain Bowl with ${displayIngredient}` : `ข้าวหน้าผักอบ${displayIngredient}`,
         description: isEn ? 'Nourishing bowl topped with roasted or sautéed veggies.' : 'ชามสุขภาพอิ่มนาน ได้พลังงานดีต่อร่างกาย',
         cookingTime: '12 min',
         difficulty: 'Easy',
@@ -862,14 +982,14 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? 'Toasted sesame seeds' : 'งาขาวคั่วโรยหน้า',
         ],
         steps: [
-          isEn ? `Warm or pan-roast ${displayIngredient} with olive oil.` : `นำ${mainIngredient}ลงจี่ในกระทะด้วยน้ำมันมะกอกจนสุกหอม`,
-          isEn ? 'Spoon warm rice into bowl and arrange ingredients over top.' : 'ตักข้าวใส่ชาม จัดเรียง${mainIngredient}ลงด้านบน',
+          isEn ? `Warm or pan-roast ${displayIngredient} with olive oil.` : `นำ${displayIngredient}ลงจี่ในกระทะด้วยน้ำมันมะกอกจนสุกหอม`,
+          isEn ? 'Spoon warm rice into bowl and arrange ingredients over top.' : 'ตักข้าวใส่ชาม จัดเรียง${displayIngredient}ลงด้านบน',
           isEn ? 'Drizzle with soy sauce and sprinkle toasted sesame seeds.' : 'เหยาะซีอิ๊วขาวเล็กน้อย โรยงาคั่ว พร้อมทาน',
         ],
       },
       {
         id: 'recipe_veg_7',
-        title: isEn ? `Cheesy Baked ${displayIngredient} Gratin` : `ผักอบชีสยืดๆ ใส่${mainIngredient}`,
+        title: isEn ? `Cheesy Baked ${displayIngredient} Gratin` : `ผักอบชีสยืดๆ ใส่${displayIngredient}`,
         description: isEn ? 'Warm, bubbly, and melted cheese baked over vegetables.' : 'อบร้อนชีสยืด หอมมัน อร่อยเด็กทานได้ผู้ใหญ่ทานดี',
         cookingTime: '15 min',
         difficulty: 'Easy',
@@ -881,14 +1001,14 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? '1 tbsp butter or cream' : 'เนยหรือนมสด 1 ช้อนโต๊ะ',
         ],
         steps: [
-          isEn ? `Place chopped ${displayIngredient} in a small oven-safe dish.` : `ใส่${mainIngredient}ลงในถ้วยทนความร้อน คลุกเนยเล็กน้อย`,
+          isEn ? `Place chopped ${displayIngredient} in a small oven-safe dish.` : `ใส่${displayIngredient}ลงในถ้วยทนความร้อน คลุกเนยเล็กน้อย`,
           isEn ? 'Cover generously with shredded cheese.' : 'โรยชีสลงไปด้านบนให้ทั่ว',
           isEn ? 'Bake or toast until cheese is golden and melted.' : 'นำเข้าเตาอบหรือหม้อทอดไร้น้ำมันจนชีสละลายเยิ้มสีสวย',
         ],
       },
       {
         id: 'recipe_veg_8',
-        title: isEn ? `Refreshing Green Smoothie with ${displayIngredient}` : `สมูทตี้ปั่นสดใส่${mainIngredient}`,
+        title: isEn ? `Refreshing Green Smoothie with ${displayIngredient}` : `สมูทตี้ปั่นสดใส่${displayIngredient}`,
         description: isEn ? 'Revitalizing healthy blended smoothie packed with vitamins.' : 'ปั่นสด หอมสดชื่น เพิ่มความกระปรี้กระเปร่า',
         cookingTime: '5 min',
         difficulty: 'Very easy',
@@ -901,7 +1021,7 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? '1 tbsp honey or lime' : 'น้ำผึ้งหรือน้ำมะนาว 1 ช้อนโต๊ะ',
         ],
         steps: [
-          isEn ? `Chop ${displayIngredient} and place in blender.` : `หั่น${mainIngredient}ใส่ลงในโถปั่น`,
+          isEn ? `Chop ${displayIngredient} and place in blender.` : `หั่น${displayIngredient}ใส่ลงในโถปั่น`,
           isEn ? 'Add liquid, fruit, and honey.' : 'เติมนมหรือน้ำ และน้ำผึ้งลงไป',
           isEn ? 'Blend on high speed until completely smooth, serve cold.' : 'ปั่นจนเนื้อเนียนละเอียด เทใส่แก้วพร้อมดื่ม',
         ],
@@ -911,7 +1031,7 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
     pool = [
       {
         id: 'recipe_meal_1',
-        title: isEn ? `Crispy Pan-fried ${displayIngredient} Hash` : `แฮชกระทะร้อนชุบชีวิต${mainIngredient}`,
+        title: isEn ? `Crispy Pan-fried ${displayIngredient} Hash` : `แฮชกระทะร้อนชุบชีวิต${displayIngredient}`,
         description: isEn ? 'Turn leftover meal into a crispy, sizzling hash.' : 'นำอาหารสำเร็จรูปมาจี่กระทะให้กรอบนอกนุ่มใน',
         cookingTime: '10 min',
         difficulty: 'Very easy',
@@ -925,13 +1045,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Melt butter in a pan over medium-high heat.' : 'ตั้งกระทะใส่เนยด้วยไฟกลาง',
-          isEn ? `Press ${displayIngredient} into pan until bottom forms a crispy crust.` : `ใส่${mainIngredient}ลงไป กดเบาๆ ให้ก้นกระทะเกรียมกรอบ`,
+          isEn ? `Press ${displayIngredient} into pan until bottom forms a crispy crust.` : `ใส่${displayIngredient}ลงไป กดเบาๆ ให้ก้นกระทะเกรียมกรอบ`,
           isEn ? 'Crack egg on top, season with pepper, and serve sizzling hot.' : 'ตอกไข่ใส่ด้านบน โรยพริกไทย เสิร์ฟร้อนๆ',
         ],
       },
       {
         id: 'recipe_meal_2',
-        title: isEn ? `Cheesy Oven-baked ${displayIngredient} Melt` : `อบชีสเยิ้มๆ จาก${mainIngredient}`,
+        title: isEn ? `Cheesy Oven-baked ${displayIngredient} Melt` : `อบชีสเยิ้มๆ จาก${displayIngredient}`,
         description: isEn ? 'Repurpose leftovers into a luxurious melted gratin.' : 'เปลี่ยนอาหารเดิมๆ ให้กลายเป็นเมนูอบชีสสุดพรีเมียม',
         cookingTime: '12 min',
         difficulty: 'Easy',
@@ -943,14 +1063,14 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? 'Oregano or chili flakes' : 'ออริกาโนหรือพริกป่นเล็กน้อย',
         ],
         steps: [
-          isEn ? `Place ${displayIngredient} into an oven-safe bowl.` : `ตัก${mainIngredient}ใส่ชามอบทนความร้อน`,
+          isEn ? `Place ${displayIngredient} into an oven-safe bowl.` : `ตัก${displayIngredient}ใส่ชามอบทนความร้อน`,
           isEn ? 'Cover with cheese and sprinkle oregano.' : 'โรยชีสปิดหน้าให้มิด โรยออริกาโน',
           isEn ? 'Bake at 180°C for 8-10 minutes until cheese is bubbly and browned.' : 'อบที่ 180°C ประมาณ 8-10 นาทีจนชีสเยิ้มสีทอง',
         ],
       },
       {
         id: 'recipe_meal_3',
-        title: isEn ? `Loaded Fried Rice Bowl with ${displayIngredient}` : `ข้าวผัดมิกซ์แอนด์แมตช์ใส่${mainIngredient}`,
+        title: isEn ? `Loaded Fried Rice Bowl with ${displayIngredient}` : `ข้าวผัดมิกซ์แอนด์แมตช์ใส่${displayIngredient}`,
         description: isEn ? 'Quick wok toss making zero-waste meal exciting.' : 'ผัดคลุกเคล้าข้าวสวยร้อนๆ หอมกลิ่นกระทะ อร่อยลงตัว',
         cookingTime: '10 min',
         difficulty: 'Easy',
@@ -964,13 +1084,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Scramble egg in hot wok with oil.' : 'ผัดไข่ในกระทะร้อนจนสุก',
-          isEn ? `Toss in ${displayIngredient} followed by rice.` : `ใส่${mainIngredient}และข้าวสวยลงไปผัด`,
+          isEn ? `Toss in ${displayIngredient} followed by rice.` : `ใส่${displayIngredient}และข้าวสวยลงไปผัด`,
           isEn ? 'Season with soy sauce, stir over high heat for 2 minutes.' : 'ปรุงรสด้วยซีอิ๊วขาว ผัดไฟแรงจนหอมพร้อมเสิร์ฟ',
         ],
       },
       {
         id: 'recipe_meal_4',
-        title: isEn ? `Crispy Breakfast Wrap with ${displayIngredient}` : `แรปโรลสอดไส้${mainIngredient}`,
+        title: isEn ? `Crispy Breakfast Wrap with ${displayIngredient}` : `แรปโรลสอดไส้${displayIngredient}`,
         description: isEn ? 'Warm tortilla wrapped tight around savory fillings.' : 'แรปโรลแป้งตอร์ติญ่าสอดไส้ ทานง่าย พกพาสะดวก',
         cookingTime: '8 min',
         difficulty: 'Very easy',
@@ -982,14 +1102,14 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? '1 slice cheese or lettuce' : 'ชีส 1 แผ่นหรือผักสลัด',
         ],
         steps: [
-          isEn ? `Warm tortilla and layer with cheese and ${displayIngredient}.` : `อุ่นแผ่นแป้ง วางชีสและ${mainIngredient}ลงไป`,
+          isEn ? `Warm tortilla and layer with cheese and ${displayIngredient}.` : `อุ่นแผ่นแป้ง วางชีสและ${displayIngredient}ลงไป`,
           isEn ? 'Roll tightly into a burrito or wrap.' : 'ม้วนแผ่นแป้งให้แน่นเป็นโรล',
           isEn ? 'Toast on dry skillet until golden crisp on seams.' : 'นำไปจี่ในกระทะจนแป้งกรอบเหลือง หั่นครึ่งเสิร์ฟ',
         ],
       },
       {
         id: 'recipe_meal_5',
-        title: isEn ? `Comforting Broth Bowl with ${displayIngredient}` : `ซุปชุ่มคอใส่${mainIngredient}`,
+        title: isEn ? `Comforting Broth Bowl with ${displayIngredient}` : `ซุปชุ่มคอใส่${displayIngredient}`,
         description: isEn ? 'Revive leftover meal into a warm noodle or broth bowl.' : 'ซดน้ำซุปร้อนๆ ชุ่มคอ สบายท้อง อร่อยง่ายในหม้อเดียว',
         cookingTime: '10 min',
         difficulty: 'Very easy',
@@ -1003,13 +1123,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Bring broth to a boil in small pot.' : 'ต้มน้ำซุปในหม้อให้เดือด',
-          isEn ? `Gently warm ${displayIngredient} in hot broth for 3 minutes.` : `ใส่${mainIngredient}ลงไปต้มอุ่นประมาณ 3 นาที`,
+          isEn ? `Gently warm ${displayIngredient} in hot broth for 3 minutes.` : `ใส่${displayIngredient}ลงไปต้มอุ่นประมาณ 3 นาที`,
           isEn ? 'Garnish with spring onions and fried garlic before serving.' : 'โรยต้นหอมและกระเทียมเจียว ยกลงเสิร์ฟร้อนๆ',
         ],
       },
       {
         id: 'recipe_meal_6',
-        title: isEn ? `Golden Egg Scramble over ${displayIngredient}` : `ไข่ข้นราด${mainIngredient}`,
+        title: isEn ? `Golden Egg Scramble over ${displayIngredient}` : `ไข่ข้นราด${displayIngredient}`,
         description: isEn ? 'Silky eggs draped over warm meal base.' : 'ไข่ข้นเนื้อนุ่มเยิ้มๆ ราดบนอาหารจานเดิม ชวนให้น่ากินยิ่งขึ้น',
         cookingTime: '6 min',
         difficulty: 'Very easy',
@@ -1022,14 +1142,14 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? '1 tbsp butter' : 'เนยสด 1 ช้อนโต๊ะ',
         ],
         steps: [
-          isEn ? `Heat ${displayIngredient} in microwave or pan and plate it.` : `อุ่น${mainIngredient}ให้ร้อนแล้วตักใส่จานรอไว้`,
+          isEn ? `Heat ${displayIngredient} in microwave or pan and plate it.` : `อุ่น${displayIngredient}ให้ร้อนแล้วตักใส่จานรอไว้`,
           isEn ? 'Cook eggs gently in butter until soft curds form.' : 'ตีไข่กับนมแล้วเทลงกระทะทาเนย คนเบาๆ จนไข่เริ่มเซ็ตตัวเยิ้มๆ',
-          isEn ? 'Slide silky eggs right over the meal and enjoy.' : 'ตักไข่ข้นราดลงบน${mainIngredient}ทันที',
+          isEn ? 'Slide silky eggs right over the meal and enjoy.' : 'ตักไข่ข้นราดลงบน${displayIngredient}ทันที',
         ],
       },
       {
         id: 'recipe_meal_7',
-        title: isEn ? `Quick Savory Skillet Stir-fry with ${displayIngredient}` : `ผัดคลุกกระทะร้อนใส่${mainIngredient}`,
+        title: isEn ? `Quick Savory Skillet Stir-fry with ${displayIngredient}` : `ผัดคลุกกระทะร้อนใส่${displayIngredient}`,
         description: isEn ? 'Fast stir fry refreshing flavors and textures.' : 'ผัดกระทะร้อนฉ่า หอมกลิ่นคั่วกระทะ ชวนน้ำลายสอ',
         cookingTime: '8 min',
         difficulty: 'Easy',
@@ -1042,13 +1162,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Sauté garlic in hot oil.' : 'ผัดกระเทียมในน้ำมันจนหอม',
-          isEn ? `Add ${displayIngredient} and toss vigorously.` : `ใส่${mainIngredient}ลงไป ผัดคลุกเคล้าไฟแรง`,
+          isEn ? `Add ${displayIngredient} and toss vigorously.` : `ใส่${displayIngredient}ลงไป ผัดคลุกเคล้าไฟแรง`,
           isEn ? 'Season lightly and serve immediately.' : 'ปรุงรสเล็กน้อย ผัดให้เข้ากัน ปิดไฟเสิร์ฟ',
         ],
       },
       {
         id: 'recipe_meal_8',
-        title: isEn ? `Crispy Toastie Stuffed with ${displayIngredient}` : `แซนด์วิชปิ้งไส้ทะลักใส่${mainIngredient}`,
+        title: isEn ? `Crispy Toastie Stuffed with ${displayIngredient}` : `แซนด์วิชปิ้งไส้ทะลักใส่${displayIngredient}`,
         description: isEn ? 'Golden pressed toast loaded with delicious savory filling.' : 'ประกบขนมปังปิ้งให้กรอบนอกนุ่มใน ไส้แน่นจุใจ',
         cookingTime: '8 min',
         difficulty: 'Very easy',
@@ -1060,7 +1180,7 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? 'Butter or mayo' : 'เนยหรือมายองเนส',
         ],
         steps: [
-          isEn ? `Spread butter on bread and place ${displayIngredient} inside.` : `ทาเนยบนขนมปัง ใส่ไส้${mainIngredient}ลงไป`,
+          isEn ? `Spread butter on bread and place ${displayIngredient} inside.` : `ทาเนยบนขนมปัง ใส่ไส้${displayIngredient}ลงไป`,
           isEn ? 'Press in hot pan or sandwich maker until golden crisp.' : 'นำไปจี่ในกระทะหรือเครื่องปิ้งขนมปังจนกรอบทั้งสองด้าน',
           isEn ? 'Cut in half diagonally and enjoy hot.' : 'หั่นครึ่งตามแนวทแยง พร้อมเสิร์ฟ',
         ],
@@ -1071,7 +1191,7 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
     pool = [
       {
         id: 'recipe_fallback_1',
-        title: isEn ? `Stir-fried ${displayIngredient} with Garlic & Pepper` : `ผัดกระเทียมพริกไทย${mainIngredient}`,
+        title: isEn ? `Stir-fried ${displayIngredient} with Garlic & Pepper` : `ผัดกระเทียมพริกไทย${displayIngredient}`,
         description: isEn ? 'Quick, aromatic, and comforting dish in under 10 minutes.' : 'หอมกลิ่นกระเทียมพริกไทย ทำง่าย รสกลมกล่อม',
         cookingTime: '10 min',
         difficulty: 'Very easy',
@@ -1086,13 +1206,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Heat oil in a pan over medium heat and sauté garlic until fragrant.' : 'ตั้งกระทะใส่น้ำมัน นำกระเทียมลงผัดจนหอมกรุ่น',
-          isEn ? `Add ${displayIngredient} and stir-fry for 3-5 minutes.` : `ใส่${mainIngredient}ลงไปผัดให้สุกและเข้ากัน 3-5 นาที`,
+          isEn ? `Add ${displayIngredient} and stir-fry for 3-5 minutes.` : `ใส่${displayIngredient}ลงไปผัดให้สุกและเข้ากัน 3-5 นาที`,
           isEn ? 'Season with soy sauce and pepper, then serve with warm rice.' : 'ปรุงรสด้วยซีอิ๊วขาวและพริกไทย ตักเสิร์ฟพร้อมข้าวสวยร้อนๆ',
         ],
       },
       {
         id: 'recipe_fallback_2',
-        title: isEn ? `Golden Fluffy Omelet with ${displayIngredient}` : `ไข่เจียวทรงเครื่องใส่${mainIngredient}`,
+        title: isEn ? `Golden Fluffy Omelet with ${displayIngredient}` : `ไข่เจียวทรงเครื่องใส่${displayIngredient}`,
         description: isEn ? 'Fluffy eggs loaded with savory flavors.' : 'ไข่เจียวฟูนุ่มกรอบนอกนุ่มใน เข้ากันได้อย่างลงตัว',
         cookingTime: '10 min',
         difficulty: 'Very easy',
@@ -1105,14 +1225,14 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? 'Cooking oil for frying' : 'น้ำมันสำหรับทอด',
         ],
         steps: [
-          isEn ? `Beat eggs together in a bowl and mix in chopped ${displayIngredient}.` : `ตอกไข่ใส่ชาม ตีให้เข้ากันแล้วใส่${mainIngredient}ที่หั่นพอดีคำลงไป`,
+          isEn ? `Beat eggs together in a bowl and mix in chopped ${displayIngredient}.` : `ตอกไข่ใส่ชาม ตีให้เข้ากันแล้วใส่${displayIngredient}ที่หั่นพอดีคำลงไป`,
           isEn ? 'Heat oil in pan until hot, pour egg mixture and fry until golden.' : 'ตั้งน้ำมันให้ร้อน เทไข่ลงทอดจนเหลืองฟูกรอบทั้งสองด้าน',
           isEn ? 'Drain excess oil and serve hot.' : 'ตักขึ้นสะเด็ดน้ำมัน พร้อมรับประทาน',
         ],
       },
       {
         id: 'recipe_fallback_3',
-        title: isEn ? `Classic Fried Rice with ${displayIngredient}` : `ข้าวผัดโบราณใส่${mainIngredient}`,
+        title: isEn ? `Classic Fried Rice with ${displayIngredient}` : `ข้าวผัดโบราณใส่${displayIngredient}`,
         description: isEn ? 'The ultimate zero-waste meal using leftover rice.' : 'เปลี่ยนข้าวสวยและวัตถุดิบเหลือให้เป็นมื้ออร่อยง่ายๆ',
         cookingTime: '15 min',
         difficulty: 'Easy',
@@ -1127,13 +1247,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Sauté garlic in a hot pan, add egg and scramble lightly.' : 'ผัดกระเทียมในกระทะ ตอกไข่ใส่แล้วยีพอสุก',
-          isEn ? `Add ${displayIngredient} followed by cooked rice.` : `ใส่${mainIngredient}และข้าวสวยลงไป ผัดให้เข้ากัน`,
+          isEn ? `Add ${displayIngredient} followed by cooked rice.` : `ใส่${displayIngredient}และข้าวสวยลงไป ผัดให้เข้ากัน`,
           isEn ? 'Season with soy sauce and sugar, stir over high heat for 2 minutes.' : 'ปรุงรสด้วยซีอิ๊วขาวและน้ำตาล ผัดไฟแรง 2 นาทีจนหอมกระทะ',
         ],
       },
       {
         id: 'recipe_fallback_4',
-        title: isEn ? `Comforting Soup with ${displayIngredient}` : `ต้มจืดซุปร้อนๆ ใส่${mainIngredient}`,
+        title: isEn ? `Comforting Soup with ${displayIngredient}` : `ต้มจืดซุปร้อนๆ ใส่${displayIngredient}`,
         description: isEn ? 'Soothing clear broth that warms the soul.' : 'น้ำซุปใสกลมกล่อม ซดคล่องคอ สบายท้อง',
         cookingTime: '15 min',
         difficulty: 'Easy',
@@ -1147,13 +1267,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Bring water or broth to a boil in a pot.' : 'ตั้งน้ำให้เดือดในหม้อ',
-          isEn ? `Add ${displayIngredient} and simmer for 5-8 minutes.` : `ใส่${mainIngredient}ลงไปต้มประมาณ 5-8 นาที`,
+          isEn ? `Add ${displayIngredient} and simmer for 5-8 minutes.` : `ใส่${displayIngredient}ลงไปต้มประมาณ 5-8 นาที`,
           isEn ? 'Season with light soy sauce and garnish with fresh herbs.' : 'ปรุงรสด้วยซีอิ๊วขาว โรยผักชีหรือต้นหอมก่อนเสิร์ฟ',
         ],
       },
       {
         id: 'recipe_fallback_5',
-        title: isEn ? `Fresh Crispy ${displayIngredient} Salad` : `ยำหรือสลัดคลีนๆ ใส่${mainIngredient}`,
+        title: isEn ? `Fresh Crispy ${displayIngredient} Salad` : `ยำหรือสลัดคลีนๆ ใส่${displayIngredient}`,
         description: isEn ? 'Refreshing and vibrant meal ready in minutes.' : 'รสชาติสดชื่น อิ่มเบาสบายท้อง ไม่เลี่ยน',
         cookingTime: '8 min',
         difficulty: 'Very easy',
@@ -1166,14 +1286,14 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
           isEn ? '1 tbsp olive oil or dressing' : 'น้ำมันมะกอกหรือน้ำสลัด 1 ช้อนโต๊ะ',
         ],
         steps: [
-          isEn ? `Warm or prepare ${displayIngredient}.` : `เตรียม${mainIngredient}ให้พร้อมรับประทาน`,
+          isEn ? `Warm or prepare ${displayIngredient}.` : `เตรียม${displayIngredient}ให้พร้อมรับประทาน`,
           isEn ? 'Combine greens in a bowl and arrange ingredients nicely.' : 'จัดผักสดใส่จาน วางวัตถุดิบลงไปให้สวยงาม',
           isEn ? 'Drizzle dressing and toss gently before eating.' : 'ราดน้ำสลัดหรือน้ำยำ คลุกเคล้าเบาๆ พร้อมเสิร์ฟ',
         ],
       },
       {
         id: 'recipe_fallback_6',
-        title: isEn ? `Toasted Sandwich with ${displayIngredient}` : `แซนด์วิชขนมปังปิ้งไส้${mainIngredient}`,
+        title: isEn ? `Toasted Sandwich with ${displayIngredient}` : `แซนด์วิชขนมปังปิ้งไส้${displayIngredient}`,
         description: isEn ? 'Crispy, warm, and satisfying snack or breakfast.' : 'กรอบนอกนุ่มใน อร่อยอยู่ท้อง ทำเสร็จไวสุดๆ',
         cookingTime: '10 min',
         difficulty: 'Very easy',
@@ -1187,13 +1307,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Toast bread slices until golden brown.' : 'ปิ้งขนมปังให้เหลืองกรอบ',
-          isEn ? `Spread mayo or butter, then layer with ${displayIngredient}.` : `ทามายองเนสหรือเนย วางไส้${mainIngredient}ลงไป`,
+          isEn ? `Spread mayo or butter, then layer with ${displayIngredient}.` : `ทามายองเนสหรือเนย วางไส้${displayIngredient}ลงไป`,
           isEn ? 'Cut in half diagonally and enjoy warm.' : 'ประกบขนมปัง หั่นครึ่ง พร้อมรับประทาน',
         ],
       },
       {
         id: 'recipe_fallback_7',
-        title: isEn ? `Spicy Basil Stir-fry with ${displayIngredient}` : `ผัดกะเพรารสเด็ดใส่${mainIngredient}`,
+        title: isEn ? `Spicy Basil Stir-fry with ${displayIngredient}` : `ผัดกะเพรารสเด็ดใส่${displayIngredient}`,
         description: isEn ? 'Fiery and aromatic Thai holy basil stir fry.' : 'เผ็ดร้อนหอมกลิ่นใบกะเพรา เมนูยอดฮิตทำง่ายสุดๆ',
         cookingTime: '10 min',
         difficulty: 'Easy',
@@ -1207,13 +1327,13 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         ],
         steps: [
           isEn ? 'Pound chilies and garlic, sauté in hot oil.' : 'โขลกพริกกระเทียมลงผัดในน้ำมันจนหอมฉุน',
-          isEn ? `Add ${displayIngredient} and season.` : `ใส่${mainIngredient}ลงไปผัด ปรุงรสด้วยน้ำมันหอยและซีอิ๊ว`,
+          isEn ? `Add ${displayIngredient} and season.` : `ใส่${displayIngredient}ลงไปผัด ปรุงรสด้วยน้ำมันหอยและซีอิ๊ว`,
           isEn ? 'Toss in holy basil and serve over rice.' : 'ใส่ใบกะเพรา ปิดไฟ ผัดเคล้าให้เข้ากัน เสิร์ฟพร้อมข้าวสวย',
         ],
       },
       {
         id: 'recipe_fallback_8',
-        title: isEn ? `Creamy Lava Egg Bowl with ${displayIngredient}` : `ข้าวไข่ข้นลาวาหน้า${mainIngredient}`,
+        title: isEn ? `Creamy Lava Egg Bowl with ${displayIngredient}` : `ข้าวไข่ข้นลาวาหน้า${displayIngredient}`,
         description: isEn ? 'Silky runny scrambled eggs topping warm rice.' : 'ไข่ข้นเยิ้มๆ นุ่มละมุนลิ้น เข้ากันดีเยี่ยม',
         cookingTime: '8 min',
         difficulty: 'Very easy',
@@ -1228,7 +1348,7 @@ function generateFallbackRecipes(mainIngredient, language = 'en', offset = 0, ca
         steps: [
           isEn ? 'Whisk eggs with milk.' : 'ตีไข่กับนมสดและซีอิ๊วขาวเบาๆ',
           isEn ? 'Cook gently in butter until half set.' : 'ตั้งกระทะใส่เนย ใช้ไฟอ่อน เทไข่ลงไปใช้ตะหลิวดันเข้าตรงกลาง',
-          isEn ? `Top with ${displayIngredient} and pour over rice.` : `วาง${mainIngredient}ลงไปด้านบน พอไข่เยิ้มๆ ตักราดข้าวทันที`,
+          isEn ? `Top with ${displayIngredient} and pour over rice.` : `วาง${displayIngredient}ลงไปด้านบน พอไข่เยิ้มๆ ตักราดข้าวทันที`,
         ],
       },
     ];
@@ -1286,6 +1406,9 @@ async function scanLabel(buffer, mimeType, language = 'en', mode = 'full') {
     if (language === 'en' && parsed.foodName && /[\u0E00-\u0E7F]/.test(parsed.foodName)) {
       parsed.foodName = translateThaiIngredientToEn(parsed.foodName);
     }
+    if (language === 'th' && parsed.foodName && !/[\u0E00-\u0E7F]/.test(parsed.foodName)) {
+      parsed.foodName = translateEnIngredientToThai(parsed.foodName);
+    }
     return parsed;
   } catch (err) {
     throw new Error('Failed to parse AI response into valid JSON');
@@ -1314,7 +1437,7 @@ async function suggestRecipes({ userId, mainIngredient, category, language = 'en
 
   const detectedCat = detectCategory(mainIngredient, category);
   const isEn = language === 'en';
-  const displayIngredient = isEn ? translateThaiIngredientToEn(mainIngredient) : mainIngredient;
+  const displayIngredient = isEn ? translateThaiIngredientToEn(mainIngredient) : translateEnIngredientToThai(mainIngredient);
 
   let categoryGuidelineEn = '';
   let categoryGuidelineTh = '';
@@ -1400,16 +1523,16 @@ Respond strictly in JSON array of 6 items matching this schema:
 ]
 `
     : `คุณคือสุดยอดเชฟ AI ผู้เชี่ยวชาญการคิดเมนูอาหารที่สร้างสรรค์ ทำง่าย ใช้วัตถุดิบน้อย (10-20 นาที)
-วัตถุดิบที่ต้องการนำมาทำอาหาร: "${mainIngredient}"
+วัตถุดิบที่ต้องการนำมาทำอาหาร: "${displayIngredient}"
 หมวดหมู่: ${detectedCat}
 
 ${categoryGuidelineTh}
 
 ข้อกำหนดสำคัญมาก:
-1. ทุกเมนูต้องชูและโฟกัสเฉพาะ "${mainIngredient}" เป็นวัตถุดิบหลักเท่านั้น ห้ามใส่วัตถุดิบหลักอื่นที่ไม่เกี่ยวข้อง
+1. ทุกเมนูต้องชูและโฟกัสเฉพาะ "${displayIngredient}" เป็นวัตถุดิบหลักเท่านั้น ห้ามใส่วัตถุดิบหลักอื่นที่ไม่เกี่ยวข้อง
 2. วัตถุดิบเสริมต้องเป็นเครื่องปรุงหรือของพื้นฐานประจำบ้านเท่านั้น (เช่น ไข่ไก่, ข้าวสวย, น้ำมัน, กระเทียม, ซีอิ๊ว, น้ำปลา, เกลือ, พริกไทย, น้ำตาล, แป้ง, นม)
 3. เมนูทั้ง 6 ต้องมีความหลากหลายที่เหมาะสมกับหมวดหมู่ "${detectedCat}" ไม่ซ้ำแนวกัน
-4. เวลาปรุง 5-20 นาที ระดับความง่าย Easy หรือ Very easy
+4. เวลาปรุง 5-20 นาที ระดับความง่าย เช่น "ง่ายมาก", "ง่าย", "ปานกลาง"
 5. ${langInstruction}
 
 ตอบกลับเป็น JSON array ของวัตถุ 6 รายการเท่านั้น ตามโครงสร้างดังนี้:
@@ -1418,12 +1541,12 @@ ${categoryGuidelineTh}
     "id": "recipe_1",
     "title": "ชื่อเมนูที่สร้างสรรค์และน่ากิน",
     "description": "คำอธิบายความอร่อยสั้นๆ 1 ประโยค ดึงดูดให้อยากทำ",
-    "cookingTime": "15 min",
-    "difficulty": "Easy",
+    "cookingTime": "15 นาที",
+    "difficulty": "ง่ายมาก",
     "dishType": "stir_fry|omelet|soup|fried_rice|salad|sandwich|pasta|beverage|smoothie|pancake|dessert",
-    "expiringIngredient": "${mainIngredient}",
-    "ingredients": ["วัตถุดิบพร้อมปริมาณ"],
-    "steps": ["ขั้นตอนการทำสั้นกระชับเข้าใจง่าย"]
+    "expiringIngredient": "${displayIngredient}",
+    "ingredients": ["วัตถุดิบพร้อมปริมาณเป็นภาษาไทย"],
+    "steps": ["ขั้นตอนการทำสั้นกระชับเข้าใจง่ายเป็นภาษาไทย"]
   }
 ]
 `;
@@ -1459,13 +1582,25 @@ ${categoryGuidelineTh}
 
   // Ensure up to 6 recipes and attach unique non-repeating image assets
   const formattedRecipes = recipes.slice(0, 6).map((r, idx) => {
+    let cTime = r.cookingTime || (language === 'th' ? '15 นาที' : '15 min');
+    if (language === 'th') {
+      cTime = cTime.replace(/mins?|minutes?/i, 'นาที').replace(/hrs?|hours?/i, 'ชั่วโมง');
+    }
+    let diff = r.difficulty || (language === 'th' ? 'ง่ายมาก' : 'Easy');
+    if (language === 'th') {
+      const dLower = diff.toLowerCase();
+      if (dLower.includes('very easy')) diff = 'ง่ายมาก';
+      else if (dLower.includes('easy')) diff = 'ง่าย';
+      else if (dLower.includes('medium')) diff = 'ปานกลาง';
+      else if (dLower.includes('hard')) diff = 'ยาก';
+    }
     return attachRecipeImages(
       {
         id: r.id || `recipe_${idx + 1}`,
-        title: r.title || `Menu with ${displayIngredient}`,
+        title: r.title || (language === 'th' ? `เมนูจาก ${displayIngredient}` : `Menu with ${displayIngredient}`),
         description: r.description || '',
-        cookingTime: r.cookingTime || '15 min',
-        difficulty: r.difficulty || 'Easy',
+        cookingTime: cTime,
+        difficulty: diff,
         dishType: r.dishType || 'stir_fry',
         expiringIngredient: r.expiringIngredient || displayIngredient,
         ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],

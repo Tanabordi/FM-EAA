@@ -26,6 +26,8 @@ class FridgeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTh = Localizations.localeOf(context).languageCode == 'th';
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFEAEFE8),
@@ -117,7 +119,9 @@ class FridgeCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      isPersonal ? 'Personal' : '$memberCount members',
+                      isPersonal
+                          ? (isTh ? 'ส่วนตัว' : 'Personal')
+                          : (isTh ? '$memberCount สมาชิก' : '$memberCount members'),
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF414942),

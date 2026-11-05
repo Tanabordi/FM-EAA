@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
@@ -52,14 +53,17 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
   }
 
   void _handleBack() {
+    final isTh = ref.read(localeProvider).languageCode == 'th';
     if (_hasUnsavedChanges) {
       showDialog(
         context: context,
         builder: (dialogContext) => ConfirmDialog(
-          title: 'Discard changes?',
-          message: 'You have unsaved changes. Are you sure you want to discard them?',
-          confirmLabel: 'Discard',
-          cancelLabel: 'Keep editing',
+          title: isTh ? 'ละทิ้งการเปลี่ยนแปลง?' : 'Discard changes?',
+          message: isTh
+              ? 'คุณมีข้อมูลที่ยังไม่ได้บันทึก แน่ใจหรือไม่ว่าต้องการละทิ้ง?'
+              : 'You have unsaved changes. Are you sure you want to discard them?',
+          confirmLabel: isTh ? 'ละทิ้ง' : 'Discard',
+          cancelLabel: isTh ? 'แก้ไขต่อ' : 'Keep editing',
           isDestructive: true,
           onConfirm: () {
             setState(() => _forceExit = true);
@@ -216,6 +220,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isEmailLocked = _isGoogleLocked || (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty);
@@ -242,7 +247,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                     ),
                     const SizedBox(width: 16),
                   Text(
-                    'Create an Account',
+                    isTh ? 'สร้างบัญชีผู้ใช้' : 'Create an Account',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface,
@@ -254,7 +259,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
               const SizedBox(height: 28),
               // Subtitle
               Text(
-                'A few details and you’re ready to get started.',
+                isTh ? 'กรอกข้อมูลเล็กน้อยเพื่อเริ่มต้นใช้งาน' : 'A few details and you’re ready to get started.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                   fontSize: 15,
@@ -264,10 +269,11 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
               // Username
               AppTextField(
                 controller: _usernameController,
-                labelText: 'Username',
+                labelText: isTh ? 'ชื่อผู้ใช้' : 'Username',
                 hintText: '',
-                helperText:
-                    '• 3–20 characters (letters, numbers, underscores)\n• Can be changed once every 14 days',
+                helperText: isTh
+                    ? '• 3–20 ตัวอักษร (ตัวอักษร, ตัวเลข, ขีดล่าง)\n• เปลี่ยนแปลงได้ทุก 14 วัน'
+                    : '• 3–20 characters (letters, numbers, underscores)\n• Can be changed once every 14 days',
                 errorText: _usernameError,
                 onChanged: (_) {
                   if (_usernameError != null) setState(() => _usernameError = null);
@@ -277,7 +283,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
               // Email (supports locked state with lock icon as in Figma 362:18)
               AppTextField(
                 controller: _emailController,
-                labelText: 'Email',
+                labelText: isTh ? 'อีเมล' : 'Email',
                 hintText: '',
                 errorText: _emailError,
                 onChanged: (_) {
@@ -297,7 +303,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
               // Password with real-time requirement checklist
               AppTextField(
                 controller: _passwordController,
-                labelText: 'Password',
+                labelText: isTh ? 'รหัสผ่าน' : 'Password',
                 hintText: '',
                 errorText: _passwordError,
                 onChanged: (_) {
@@ -324,17 +330,17 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                   children: [
                     _buildRequirementItem(
                       isMet: _hasMinLength,
-                      label: 'At least 8 characters (8–64 characters)',
+                      label: isTh ? 'อย่างน้อย 8 ตัวอักษร (8–64 ตัวอักษร)' : 'At least 8 characters (8–64 characters)',
                       colorScheme: colorScheme,
                     ),
                     _buildRequirementItem(
                       isMet: _hasLetter,
-                      label: 'At least 1 letter (a-z, A-Z)',
+                      label: isTh ? 'มีตัวอักษรภาษาอังกฤษอย่างน้อย 1 ตัว (a-z, A-Z)' : 'At least 1 letter (a-z, A-Z)',
                       colorScheme: colorScheme,
                     ),
                     _buildRequirementItem(
                       isMet: _hasNumber,
-                      label: 'At least 1 number (0-9)',
+                      label: isTh ? 'มีตัวเลขอย่างน้อย 1 ตัว (0-9)' : 'At least 1 number (0-9)',
                       colorScheme: colorScheme,
                     ),
                   ],
@@ -344,7 +350,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
               // Confirm Password
               AppTextField(
                 controller: _confirmPasswordController,
-                labelText: 'Confirm Password',
+                labelText: isTh ? 'ยืนยันรหัสผ่าน' : 'Confirm Password',
                 hintText: '',
                 errorText: _confirmPasswordError,
                 onChanged: (_) {
@@ -363,7 +369,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
               const SizedBox(height: 32),
               // Sign Up Button
               PrimaryButton(
-                label: 'Sign Up',
+                label: isTh ? 'สมัครสมาชิก' : 'Sign Up',
                 isLoading: _isLoading,
                 onPressed: _handleSignUp,
               ),
@@ -381,7 +387,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
-                        'Or',
+                        isTh ? 'หรือ' : 'Or',
                         style: TextStyle(
                           color: colorScheme.onSurfaceVariant,
                           fontSize: 14,
@@ -398,7 +404,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                 ),
                 const SizedBox(height: 24),
                 GoogleSignInButton(
-                  label: 'Sign up with Google',
+                  label: isTh ? 'สมัครสมาชิกด้วย Google' : 'Sign up with Google',
                   onPressed: _handleGoogleSignUp,
                 ),
               ],
@@ -408,7 +414,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Already have an account? ',
+                    isTh ? 'มีบัญชีอยู่แล้วใช่หรือไม่? ' : 'Already have an account? ',
                     style: TextStyle(
                       color: colorScheme.onSurfaceVariant,
                       fontSize: 14,
@@ -417,7 +423,7 @@ class _CreateAccountPageState extends ConsumerState<CreateAccountPage> {
                   InkWell(
                     onTap: _handleBack,
                     child: Text(
-                      'Sign In',
+                      isTh ? 'เข้าสู่ระบบ' : 'Sign In',
                       style: TextStyle(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.bold,

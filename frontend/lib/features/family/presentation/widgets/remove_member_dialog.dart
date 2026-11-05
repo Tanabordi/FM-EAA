@@ -12,6 +12,8 @@ class RemoveMemberDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTh = Localizations.localeOf(context).languageCode == 'th';
+
     return Dialog(
       backgroundColor: const Color(0xFFEAEFE8),
       elevation: 0,
@@ -24,7 +26,7 @@ class RemoveMemberDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Remove $memberName from\nFamily?',
+              isTh ? 'ลบ $memberName ออกจาก\nครอบครัวหรือไม่?' : 'Remove $memberName from\nFamily?',
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -33,9 +35,9 @@ class RemoveMemberDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'They will lose access to this shared fridge.',
-              style: TextStyle(
+            Text(
+              isTh ? 'พวกเขาจะไม่สามารถเข้าถึงตู้เย็นที่แชร์นี้ได้อีก' : 'They will lose access to this shared fridge.',
+              style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF414942),
               ),
@@ -46,11 +48,11 @@ class RemoveMemberDialog extends StatelessWidget {
               children: [
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     child: Text(
-                      'Cancel',
-                      style: TextStyle(
+                      isTh ? 'ยกเลิก' : 'Cancel',
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181D18),
@@ -70,9 +72,9 @@ class RemoveMemberDialog extends StatelessWidget {
                       borderRadius: BorderRadius.circular(100),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-                    child: const Text(
-                      'Remove',
-                      style: TextStyle(
+                    child: Text(
+                      isTh ? 'ลบออก' : 'Remove',
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -88,5 +90,3 @@ class RemoveMemberDialog extends StatelessWidget {
     );
   }
 }
-
-

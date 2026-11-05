@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/widgets/fridge_card.dart';
@@ -81,13 +82,14 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
     final unreadNotifs = ref.watch(unreadNotificationCountProvider).value ?? 0;
     final theme = Theme.of(context);
     final isEmpty = fridges.isEmpty;
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6FBF3),
       body: SafeArea(
         child: isEmpty
-            ? _buildEmptyState(context, unreadNotifs)
-            : _buildPopulatedState(context, ref, fridges, theme, unreadNotifs),
+            ? _buildEmptyState(context, unreadNotifs, isTh)
+            : _buildPopulatedState(context, ref, fridges, theme, unreadNotifs, isTh),
       ),
       floatingActionButton: isEmpty
           ? null
@@ -113,7 +115,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
   }
 
   /// Screen #5 Empty State (Image 1: 100% pixel-perfect match to Figma)
-  Widget _buildEmptyState(BuildContext context, int unreadNotifs) {
+  Widget _buildEmptyState(BuildContext context, int unreadNotifs, bool isTh) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Column(
@@ -124,9 +126,9 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                'My Fridges',
-                style: TextStyle(
+              Text(
+                isTh ? 'ตู้เย็นของฉัน' : 'My Fridges',
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 28,
                   color: Color(0xFF181D18),
@@ -137,14 +139,14 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
                 children: [
                   _buildCircleActionButton(
                     icon: Icons.notifications_outlined,
-                    tooltip: 'Notifications',
+                    tooltip: isTh ? 'การแจ้งเตือน' : 'Notifications',
                     badgeCount: unreadNotifs,
                     onPressed: () => context.push('/notifications'),
                   ),
                   const SizedBox(width: 10),
                   _buildCircleActionButton(
                     icon: Icons.settings_outlined,
-                    tooltip: 'Settings',
+                    tooltip: isTh ? 'การตั้งค่า' : 'Settings',
                     onPressed: () => context.push('/settings'),
                   ),
                 ],
@@ -157,9 +159,9 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
             child: CuteFridgeIllustration(size: 240),
           ),
           const SizedBox(height: 32),
-          const Text(
-            'No fridges yet',
-            style: TextStyle(
+          Text(
+            isTh ? 'ยังไม่มีตู้เย็น' : 'No fridges yet',
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Color(0xFF181D18),
@@ -167,10 +169,12 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
-            'Create your first fridge space to start\ntracking your food',
+          Text(
+            isTh
+                ? 'สร้างตู้เย็นแรกของคุณ\nเพื่อเริ่มติดตามอาหาร'
+                : 'Create your first fridge space to start\ntracking your food',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14.5,
               color: Color(0xFF414942),
               height: 1.45,
@@ -183,9 +187,9 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
             height: 54,
             child: ElevatedButton.icon(
               icon: const Icon(Icons.add, size: 20, color: Colors.white),
-              label: const Text(
-                'Add First Fridge',
-                style: TextStyle(
+              label: Text(
+                isTh ? 'เพิ่มตู้เย็นแรก' : 'Add First Fridge',
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -212,6 +216,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
     List dynamicFridges,
     ThemeData theme,
     int unreadNotifs,
+    bool isTh,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -224,9 +229,9 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                'My Fridges',
-                style: TextStyle(
+              Text(
+                isTh ? 'ตู้เย็นของฉัน' : 'My Fridges',
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 28,
                   color: Color(0xFF181D18),
@@ -237,14 +242,14 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
                 children: [
                   _buildCircleActionButton(
                     icon: Icons.notifications_outlined,
-                    tooltip: 'Notifications',
+                    tooltip: isTh ? 'การแจ้งเตือน' : 'Notifications',
                     badgeCount: unreadNotifs,
                     onPressed: () => context.push('/notifications'),
                   ),
                   const SizedBox(width: 10),
                   _buildCircleActionButton(
                     icon: Icons.settings_outlined,
-                    tooltip: 'Settings',
+                    tooltip: isTh ? 'การตั้งค่า' : 'Settings',
                     onPressed: () => context.push('/settings'),
                   ),
                 ],
@@ -252,9 +257,9 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            "A fresh look at what's inside.",
-            style: TextStyle(
+          Text(
+            isTh ? 'ตรวจสอบรายการอาหารสดใหม่ในตู้' : "A fresh look at what's inside.",
+            style: const TextStyle(
               color: Color(0xFF414942),
               fontSize: 14.5,
               fontWeight: FontWeight.w400,
@@ -267,9 +272,9 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                'Your fridges',
-                style: TextStyle(
+              Text(
+                isTh ? 'ตู้เย็นของคุณ' : 'Your fridges',
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                   color: Color(0xFF181D18),
@@ -277,7 +282,7 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
                 ),
               ),
               Text(
-                '${dynamicFridges.length} fridges',
+                isTh ? '${dynamicFridges.length} ตู้' : '${dynamicFridges.length} fridges',
                 style: const TextStyle(
                   color: Color(0xFF414942),
                   fontSize: 13,
@@ -319,9 +324,11 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
                         .length;
                   }
 
-                  final itemsText = displayCount == 0
-                      ? 'Empty'
-                      : (displayCount == 1 ? '1 Item' : '$displayCount Items');
+                  final itemsText = isTh
+                      ? (displayCount == 0 ? 'ว่างเปล่า' : '$displayCount รายการ')
+                      : (displayCount == 0
+                          ? 'Empty'
+                          : (displayCount == 1 ? '1 Item' : '$displayCount Items'));
 
                   final currentUserId = ref.watch(authProvider).user?.id;
                   final isOwner = fridge.isUserOwner(currentUserId);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../../shared/widgets/figma_auth_widgets.dart';
 import '../../../../shared/widgets/user_avatar.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -117,6 +118,7 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isTh = ref.watch(localeProvider).languageCode == 'th';
     final familyState = ref.watch(familyMembersProvider(widget.fridgeId));
     final currentUser = ref.watch(authProvider).user;
     final currentUserId = currentUser?.id ?? '';
@@ -165,7 +167,7 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                     const FigmaBackButton(),
                     const SizedBox(width: 16),
                     Text(
-                      'Family Share',
+                      isTh ? 'แชร์ในครอบครัว' : 'Family Share',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onSurface,
@@ -214,7 +216,7 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Family members',
+                      isTh ? 'สมาชิกในครอบครัว' : 'Family members',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -222,7 +224,7 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                       ),
                     ),
                     Text(
-                      '${members.length} ${members.length == 1 ? "Member" : "Members"}',
+                      isTh ? '${members.length} สมาชิก' : '${members.length} ${members.length == 1 ? "Member" : "Members"}',
                       style: TextStyle(
                         fontSize: 14,
                         color: colorScheme.onSurfaceVariant,
@@ -253,7 +255,9 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                     ),
                     child: Center(
                       child: Text(
-                        'No members yet. Invite someone below!',
+                        isTh
+                            ? 'ยังไม่มีสมาชิก เชิญเพื่อนหรือคนในครอบครัวด้านล่างนี้ได้เลย!'
+                            : 'No members yet. Invite someone below!',
                         style: TextStyle(
                           fontSize: 14,
                           color: colorScheme.onSurfaceVariant,
@@ -272,7 +276,7 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                       children: members.map((member) {
                         final isMe = checkIsMe(member);
                         final displayName = isMe && !member.name.contains('(ME)')
-                            ? '${member.name} (ME)'
+                            ? (isTh ? '${member.name} (ฉัน)' : '${member.name} (ME)')
                             : member.name;
 
                         // Only owner can delete other members (never themselves)
@@ -301,7 +305,7 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                                 ),
                               ),
                               Text(
-                                member.role,
+                                isTh ? (member.role.toLowerCase() == 'owner' ? 'เจ้าของ' : 'สมาชิก') : member.role,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Color(0xFF414942),
@@ -354,7 +358,9 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Everyone can share a refrigerator, manage a shopping list, and further reduce food waste.',
+                        isTh
+                            ? 'ทุกคนสามารถแชร์ตู้เย็น จัดการรายการซื้อของ และช่วยลดขยะอาหารด้วยกันได้'
+                            : 'Everyone can share a refrigerator, manage a shopping list, and further reduce food waste.',
                         style: TextStyle(
                           fontSize: 13,
                           color: colorScheme.onSurfaceVariant,
@@ -379,9 +385,9 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                         elevation: 0,
                       ),
                       icon: const Icon(Icons.person_add_alt, size: 20),
-                      label: const Text(
-                        'Invite Member',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      label: Text(
+                        isTh ? 'เชิญสมาชิก' : 'Invite Member',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       onPressed: () {
                         context.push('/fridges/${widget.fridgeId}/family/invite');
@@ -401,9 +407,9 @@ class _FamilySharePageState extends ConsumerState<FamilySharePage> {
                         shape: const StadiumBorder(),
                       ),
                       icon: const Icon(Icons.exit_to_app_rounded, size: 20),
-                      label: const Text(
-                        'Leave Fridge',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      label: Text(
+                        isTh ? 'ออกจากตู้เย็น' : 'Leave Fridge',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       onPressed: _isRemoving ? null : _showLeaveDialog,
                     ),

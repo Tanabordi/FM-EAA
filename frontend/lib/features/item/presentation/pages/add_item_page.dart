@@ -11,6 +11,7 @@ import '../../../../data/repositories/item_repository.dart';
 import '../../../../shared/utils/date_input_formatter.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../fridge_detail/providers/fridge_detail_provider.dart';
 import '../../../fridges/providers/fridges_provider.dart';
 import 'scan_label_page.dart';
@@ -95,6 +96,62 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     final lower = s.trim().toLowerCase();
     if (lower.contains('freez')) return 'Freezer';
     return 'Fridge';
+  }
+
+  String _getCategoryDisplay(String c, bool isTh) {
+    if (!isTh) return c;
+    switch (c) {
+      case 'Proteins':
+        return 'โปรตีน';
+      case 'Veggies':
+        return 'ผักและผลไม้';
+      case 'Beverages':
+        return 'เครื่องดื่ม';
+      case 'Meals':
+        return 'อาหารปรุงสำเร็จ';
+      case 'Sauces':
+        return 'เครื่องปรุงและซอส';
+      default:
+        return c;
+    }
+  }
+
+  String _getUnitDisplay(String u, bool isTh) {
+    if (!isTh) return u;
+    switch (u) {
+      case 'pieces':
+        return 'ชิ้น';
+      case 'bag':
+        return 'ถุง';
+      case 'punnet':
+        return 'ตะกร้า';
+      case 'bottle':
+        return 'ขวด';
+      case 'box':
+        return 'กล่อง';
+      case 'can':
+        return 'กระป๋อง';
+      case 'pack':
+        return 'แพ็ค';
+      case 'g':
+        return 'กรัม (g)';
+      case 'kg':
+        return 'กิโลกรัม (kg)';
+      default:
+        return u;
+    }
+  }
+
+  String _getStorageDisplay(String s, bool isTh) {
+    if (!isTh) return s;
+    switch (s) {
+      case 'Fridge':
+        return 'ช่องแช่เย็น (Fridge)';
+      case 'Freezer':
+        return 'ช่องแช่แข็ง (Freezer)';
+      default:
+        return s;
+    }
   }
 
   DateTime? _tryParseDate(String input) {
@@ -189,15 +246,42 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
         _imageBytes != null;
   }
 
+  bool get _isTh {
+    try {
+      return ref.watch(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  bool _isThRead() {
+    try {
+      return ref.read(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
   void _handleBack() {
+    final isTh = _isThRead();
     if (_hasUnsavedChanges) {
       showDialog(
         context: context,
         builder: (dialogContext) => ConfirmDialog(
-          title: 'Discard changes?',
-          message: 'You have unsaved changes. Are you sure you want to discard them?',
-          confirmLabel: 'Discard',
-          cancelLabel: 'Keep editing',
+          title: isTh ? 'ยกเลิกการเปลี่ยนแปลง?' : 'Discard changes?',
+          message: isTh
+              ? 'คุณมีข้อมูลที่ยังไม่ได้บันทึก ต้องการยกเลิกใช่หรือไม่?'
+              : 'You have unsaved changes. Are you sure you want to discard them?',
+          confirmLabel: isTh ? 'ยกเลิก' : 'Discard',
+          cancelLabel: isTh ? 'แก้ไขต่อ' : 'Keep editing',
           isDestructive: true,
           onConfirm: () {
             setState(() => _forceExit = true);
@@ -236,7 +320,8 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       return;
     }
 
-    _foodNameController.text = result.foodName!;
+    final effectiveName = _isThRead() ? ItemModel.getThaiFoodName(result.foodName!) : result.foodName!;
+    _foodNameController.text = effectiveName;
     _foodNameError = null;
     if (result.imagePath != null && result.imagePath!.isNotEmpty) {
       _imagePath = result.imagePath;
@@ -357,6 +442,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   }
 
   Future<void> _onSave() async {
+    final isTh = _isThRead();
     final name = _foodNameController.text.trim();
     final qtyText = _quantityController.text.trim();
     final parsedQty = double.tryParse(qtyText);
@@ -369,19 +455,19 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     String? dateErr;
 
     if (name.isEmpty) {
-      nameErr = 'Please enter a food name before saving';
+      nameErr = isTh ? 'กรุณากรอกชื่ออาหารก่อนบันทึก' : 'Please enter a food name before saving';
     }
     if (_selectedCategory == null || _selectedCategory!.isEmpty) {
-      catErr = 'Please select a category';
+      catErr = isTh ? 'กรุณาเลือกหมวดหมู่' : 'Please select a category';
     }
     if (qtyText.isEmpty || parsedQty == null || parsedQty <= 0) {
-      qtyErr = 'Please enter a valid quantity';
+      qtyErr = isTh ? 'กรุณากรอกจำนวนที่ถูกต้อง' : 'Please enter a valid quantity';
     }
     if (_selectedUnit == null || _selectedUnit!.isEmpty) {
-      unitErr = 'Please select a unit';
+      unitErr = isTh ? 'กรุณาเลือกหน่วย' : 'Please select a unit';
     }
     if (_selectedStorage == null || _selectedStorage!.isEmpty) {
-      storageErr = 'Please select a storage location';
+      storageErr = isTh ? 'กรุณาเลือกสถานที่จัดเก็บ' : 'Please select a storage location';
     }
 
     final dateInput = _expirationDateController.text.trim();
@@ -390,9 +476,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     }
 
     if (dateInput.isEmpty && _expirationDate == null) {
-      dateErr = 'Please enter or select an expiration date';
+      dateErr = isTh ? 'กรุณากรอกหรือเลือกวันหมดอายุ' : 'Please enter or select an expiration date';
     } else if (dateInput.isNotEmpty && _expirationDate == null) {
-      dateErr = 'Invalid date. Use MM/DD/YYYY (or YYYY-MM-DD)';
+      dateErr = isTh ? 'รูปแบบวันที่ไม่ถูกต้อง กรุณาใช้วันที่ที่ถูกต้อง' : 'Invalid date. Use MM/DD/YYYY (or YYYY-MM-DD)';
     }
 
     setState(() {
@@ -458,7 +544,11 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Added "${newItem.name}" successfully'),
+        content: Text(
+          isTh
+              ? 'เพิ่ม "${newItem.name}" เรียบร้อยแล้ว'
+              : 'Added "${newItem.name}" successfully',
+        ),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -563,6 +653,8 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
       return;
     }
 
+    final isTh = _isThRead();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -584,13 +676,13 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Remove Photo or Reset Form?',
-                    style: TextStyle(
+                    isTh ? 'นำรูปออกหรือรีเซ็ตแบบฟอร์ม?' : 'Remove Photo or Reset Form?',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF181D17),
@@ -608,17 +700,19 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                   ),
                   child: const Icon(Icons.photo_outlined, color: Color(0xFF2E6A44), size: 22),
                 ),
-                title: const Text(
-                  'Remove photo only',
-                  style: TextStyle(
+                title: Text(
+                  isTh ? 'นำรูปภาพออกเท่านั้น' : 'Remove photo only',
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF181D17),
                   ),
                 ),
-                subtitle: const Text(
-                  'Keep entered details and delete only the photo',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF5C665F)),
+                subtitle: Text(
+                  isTh
+                      ? 'เก็บรายละเอียดที่กรอกไว้ และลบเฉพาะรูปภาพ'
+                      : 'Keep entered details and delete only the photo',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF5C665F)),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -635,17 +729,19 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                   ),
                   child: const Icon(Icons.delete_sweep_outlined, color: Color(0xFFDC2626), size: 22),
                 ),
-                title: const Text(
-                  'Clear all and reset form',
-                  style: TextStyle(
+                title: Text(
+                  isTh ? 'ล้างข้อมูลทั้งหมดและรีเซ็ต' : 'Clear all and reset form',
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFFDC2626),
                   ),
                 ),
-                subtitle: const Text(
-                  'Delete photo and reset all food details',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF5C665F)),
+                subtitle: Text(
+                  isTh
+                      ? 'ลบรูปภาพและรีเซ็ตข้อมูลอาหารทั้งหมด'
+                      : 'Delete photo and reset all food details',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF5C665F)),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -661,6 +757,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
   }
 
   void _showChangePhotoSheet() {
+    final isTh = _isThRead();
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -674,7 +771,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
             children: [
               ListTile(
                 leading: const Icon(Icons.auto_awesome, color: Color(0xFF2E6A44)),
-                title: const Text('Scan Label with AI'),
+                title: Text(isTh ? 'สแกนฉลากด้วย AI' : 'Scan Label with AI'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _openScanLabelScanner();
@@ -682,7 +779,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFF2E6A44)),
-                title: const Text('Take Photo (Manual)'),
+                title: Text(isTh ? 'ถ่ายภาพ (ด้วยตัวเอง)' : 'Take Photo (Manual)'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickManualPhoto(ImageSource.camera);
@@ -690,7 +787,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined, color: Color(0xFF2E6A44)),
-                title: const Text('Choose from Gallery'),
+                title: Text(isTh ? 'เลือกจากคลังภาพ' : 'Choose from Gallery'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickManualPhoto(ImageSource.gallery);
@@ -698,7 +795,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text('Remove Photo', style: TextStyle(color: Colors.red)),
+                title: Text(isTh ? 'นำรูปภาพออก' : 'Remove Photo', style: const TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showRemoveOptionsSheet();
@@ -725,7 +822,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
     }
   }
 
-  Widget _buildScanCardContent() {
+  Widget _buildScanCardContent([bool isTh = false]) {
     if (_isScanning) {
       return Column(
         children: [
@@ -756,18 +853,22 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Analyzing label with Gemini AI Vision...',
-            style: TextStyle(
+          Text(
+            isTh
+                ? 'กำลังวิเคราะห์ฉลากด้วย Gemini AI Vision...'
+                : 'Analyzing label with Gemini AI Vision...',
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Color(0xFF181D17),
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Extracting product name and expiration date',
-            style: TextStyle(
+          Text(
+            isTh
+                ? 'กำลังดึงชื่อผลิตภัณฑ์และวันหมดอายุ'
+                : 'Extracting product name and expiration date',
+            style: const TextStyle(
               fontSize: 13,
               color: Color(0xFF414941),
             ),
@@ -860,7 +961,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _hasAnalyzed ? 'Label Scanned with AI' : 'Photo Attached',
+                          _hasAnalyzed
+                              ? (isTh ? 'สแกนฉลากด้วย AI แล้ว' : 'Label Scanned with AI')
+                              : (isTh ? 'แนบรูปภาพแล้ว' : 'Photo Attached'),
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -893,10 +996,12 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
             const SizedBox(height: 12),
             Text(
               _hasAnalyzed && _foodNameController.text.isNotEmpty
-                  ? 'Detected: ${_foodNameController.text}'
+                  ? (isTh
+                      ? 'ตรวจพบ: ${_foodNameController.text}'
+                      : 'Detected: ${_foodNameController.text}')
                   : (_foodNameController.text.isNotEmpty
                       ? _foodNameController.text
-                      : 'Food photo attached'),
+                      : (isTh ? 'แนบรูปภาพอาหารแล้ว' : 'Food photo attached')),
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -904,9 +1009,11 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Tap card to change photo, or tap ✕ to remove',
-              style: TextStyle(
+            Text(
+              isTh
+                  ? 'แตะการ์ดเพื่อเปลี่ยนรูป หรือแตะ ✕ เพื่อนำออก'
+                  : 'Tap card to change photo, or tap ✕ to remove',
+              style: const TextStyle(
                 fontSize: 13,
                 color: Color(0xFF414941),
               ),
@@ -926,18 +1033,20 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
           color: Color(0xFF181D17),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Add Photo or Scan Label',
-          style: TextStyle(
+        Text(
+          isTh ? 'เพิ่มรูปภาพหรือสแกนฉลาก' : 'Add Photo or Scan Label',
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Color(0xFF181D17),
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
-          "Scan label to autofill details, or take/upload a photo",
-          style: TextStyle(
+        Text(
+          isTh
+              ? 'สแกนฉลากเพื่อกรอกข้อมูลอัตโนมัติ หรือถ่ายภาพ/อัปโหลดภาพ'
+              : 'Scan label to autofill details, or take/upload a photo',
+          style: const TextStyle(
             fontSize: 13,
             color: Color(0xFF414941),
           ),
@@ -951,9 +1060,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
             key: const Key('add_item_scan_ai_btn'),
             onPressed: _openScanLabelScanner,
             icon: const Icon(Icons.auto_awesome, size: 18, color: Colors.white),
-            label: const Text(
-              'Scan Label with AI',
-              style: TextStyle(
+            label: Text(
+              isTh ? 'สแกนฉลากด้วย AI' : 'Scan Label with AI',
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -979,9 +1088,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 key: const Key('add_item_take_photo_btn'),
                 onPressed: () => _pickManualPhoto(ImageSource.camera),
                 icon: const Icon(Icons.camera_alt_outlined, size: 16, color: Color(0xFF2E6A44)),
-                label: const Text(
-                  'Take Photo',
-                  style: TextStyle(
+                label: Text(
+                  isTh ? 'ถ่ายภาพ' : 'Take Photo',
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF181D17),
@@ -1003,9 +1112,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                 key: const Key('add_item_gallery_btn'),
                 onPressed: () => _pickManualPhoto(ImageSource.gallery),
                 icon: const Icon(Icons.photo_library_outlined, size: 16, color: Color(0xFF2E6A44)),
-                label: const Text(
-                  'Gallery',
-                  style: TextStyle(
+                label: Text(
+                  isTh ? 'คลังภาพ' : 'Gallery',
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF181D17),
@@ -1029,6 +1138,8 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isTh = _isTh;
+
     return PopScope(
       canPop: !_hasUnsavedChanges,
       onPopInvokedWithResult: (didPop, _) {
@@ -1049,9 +1160,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                       onPressed: _handleBack,
                     ),
                     const SizedBox(width: 14),
-                    const Text(
-                      'Add items',
-                      style: TextStyle(
+                    Text(
+                      isTh ? 'เพิ่มรายการอาหาร' : 'Add items',
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181D17),
@@ -1080,7 +1191,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           width: 1.5,
                         ),
                       ),
-                      child: _buildScanCardContent(),
+                      child: _buildScanCardContent(isTh),
                     ),
                     const SizedBox(height: 20),
                     // Food Name Field
@@ -1092,7 +1203,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         fontWeight: FontWeight.w400,
                       ),
                       decoration: _inputDecoration(
-                        hintText: 'Food Name',
+                        hintText: isTh ? 'ชื่ออาหาร' : 'Food Name',
                         errorText: _foodNameError,
                       ),
                       onChanged: (_) {
@@ -1111,9 +1222,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         color: Color(0xFF181D17),
                         fontWeight: FontWeight.w400,
                       ),
-                      hint: const Text(
-                        'Category',
-                        style: TextStyle(
+                      hint: Text(
+                        isTh ? 'หมวดหมู่' : 'Category',
+                        style: const TextStyle(
                           color: Color(0xFF717971),
                           fontSize: 15,
                           fontWeight: FontWeight.w400,
@@ -1125,7 +1236,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           .map((c) => DropdownMenuItem(
                                 value: c,
                                 child: Text(
-                                  c,
+                                  _getCategoryDisplay(c, isTh),
                                   style: const TextStyle(
                                     fontSize: 15,
                                     color: Color(0xFF181D17),
@@ -1157,7 +1268,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                               fontWeight: FontWeight.w400,
                             ),
                             decoration: _inputDecoration(
-                              hintText: 'Quantity',
+                              hintText: isTh ? 'จำนวน' : 'Quantity',
                               errorText: _quantityError,
                             ),
                             onChanged: (_) {
@@ -1178,9 +1289,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                               color: Color(0xFF181D17),
                               fontWeight: FontWeight.w400,
                             ),
-                            hint: const Text(
-                              'Unit',
-                              style: TextStyle(
+                            hint: Text(
+                              isTh ? 'หน่วย' : 'Unit',
+                              style: const TextStyle(
                                 color: Color(0xFF717971),
                                 fontSize: 15,
                                 fontWeight: FontWeight.w400,
@@ -1192,7 +1303,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                                 .map((u) => DropdownMenuItem(
                                       value: u,
                                       child: Text(
-                                        u,
+                                        _getUnitDisplay(u, isTh),
                                         style: const TextStyle(
                                           fontSize: 15,
                                           color: Color(0xFF181D17),
@@ -1221,9 +1332,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         color: Color(0xFF181D17),
                         fontWeight: FontWeight.w400,
                       ),
-                      hint: const Text(
-                        'Storage Location',
-                        style: TextStyle(
+                      hint: Text(
+                        isTh ? 'สถานที่จัดเก็บ' : 'Storage Location',
+                        style: const TextStyle(
                           color: Color(0xFF717971),
                           fontSize: 15,
                           fontWeight: FontWeight.w400,
@@ -1235,7 +1346,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           .map((s) => DropdownMenuItem(
                                 value: s,
                                 child: Text(
-                                  s,
+                                  _getStorageDisplay(s, isTh),
                                   style: const TextStyle(
                                     fontSize: 15,
                                     color: Color(0xFF181D17),
@@ -1266,7 +1377,11 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('✨ Recalculated shelf life for $val (${_formatDate(recalculated)})'),
+                                content: Text(
+                                  isTh
+                                      ? '✨ คำนวณอายุการเก็บรักษาใหม่สำหรับ ${_getStorageDisplay(val, isTh)} (${_formatDate(recalculated)})'
+                                      : '✨ Recalculated shelf life for $val (${_formatDate(recalculated)})',
+                                ),
                                 backgroundColor: const Color(0xFF2D6A4F),
                                 duration: const Duration(seconds: 2),
                               ),
@@ -1291,7 +1406,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                         fontWeight: FontWeight.w400,
                       ),
                       decoration: _inputDecoration(
-                        hintText: 'Expiration Date (MM/DD/YYYY)',
+                        hintText: isTh ? 'วันหมดอายุ (วว/ดด/ปปปป)' : 'Expiration Date (MM/DD/YYYY)',
                         errorText: _expirationDateError,
                         suffixIcon: IconButton(
                           icon: const Icon(
@@ -1299,7 +1414,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                             size: 22,
                             color: Color(0xFF414941),
                           ),
-                          tooltip: 'Choose date',
+                          tooltip: isTh ? 'เลือกวันที่' : 'Choose date',
                           onPressed: () async {
                             final initial = _expirationDate ??
                                 _tryParseDate(_expirationDateController.text) ??
@@ -1349,11 +1464,13 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                       },
                     ),
                     const SizedBox(height: 6),
-                    const Padding(
-                      padding: EdgeInsets.only(left: 12.0),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 12.0),
                       child: Text(
-                        'Use-by or best-before date (MM/DD/YYYY)',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF414941)),
+                        isTh
+                            ? 'วันหมดอายุหรือควรบริโภคก่อน (วว/ดด/ปปปป)'
+                            : 'Use-by or best-before date (MM/DD/YYYY)',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF414941)),
                       ),
                     ),
                     const SizedBox(height: 28),
@@ -1371,7 +1488,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage> {
                           ),
                         ),
                         onPressed: _onSave,
-                        child: const Text('Save'),
+                        child: Text(isTh ? 'บันทึก' : 'Save'),
                       ),
                     ),
                   ],

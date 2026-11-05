@@ -17,7 +17,9 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = customLabel ?? status.label;
+    final isTh = Localizations.localeOf(context).languageCode == 'th';
+    final defaultLabel = isTh ? _getThaiStatusLabel(status) : status.label;
+    final text = customLabel ?? defaultLabel;
 
     Color bgColor;
     const Color fgColor = Colors.white;
@@ -65,3 +67,15 @@ class StatusBadge extends StatelessWidget {
     );
   }
 }
+
+String _getThaiStatusLabel(FreshnessStatus status) {
+  switch (status) {
+    case FreshnessStatus.fresh:
+      return 'สดใหม่';
+    case FreshnessStatus.useSoon:
+      return 'ควรบริโภคก่อน';
+    case FreshnessStatus.expired:
+      return 'หมดอายุแล้ว';
+  }
+}
+

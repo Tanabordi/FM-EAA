@@ -6,6 +6,7 @@ import '../../data/models/recipe_model.dart';
 import '../../../history/providers/history_provider.dart';
 import '../../../../data/repositories/item_repository.dart';
 import '../../../../data/models/item_model.dart';
+import '../../../../core/l10n/locale_provider.dart';
 import '../../../item/presentation/widgets/mark_consumed_sheet.dart';
 
 /// Screen #26: Recipe Details
@@ -28,6 +29,30 @@ class RecipeDetailPage extends ConsumerStatefulWidget {
 
 class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
   final Set<int> _checkedIngredients = {};
+
+  bool get _isTh {
+    try {
+      return ref.read(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  bool _isThRead() {
+    try {
+      return ref.read(localeProvider).languageCode == 'th';
+    } catch (_) {
+      try {
+        return Localizations.localeOf(context).languageCode == 'th';
+      } catch (_) {
+        return false;
+      }
+    }
+  }
 
   void _toggleIngredient(int index) {
     setState(() {
@@ -132,9 +157,11 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     if (!mounted) return;
 
     // 3. Show feedback SnackBar
+    final isTh = _isThRead();
+    final locUnit = ItemModel.localizeUnit(unit, isTh);
     final feedbackText = isCompletelyFinished
-        ? '✨ Finished all $itemName! Recorded to History.'
-        : '✨ Consumed ${amount.toInt()} $unit of $itemName! Recorded to History.';
+        ? (isTh ? '✨ บริโภค $itemName หมดแล้ว! บันทึกลงในประวัติเรียบร้อย' : '✨ Finished all $itemName! Recorded to History.')
+        : (isTh ? '✨ บริโภค $itemName ไป ${amount.toInt()} $locUnit! บันทึกลงในประวัติเรียบร้อย' : '✨ Consumed ${amount.toInt()} $unit of $itemName! Recorded to History.');
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -155,8 +182,21 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
     }
   }
 
+  String _localizeRecipeText(String text, bool isTh) {
+    if (!isTh || text.isEmpty) return text;
+    var result = text;
+    for (final entry in ItemModel.foodEnToThai.entries) {
+      if (result.toLowerCase().contains(entry.key)) {
+        result = result.replaceAll(RegExp(RegExp.escape(entry.key), caseSensitive: false), entry.value);
+      }
+    }
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
+    final isTh = _isTh;
     final recipe = widget.recipe;
 
     return Scaffold(
@@ -166,7 +206,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
           children: [
             // Top App Bar matching other screens via unified AppTopBar
             AppTopBar(
-              title: 'Recipe',
+              title: isTh ? 'สูตรอาหาร' : 'Recipe',
               onBackPressed: () {
                 try {
                   if (context.canPop()) {
@@ -209,7 +249,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     const SizedBox(height: 16),
                     // Recipe Title
                     Text(
-                      recipe.title,
+                      _localizeRecipeText(recipe.title, isTh),
                       style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -232,7 +272,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            'Uses expiring: ${recipe.expiringIngredient}',
+                            isTh
+                                ? 'ใช้วัตถุดิบใกล้หมดอายุ: ${recipe.localizedExpiringIngredient(true)}'
+                                : 'Uses expiring: ${recipe.expiringIngredient}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12.5,
@@ -259,7 +301,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                recipe.cookingTime,
+                                recipe.localizedCookingTime(isTh),
                                 style: const TextStyle(
                                   fontSize: 12.5,
                                   color: Color(0xFF414942),
@@ -277,7 +319,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            recipe.difficulty,
+                            recipe.localizedDifficulty(isTh),
                             style: const TextStyle(
                               fontSize: 12.5,
                               color: Color(0xFF414942),
@@ -289,9 +331,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     ),
                     const SizedBox(height: 22),
                     // Ingredients Section
-                    const Text(
-                      'Ingredients',
-                      style: TextStyle(
+                    Text(
+                      isTh ? 'วัตถุดิบที่ต้องใช้' : 'Ingredients',
+                      style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181D17),
@@ -336,7 +378,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  ing,
+                                  _localizeRecipeText(ing, isTh),
                                   style: TextStyle(
                                     fontSize: 15,
                                     color: const Color(0xFF181D17),
@@ -355,9 +397,9 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     }),
                     const SizedBox(height: 22),
                     // Instructions Section
-                    const Text(
-                      'Instructions',
-                      style: TextStyle(
+                    Text(
+                      isTh ? 'วิธีทำทีละขั้นตอน' : 'Instructions',
+                      style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181D17),
@@ -394,7 +436,7 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                stepText,
+                                _localizeRecipeText(stepText, isTh),
                                 style: const TextStyle(
                                   fontSize: 14.5,
                                   height: 1.4,
@@ -435,14 +477,14 @@ class _RecipeDetailPageState extends ConsumerState<RecipeDetailPage> {
                     elevation: 0,
                   ),
                   onPressed: _onDoneMarkAsConsumed,
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check, size: 22, color: Colors.white),
-                      SizedBox(width: 8),
+                      const Icon(Icons.check, size: 22, color: Colors.white),
+                      const SizedBox(width: 8),
                       Text(
-                        'Done! Mark as Consumed',
-                        style: TextStyle(
+                        isTh ? 'ทำเสร็จแล้ว! บันทึกว่ารับประทานแล้ว' : 'Done! Mark as Consumed',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
