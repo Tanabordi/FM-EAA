@@ -126,6 +126,22 @@ class NotificationService {
         );
       }
 
+      // Dispatch real-time push notification to all other fridge members via FCM
+      try {
+        const pushNotificationService = require('./pushNotificationService');
+        pushNotificationService.sendPushToMultipleUsers(memberIds, {
+          title,
+          body: message,
+          data: {
+            type: finalSubType,
+            fridgeId: fridgeId || '',
+            itemId: extra.item_id || extra.itemId || '',
+          },
+        }).catch((pushErr) => {
+          console.warn('[NotificationService] Push delivery notice:', pushErr.message);
+        });
+      } catch (_) {}
+
       if (shouldClose) {
         await conn.commit();
       }
@@ -283,6 +299,24 @@ class NotificationService {
       `;
       await conn.execute(sql, [id, userId, dbType, payloadStr]);
       await conn.commit();
+
+      // Dispatch real-time push notification to user's device via Firebase Cloud Messaging
+      try {
+        const pushNotificationService = require('./pushNotificationService');
+        pushNotificationService.sendPushToUser(userId, {
+          title: payloadObj.title || 'FM-EAA Notification',
+          body: payloadObj.message || '',
+          data: {
+            type: subType,
+            notificationId: id,
+            fridgeId: payloadObj.fridge_id || payloadObj.fridgeId || '',
+            itemId: payloadObj.item_id || payloadObj.itemId || '',
+          },
+        }).catch((pushErr) => {
+          console.warn('[NotificationService] Push delivery notice:', pushErr.message);
+        });
+      } catch (_) {}
+
       return {
         id,
         userId,
