@@ -1046,47 +1046,47 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 16,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    res.isAiEstimated
-                        ? Icons.auto_awesome
-                        : (res.expiryDate != null ? Icons.event_outlined : Icons.event_busy_outlined),
-                    color: res.isAiEstimated
-                        ? const Color(0xFF74C69D)
-                        : (res.expiryDate != null ? Colors.white70 : Colors.amber.shade300),
-                    size: 15,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${isTh ? 'วันหมดอายุ' : 'Expiry'}: $dateStr',
-                    style: TextStyle(
-                      color: res.isAiEstimated
-                          ? const Color(0xFFD8F3DC)
-                          : (res.expiryDate != null ? Colors.white70 : Colors.amber.shade300),
-                      fontSize: 13,
-                      fontWeight: res.expiryDate != null ? FontWeight.normal : FontWeight.w600,
-                    ),
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.only(top: 2.0),
+                child: Icon(
+                  res.isAiEstimated
+                      ? Icons.auto_awesome
+                      : (res.expiryDate != null ? Icons.event_outlined : Icons.event_busy_outlined),
+                  color: res.isAiEstimated
+                      ? const Color(0xFF74C69D)
+                      : (res.expiryDate != null ? Colors.white70 : Colors.amber.shade300),
+                  size: 15,
+                ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.kitchen_outlined, color: Colors.white70, size: 15),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${isTh ? 'สถานที่จัดเก็บ' : 'Storage'}: ${_getStorageDisplay(res.storage, isTh)}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${isTh ? 'วันหมดอายุ' : 'Expiry'}: $dateStr',
+                  style: TextStyle(
+                    color: res.isAiEstimated
+                        ? const Color(0xFFD8F3DC)
+                        : (res.expiryDate != null ? Colors.white70 : Colors.amber.shade300),
+                    fontSize: 13,
+                    fontWeight: res.expiryDate != null ? FontWeight.normal : FontWeight.w600,
                   ),
-                ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Row(
+            children: [
+              const Icon(Icons.kitchen_outlined, color: Colors.white70, size: 15),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${isTh ? 'สถานที่จัดเก็บ' : 'Storage'}: ${_getStorageDisplay(res.storage, isTh)}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
               ),
             ],
           ),
@@ -1177,6 +1177,8 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
                               ? (isTh ? 'กำลังอ่านวันหมดอายุ...' : 'Reading expiration date...')
                               : (isTh ? '📸 สแกนวันหมดอายุ (ฝา / ก้นบรรจุภัณฑ์)' : '📸 Scan Expiry Date (Cap / Bottom)'),
                           style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
                     ),
