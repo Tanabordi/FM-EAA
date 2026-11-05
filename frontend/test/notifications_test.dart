@@ -409,5 +409,23 @@ void main() {
       expect(find.text('Bob removed "Old Spinach" from "Kitchen Fridge"'), findsOneWidget);
       expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
     });
+
+    test('NotificationModel auto-corrects timestamps shifted into the future', () {
+      final now = DateTime.now();
+      // Simulate a timestamp that was pushed 7 hours into the future due to double-offset
+      final futureTime = now.add(const Duration(hours: 7));
+      final json = {
+        'id': 'notif_future',
+        'userId': 'user_1',
+        'type': 'expiry',
+        'title': 'Test',
+        'message': 'Test message',
+        'createdAt': futureTime.toUtc().toIso8601String(),
+      };
+
+      final model = NotificationModel.fromJson(json);
+      // The parsed time should have subtracted the timezone offset and be near 'now', NOT in the future
+      expect(model.createdAt.isBefore(now.add(const Duration(minutes: 5))), true);
+    });
   });
 }

@@ -75,19 +75,16 @@ class OnboardingPage extends StatelessWidget {
                       PrimaryButton(
                         label: isTh ? 'เปิดการแจ้งเตือน' : 'Enable Notifications',
                         onPressed: () async {
-                          try {
-                            await NotificationService().requestPermissions();
-                          } catch (_) {
-                            // Gracefully handle platform channel error
-                          }
-
-                          try {
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.setBool('notifications_permission_granted', true);
-                          } catch (_) {}
-
-                          if (context.mounted) {
-                            context.go('/fridges');
+                          final isGranted = await NotificationService().requestPermissionsWithFallback(context);
+                          if (isGranted) {
+                            try {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setBool('notifications_permission_granted', true);
+                            } catch (_) {}
+                            await NotificationService().syncFcmTokenWithBackend();
+                            if (context.mounted) {
+                              context.go('/fridges');
+                            }
                           }
                         },
                       ),

@@ -3,6 +3,11 @@
 .env*.local
 *.env
 
+# Firebase secrets
+backend/*firebase*.json
+backend/.fcm_tokens.json
+frontend/android/app/google-services.json
+
 # Operating System
 .DS_Store
 Thumbs.db

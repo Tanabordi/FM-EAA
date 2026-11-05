@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/theme/freshness_colors.dart';
 import '../../../../data/models/notification_model.dart';
 import '../../../../shared/widgets/app_back_button.dart';
@@ -15,7 +16,36 @@ class NotificationsPage extends ConsumerStatefulWidget {
   ConsumerState<NotificationsPage> createState() => _NotificationsPageState();
 }
 
-class _NotificationsPageState extends ConsumerState<NotificationsPage> {
+class _NotificationsPageState extends ConsumerState<NotificationsPage> with WidgetsBindingObserver {
+  bool _notificationsEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkNotificationPermission();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkNotificationPermission();
+    }
+  }
+
+  Future<void> _checkNotificationPermission() async {
+    final enabled = await NotificationService().areNotificationsEnabled();
+    if (mounted && enabled != _notificationsEnabled) {
+      setState(() => _notificationsEnabled = enabled);
+    }
+  }
+
   Future<void> _handleInviteResponse(NotificationModel notif, bool accept) async {
     final messenger = ScaffoldMessenger.of(context);
     final isTh = ref.read(localeProvider).languageCode == 'th';
@@ -92,10 +122,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         ],
       ),
       body: SafeArea(
-        child: notificationsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(child: Text('Error loading notifications: $err')),
-          data: (notifications) {
+        child: Column(
+          children: [
+            _buildNotificationWarningBanner(context),
+            Expanded(
+              child: notificationsAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, _) => Center(child: Text('Error loading notifications: $err')),
+                data: (notifications) {
             if (notifications.isEmpty) {
               return RefreshIndicator(
                 onRefresh: () async {
@@ -186,6 +220,58 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             );
           },
         ),
+      ),
+    ],
+  ),
+),
+);
+}
+
+  Widget _buildNotificationWarningBanner(BuildContext context) {
+    if (_notificationsEnabled) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3CD),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFEEBA)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.notifications_off_rounded, color: Color(0xFF856404), size: 22),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'การแจ้งเตือนถูกปิดอยู่ในการตั้งค่า',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF856404)),
+                ),
+                Text(
+                  'เปิดการแจ้งเตือนเพื่อรับการอัปเดตแบบเรียลไทม์',
+                  style: TextStyle(fontSize: 11.5, color: Color(0xFF856404)),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFF856404),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              await NotificationService().requestPermissionsWithFallback(context);
+              _checkNotificationPermission();
+            },
+            child: const Text('เปิดสิทธิ์', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

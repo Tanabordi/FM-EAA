@@ -21,11 +21,11 @@ async function initDbPool() {
       poolMax: 10,
       poolIncrement: 2,
       sessionCallback: (connection, requestedTag, cb) => {
-        if (config.oracle.schema) {
-          connection.execute(`ALTER SESSION SET CURRENT_SCHEMA = ${config.oracle.schema}`, cb);
-        } else {
-          cb();
-        }
+        const schemaClause = config.oracle.schema ? `CURRENT_SCHEMA = ${config.oracle.schema}` : '';
+        const sql = schemaClause
+          ? `ALTER SESSION SET ${schemaClause} TIME_ZONE = '+07:00'`
+          : `ALTER SESSION SET TIME_ZONE = '+07:00'`;
+        connection.execute(sql, cb);
       },
     });
     console.log(`[DB] Oracle Cloud connection pool initialized (Schema: ${config.oracle.schema || config.oracle.user}).`);
