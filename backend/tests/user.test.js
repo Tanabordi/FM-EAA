@@ -42,6 +42,40 @@ describe('User Profile & Device API Integration Tests', () => {
       expect(res.statusCode).toBe(400);
       expect(res.text).toMatch(/invalid url/i);
     });
+
+    it('proxies image successfully with valid https url', async () => {
+      const origFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: {
+          get: (header) => (header.toLowerCase() === 'content-type' ? 'image/png' : null),
+        },
+        arrayBuffer: jest.fn().mockResolvedValue(new Uint8Array([137, 80, 78, 71]).buffer),
+      });
+
+      const res = await request(app)
+        .get('/api/users/avatar-proxy')
+        .query({ url: 'https://images.example.com/photo.png' });
+
+      expect(res.statusCode).toBe(200);
+      global.fetch = origFetch;
+    });
+
+    it('returns error status when proxy upstream fetch fails', async () => {
+      const origFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+
+      const res = await request(app)
+        .get('/api/users/avatar-proxy')
+        .query({ url: 'https://images.example.com/notfound.png' });
+
+      expect(res.statusCode).toBe(404);
+      global.fetch = origFetch;
+    });
   });
 
   describe('GET /api/users/me', () => {
@@ -80,6 +114,50 @@ describe('User Profile & Device API Integration Tests', () => {
       expect(res.body.user.email).toBe(newEmail);
       expect(res.body.user.avatarUrl).toBe('https://images.example.com/new_avatar.png');
     });
+
+    it('validates username and email format constraints', async () => {
+      // Too short username
+      const shortUserRes = await request(app)
+        .patch('/api/users/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ username: 'ab' });
+      expect(shortUserRes.statusCode).toBe(400);
+      expect(shortUserRes.body.error).toMatch(/at least 3 characters/i);
+
+      // Invalid email
+      const badEmailRes = await request(app)
+        .patch('/api/users/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ email: 'not-an-email' });
+      expect(badEmailRes.statusCode).toBe(400);
+      expect(badEmailRes.body.error).toMatch(/valid email/i);
+    });
+
+    it('validates password change requirements', async () => {
+      // Missing current password
+      const noCurrRes = await request(app)
+        .patch('/api/users/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ newPassword: 'NewPassword123!' });
+      expect(noCurrRes.statusCode).toBe(400);
+      expect(noCurrRes.body.error).toMatch(/current password is required/i);
+
+      // Short new password
+      const shortPwRes = await request(app)
+        .patch('/api/users/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ currentPassword: 'Password123!', newPassword: 'short' });
+      expect(shortPwRes.statusCode).toBe(400);
+      expect(shortPwRes.body.error).toMatch(/at least 8 characters/i);
+
+      // Wrong current password
+      const wrongCurrRes = await request(app)
+        .patch('/api/users/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ currentPassword: 'WrongPassword999!', newPassword: 'NewValidPassword123!' });
+      expect(wrongCurrRes.statusCode).toBe(401);
+      expect(wrongCurrRes.body.error).toMatch(/does not match/i);
+    });
   });
 
   describe('POST /api/users/me/avatar', () => {
@@ -93,6 +171,15 @@ describe('User Profile & Device API Integration Tests', () => {
         .post('/api/users/me/avatar')
         .set('Authorization', `Bearer ${authToken}`);
       expect(res.statusCode).toBe(400);
+    });
+
+    it('returns 400 when uploaded file format is invalid', async () => {
+      const res = await request(app)
+        .post('/api/users/me/avatar')
+        .set('Authorization', `Bearer ${authToken}`)
+        .attach('avatar', Buffer.from('plain text file'), 'test.txt');
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toMatch(/invalid file type/i);
     });
   });
 
