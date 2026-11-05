@@ -70,8 +70,9 @@ class NotificationRepository {
           final models = <NotificationModel>[];
           final remoteIds = <String>{};
           for (final raw in rawList) {
-            if (raw is Map<String, dynamic>) {
-              final model = NotificationModel.fromJson(raw);
+            if (raw is Map) {
+              final rawMap = Map<String, dynamic>.from(raw);
+              final model = NotificationModel.fromJson(rawMap);
               await insertNotification(model);
               models.add(model);
               remoteIds.add(model.id);
@@ -109,6 +110,7 @@ class NotificationRepository {
       'title': notif.title,
       'message': notif.message,
       'fridge_id': notif.fridgeId,
+      'fridge_name': notif.fridgeName,
       'invite_id': notif.inviteId,
       'item_id': notif.itemId,
       'sub_type': notif.type,
