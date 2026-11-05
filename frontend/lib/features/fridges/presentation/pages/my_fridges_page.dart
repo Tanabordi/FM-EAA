@@ -407,10 +407,10 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
         children: [
           const Icon(Icons.notifications_off_rounded, color: Color(0xFF856404), size: 22),
           const SizedBox(width: 10),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'การแจ้งเตือนถูกปิดอยู่',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF856404)),
