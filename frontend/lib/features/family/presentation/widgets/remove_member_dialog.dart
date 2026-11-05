@@ -53,10 +53,10 @@ class RemoveMemberDialog extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     child: Text(
                       isTh ? 'ยกเลิก' : 'Cancel',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF181D18),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ),
