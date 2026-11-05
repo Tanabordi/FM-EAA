@@ -145,7 +145,7 @@ class ItemDetailsPage extends ConsumerWidget {
                     const SizedBox(height: 20),
                     // Item Name
                     Text(
-                      item.localizedName(isTh),
+                      item.name,
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -277,7 +277,7 @@ class ItemDetailsPage extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => MarkConsumedSheet(
-        itemName: item.localizedName(isTh),
+        itemName: item.name,
         availablePieces: item.quantity,
         unit: item.unit.contains('punnet')
             ? 'pieces'
@@ -286,7 +286,7 @@ class ItemDetailsPage extends ConsumerWidget {
                 : (item.unit.contains('bottle') ? 'bottle' : 'pieces')),
         onRecommendRecipe: () {
           Navigator.pop(sheetContext);
-          context.push('/fridges/$fridgeId/recipes?ingredient=${Uri.encodeComponent(item.localizedName(isTh))}&category=${Uri.encodeComponent(item.category)}');
+          context.push('/fridges/$fridgeId/recipes?ingredient=${Uri.encodeComponent(item.name)}&category=${Uri.encodeComponent(item.category)}');
         },
         onConsumed: (amount, finishedAll) {
           Navigator.pop(sheetContext); // Close sheet
@@ -297,7 +297,7 @@ class ItemDetailsPage extends ConsumerWidget {
             try {
               context.go('/fridges/$fridgeId');
             } catch (_) {}
-            FinishAllSnackbar.show(context, itemName: item.localizedName(isTh));
+            FinishAllSnackbar.show(context, itemName: item.name);
           }
         },
       ),
@@ -309,7 +309,7 @@ class ItemDetailsPage extends ConsumerWidget {
       context: context,
       builder: (_) => DeleteItemDialog(
         itemId: item.id,
-        itemName: item.localizedName(isTh),
+        itemName: item.name,
         onConfirm: () {
           ref.read(fridgeItemsProvider(fridgeId).notifier).deleteItem(item.id);
           if (context.canPop()) {

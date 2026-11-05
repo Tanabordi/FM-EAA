@@ -1006,7 +1006,7 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       );
     }
 
-    final name = isTh ? ItemModel.getThaiFoodName(res.foodName!) : res.foodName!;
+    final name = res.foodName ?? '';
     final dateStr = res.expiryDate != null
         ? '${res.expiryDate!.day}/${res.expiryDate!.month}/${res.expiryDate!.year}${res.isAiEstimated ? (isTh ? ' (AI ประเมิน)' : ' (AI Estimated)') : ''}'
         : (isTh ? 'ไม่ได้ระบุ (ไม่พบในรูปภาพ)' : 'Not specified (Not found on image)');
