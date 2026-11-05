@@ -655,7 +655,7 @@ class _EditItemPageState extends ConsumerState<EditItemPage> {
     if (_imagePath != null &&
         !_imagePath!.startsWith('http') &&
         !_imagePath!.startsWith('assets/') &&
-        !Platform.environment.containsKey('FLUTTER_TEST')) {
+        !isTestEnvironment()) {
       try {
         if (_imageBytes == null && !kIsWeb) {
           final f = File(_imagePath!);
