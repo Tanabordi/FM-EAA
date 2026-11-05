@@ -1617,6 +1617,16 @@ class $ItemsTableTable extends ItemsTable
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
       defaultValue: const Constant(true));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -1645,6 +1655,7 @@ class $ItemsTableTable extends ItemsTable
         expiryDate,
         imagePath,
         isSynced,
+        isDeleted,
         createdAt,
         updatedAt
       ];
@@ -1711,6 +1722,10 @@ class $ItemsTableTable extends ItemsTable
       context.handle(_isSyncedMeta,
           isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
     }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -1748,6 +1763,8 @@ class $ItemsTableTable extends ItemsTable
           .read(DriftSqlType.string, data['${effectivePrefix}image_path']),
       isSynced: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -1772,6 +1789,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
   final DateTime expiryDate;
   final String? imagePath;
   final bool isSynced;
+  final bool isDeleted;
   final DateTime createdAt;
   final DateTime updatedAt;
   const ItemEntry(
@@ -1785,6 +1803,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
       required this.expiryDate,
       this.imagePath,
       required this.isSynced,
+      required this.isDeleted,
       required this.createdAt,
       required this.updatedAt});
   @override
@@ -1802,6 +1821,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
       map['image_path'] = Variable<String>(imagePath);
     }
     map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -1821,6 +1841,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
           ? const Value.absent()
           : Value(imagePath),
       isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -1840,6 +1861,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
       expiryDate: serializer.fromJson<DateTime>(json['expiryDate']),
       imagePath: serializer.fromJson<String?>(json['imagePath']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -1858,6 +1880,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
       'expiryDate': serializer.toJson<DateTime>(expiryDate),
       'imagePath': serializer.toJson<String?>(imagePath),
       'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1874,6 +1897,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
           DateTime? expiryDate,
           Value<String?> imagePath = const Value.absent(),
           bool? isSynced,
+          bool? isDeleted,
           DateTime? createdAt,
           DateTime? updatedAt}) =>
       ItemEntry(
@@ -1887,6 +1911,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
         expiryDate: expiryDate ?? this.expiryDate,
         imagePath: imagePath.present ? imagePath.value : this.imagePath,
         isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
@@ -1903,6 +1928,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
           data.expiryDate.present ? data.expiryDate.value : this.expiryDate,
       imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1921,6 +1947,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
           ..write('expiryDate: $expiryDate, ')
           ..write('imagePath: $imagePath, ')
           ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1929,7 +1956,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
 
   @override
   int get hashCode => Object.hash(id, fridgeId, name, category, zone, quantity,
-      unit, expiryDate, imagePath, isSynced, createdAt, updatedAt);
+      unit, expiryDate, imagePath, isSynced, isDeleted, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1944,6 +1971,7 @@ class ItemEntry extends DataClass implements Insertable<ItemEntry> {
           other.expiryDate == this.expiryDate &&
           other.imagePath == this.imagePath &&
           other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1959,6 +1987,7 @@ class ItemsTableCompanion extends UpdateCompanion<ItemEntry> {
   final Value<DateTime> expiryDate;
   final Value<String?> imagePath;
   final Value<bool> isSynced;
+  final Value<bool> isDeleted;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -1973,6 +2002,7 @@ class ItemsTableCompanion extends UpdateCompanion<ItemEntry> {
     this.expiryDate = const Value.absent(),
     this.imagePath = const Value.absent(),
     this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1988,6 +2018,7 @@ class ItemsTableCompanion extends UpdateCompanion<ItemEntry> {
     required DateTime expiryDate,
     this.imagePath = const Value.absent(),
     this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2008,6 +2039,7 @@ class ItemsTableCompanion extends UpdateCompanion<ItemEntry> {
     Expression<DateTime>? expiryDate,
     Expression<String>? imagePath,
     Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -2023,6 +2055,7 @@ class ItemsTableCompanion extends UpdateCompanion<ItemEntry> {
       if (expiryDate != null) 'expiry_date': expiryDate,
       if (imagePath != null) 'image_path': imagePath,
       if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -2040,6 +2073,7 @@ class ItemsTableCompanion extends UpdateCompanion<ItemEntry> {
       Value<DateTime>? expiryDate,
       Value<String?>? imagePath,
       Value<bool>? isSynced,
+      Value<bool>? isDeleted,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<int>? rowid}) {
@@ -2054,6 +2088,7 @@ class ItemsTableCompanion extends UpdateCompanion<ItemEntry> {
       expiryDate: expiryDate ?? this.expiryDate,
       imagePath: imagePath ?? this.imagePath,
       isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -2093,6 +2128,9 @@ class ItemsTableCompanion extends UpdateCompanion<ItemEntry> {
     if (isSynced.present) {
       map['is_synced'] = Variable<bool>(isSynced.value);
     }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2118,6 +2156,7 @@ class ItemsTableCompanion extends UpdateCompanion<ItemEntry> {
           ..write('expiryDate: $expiryDate, ')
           ..write('imagePath: $imagePath, ')
           ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -3993,6 +4032,7 @@ typedef $$ItemsTableTableCreateCompanionBuilder = ItemsTableCompanion Function({
   required DateTime expiryDate,
   Value<String?> imagePath,
   Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<int> rowid,
@@ -4008,6 +4048,7 @@ typedef $$ItemsTableTableUpdateCompanionBuilder = ItemsTableCompanion Function({
   Value<DateTime> expiryDate,
   Value<String?> imagePath,
   Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<int> rowid,
@@ -4051,6 +4092,9 @@ class $$ItemsTableTableFilterComposer
 
   ColumnFilters<bool> get isSynced => $composableBuilder(
       column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -4098,6 +4142,9 @@ class $$ItemsTableTableOrderingComposer
   ColumnOrderings<bool> get isSynced => $composableBuilder(
       column: $table.isSynced, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -4144,6 +4191,9 @@ class $$ItemsTableTableAnnotationComposer
   GeneratedColumn<bool> get isSynced =>
       $composableBuilder(column: $table.isSynced, builder: (column) => column);
 
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -4184,6 +4234,7 @@ class $$ItemsTableTableTableManager extends RootTableManager<
             Value<DateTime> expiryDate = const Value.absent(),
             Value<String?> imagePath = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -4199,6 +4250,7 @@ class $$ItemsTableTableTableManager extends RootTableManager<
             expiryDate: expiryDate,
             imagePath: imagePath,
             isSynced: isSynced,
+            isDeleted: isDeleted,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
@@ -4214,6 +4266,7 @@ class $$ItemsTableTableTableManager extends RootTableManager<
             required DateTime expiryDate,
             Value<String?> imagePath = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -4229,6 +4282,7 @@ class $$ItemsTableTableTableManager extends RootTableManager<
             expiryDate: expiryDate,
             imagePath: imagePath,
             isSynced: isSynced,
+            isDeleted: isDeleted,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,

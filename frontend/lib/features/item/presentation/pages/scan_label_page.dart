@@ -10,6 +10,7 @@ import '../../../../data/models/item_model.dart';
 import '../../../../data/repositories/ai_repository.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../sync/connectivity_watcher.dart';
 import 'add_item_page.dart';
 
 /// Screen for scanning food labels with Google Gemini Vision API
@@ -357,6 +358,27 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
 
     if (_isAnalyzing) return;
 
+    // Check internet connectivity for Gemini AI Vision
+    if (!isTestEnvironment()) {
+      final isOnline = await ref.read(connectivityWatcherProvider).checkOnline();
+      if (!isOnline) {
+        if (!mounted) return;
+        final isTh = ref.read(localeProvider).languageCode == 'th';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isTh
+                  ? '⚠️ ไม่มีสัญญาณอินเทอร์เน็ต: ฟีเจอร์ AI สแกนฉลากต้องใช้งานออนไลน์ กรุณาเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่อีกครั้ง'
+                  : '⚠️ No internet connection: AI label scanning requires an active internet connection. Please reconnect and try again.',
+            ),
+            backgroundColor: const Color(0xFFC84040),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() {
       _isAnalyzing = true;
     });
@@ -538,6 +560,27 @@ class _ScanLabelPageState extends ConsumerState<ScanLabelPage>
       );
 
       if (picked != null) {
+        // Check internet connectivity for Gemini AI Vision
+        if (!isTestEnvironment()) {
+          final isOnline = await ref.read(connectivityWatcherProvider).checkOnline();
+          if (!isOnline) {
+            if (!mounted) return;
+            final isTh = ref.read(localeProvider).languageCode == 'th';
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  isTh
+                      ? '⚠️ ไม่มีสัญญาณอินเทอร์เน็ต: ฟีเจอร์ AI สแกนวันหมดอายุต้องใช้งานออนไลน์'
+                      : '⚠️ No internet connection: AI expiry scanning requires an active internet connection.',
+                ),
+                backgroundColor: const Color(0xFFC84040),
+                duration: const Duration(seconds: 4),
+              ),
+            );
+            return;
+          }
+        }
+
         setState(() {
           _isScanningExpiry = true;
         });

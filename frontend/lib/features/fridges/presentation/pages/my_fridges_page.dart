@@ -5,6 +5,7 @@ import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/widgets/fridge_card.dart';
+import '../../../../shared/widgets/offline_banner.dart';
 import '../widgets/cute_fridge_illustration.dart';
 import '../widgets/edit_fridge_sheet.dart';
 import '../widgets/delete_fridge_dialog.dart';
@@ -87,9 +88,16 @@ class _MyFridgesPageState extends ConsumerState<MyFridgesPage> with WidgetsBindi
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
-        child: isEmpty
-            ? _buildEmptyState(context, unreadNotifs, isTh)
-            : _buildPopulatedState(context, ref, fridges, theme, unreadNotifs, isTh),
+        child: Column(
+          children: [
+            const OfflineBanner(),
+            Expanded(
+              child: isEmpty
+                  ? _buildEmptyState(context, unreadNotifs, isTh)
+                  : _buildPopulatedState(context, ref, fridges, theme, unreadNotifs, isTh),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: isEmpty
           ? null
