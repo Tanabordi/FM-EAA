@@ -217,6 +217,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           ),
                         )
                       : ListView.builder(
+                          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                           physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.only(bottom: 24, top: 0),
                           itemCount: results.length,
