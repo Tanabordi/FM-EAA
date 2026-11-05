@@ -61,7 +61,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
         content: Text(
           isExpired
               ? 'Are you sure you want to clear all expired records for this fridge? This will also remove these expired items from your fridge inventory. This action cannot be undone.'
-              : 'Are you sure you want to clear all consumed records for this fridge? This action cannot be undone.',
+              : 'Are you sure you want to clear all consumed records for this fridge? This will only remove the records from your history and does not affect your fridge inventory. This action cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -97,11 +97,11 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isExpired ? 'Delete Expired Item' : 'Delete History Record'),
+        title: Text(isExpired ? 'Delete Expired Item' : 'Delete Consumption Record'),
         content: Text(
           isExpired
               ? 'Remove "${item.itemName}" from history and your fridge? This will also remove the item from your fridge inventory.'
-              : 'Remove "${item.itemName}" from history?',
+              : 'Remove "${item.itemName}" from consumption history? This will only remove the record from your history.',
         ),
         actions: [
           TextButton(
@@ -128,7 +128,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> with SingleTickerProv
           content: Text(
             isExpired
                 ? 'Removed "${item.itemName}" from history and fridge.'
-                : 'Removed "${item.itemName}" from history.',
+                : 'Removed "${item.itemName}" from consumption history.',
           ),
         ),
       );

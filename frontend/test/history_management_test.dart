@@ -339,6 +339,48 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('Tapping Consumed delete opens confirmation dialog with reassurance message', (tester) async {
+      final sampleItems = [
+        HistoryModel(
+          id: 'h1',
+          fridgeId: 'fridge_1',
+          itemName: 'Ice Cubes',
+          kind: 'consumed',
+          quantityChanged: 1,
+          quantityLeft: 1,
+          unit: 'pieces',
+          byUsername: 'Alex Lee',
+          createdAt: DateTime.now(),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            historyStreamProvider('fridge_1').overrideWith((ref) => Stream.value(sampleItems)),
+          ],
+          child: const MaterialApp(
+            home: HistoryPage(fridgeId: 'fridge_1'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // On Consumed tab by default, tap trash icon button
+      final deleteBtn = find.widgetWithIcon(IconButton, Icons.delete_outline);
+      expect(deleteBtn, findsWidgets);
+      await tester.tap(deleteBtn.first);
+      await tester.pumpAndSettle();
+
+      // Check Dialog appears with reassurance message
+      expect(find.text('Delete Consumption Record'), findsOneWidget);
+      expect(
+        find.text('Remove "Ice Cubes" from consumption history? This will only remove the record from your history.'),
+        findsOneWidget,
+      );
+    });
   });
 }
 
